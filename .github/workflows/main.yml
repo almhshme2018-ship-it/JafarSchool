@@ -25,14 +25,16 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Show project files
+      - name: Extract app.zip
         run: |
-          echo "=== Root ==="
+          echo "=== ZIP contents ==="
+          unzip -l app.zip
+          echo "=== Extracting ==="
+          unzip -q app.zip
+          echo "=== Root after extraction ==="
           ls -la
-          echo "=== App ==="
+          echo "=== App directory ==="
           ls -la app
-          echo "=== Gradle ==="
-          gradle --version
 
       - name: Build Debug APK
         run: |
