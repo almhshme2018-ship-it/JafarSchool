@@ -1,0 +1,7 @@
+plugins { id 'com.android.application' }
+
+android { namespace 'com.jafar.school'; compileSdk 35
+    defaultConfig { applicationId 'com.jafar.school'; minSdk 23; targetSdk 35; versionCode 12; versionName '1.8.0' }
+}
+
+dependencies { implementation "androidx.core:core:1.13.1" }
