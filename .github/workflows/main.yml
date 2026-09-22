@@ -46,10 +46,13 @@ jobs:
         run: |
           echo "=== app ==="
           ls -la app
+
           echo "=== app/src ==="
           ls -la app/src
+
           echo "=== settings.gradle ==="
           cat settings.gradle
+
           echo "=== root build.gradle ==="
           cat build.gradle
 
