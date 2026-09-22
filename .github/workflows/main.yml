@@ -8,14 +8,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -23,22 +23,44 @@ jobs:
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.11'
 
       - name: Extract app.zip
         run: |
           echo "=== ZIP contents ==="
           unzip -l app.zip
-          echo "=== Extracting ==="
+
+          echo "=== Extracting ZIP ==="
           unzip -q app.zip
-          echo "=== Root after extraction ==="
+
+          echo "=== Root ==="
           ls -la
-          echo "=== App directory ==="
+
+          echo "=== Searching for settings.gradle ==="
+          find . -name "settings.gradle" -o -name "settings.gradle.kts"
+
+          echo "=== Searching for app directory ==="
+          find . -maxdepth 4 -type d -name "app"
+
+      - name: Check Android project
+        run: |
+          echo "=== app ==="
           ls -la app
+          echo "=== app/src ==="
+          ls -la app/src
+          echo "=== settings.gradle ==="
+          cat settings.gradle
+          echo "=== root build.gradle ==="
+          cat build.gradle
 
       - name: Build Debug APK
         run: |
-          gradle assembleDebug --stacktrace --info
+          gradle assembleDebug --stacktrace
+
+      - name: Find APK
+        run: |
+          echo "=== APK files ==="
+          find . -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
