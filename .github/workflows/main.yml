@@ -30,44 +30,59 @@ jobs:
           echo "=== ZIP contents ==="
           unzip -l app.zip
 
-          echo "=== Extracting ZIP ==="
+          echo "=== Extracting ==="
           unzip -q app.zip
 
-          echo "=== Root ==="
-          ls -la
+          echo "=== Project files ==="
+          find . -maxdepth 5 -type f \( \
+            -name "settings.gradle" -o \
+            -name "settings.gradle.kts" -o \
+            -name "build.gradle" -o \
+            -name "build.gradle.kts" \
+          \) -print
 
-          echo "=== Searching for settings.gradle ==="
-          find . -name "settings.gradle" -o -name "settings.gradle.kts"
+      - name: Locate Android project
+        run: |
+          SETTINGS_FILE=$(find . -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) -print -quit)
 
-          echo "=== Searching for app directory ==="
-          find . -maxdepth 4 -type d -name "app"
+          if [ -z "$SETTINGS_FILE" ]; then
+            echo "ERROR: settings.gradle was not found."
+            echo "The ZIP structure is incomplete or settings.gradle is missing."
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+
+          echo "Android project found at: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Check Android project
         run: |
-          echo "=== app ==="
-          ls -la app
+          echo "=== PROJECT_DIR ==="
+          echo "$PROJECT_DIR"
 
-          echo "=== app/src ==="
-          ls -la app/src
+          echo "=== Project root ==="
+          ls -la "$PROJECT_DIR"
 
           echo "=== settings.gradle ==="
-          cat settings.gradle
+          cat "$PROJECT_DIR/settings.gradle"
 
-          echo "=== root build.gradle ==="
-          cat build.gradle
+          echo "=== App directory ==="
+          ls -la "$PROJECT_DIR/app"
 
       - name: Build Debug APK
         run: |
+          cd "$PROJECT_DIR"
           gradle assembleDebug --stacktrace
 
       - name: Find APK
         run: |
           echo "=== APK files ==="
-          find . -type f -name "*.apk" -print
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: JafarSchool-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: '**/app/build/outputs/apk/debug/*.apk'
           if-no-files-found: error
