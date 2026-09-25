@@ -1,4 +1,4 @@
-name: Build JafarSchool APK
+name: Locate JafarSchool Project
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build:
+  locate:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,10 +21,15 @@ jobs:
         run: unzip -q *.zip -d extracted
 
       - name: Find Project
-        run: find extracted -name settings.gradle -print
+        run: |
+          SETTINGS=$(find extracted -name settings.gradle -print | head -n 1)
+          echo "settings.gradle:"
+          echo "$SETTINGS"
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+          PROJECT=$(dirname "$SETTINGS")
+
+          echo "Project directory:"
+          echo "$PROJECT"
+
+          echo "=== Project files ==="
+          ls -la "$PROJECT"
