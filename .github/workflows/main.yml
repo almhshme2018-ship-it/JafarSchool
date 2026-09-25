@@ -27,27 +27,17 @@ jobs:
 
       - name: Extract app.zip
         run: |
-          echo "=== ZIP contents ==="
-          unzip -l app.zip
-
-          echo "=== Extracting ==="
           unzip -q app.zip
-
-          echo "=== Project files ==="
-          find . -maxdepth 5 -type f \( \
-            -name "settings.gradle" -o \
-            -name "settings.gradle.kts" -o \
-            -name "build.gradle" -o \
-            -name "build.gradle.kts" \
-          \) -print
+          echo "=== Extracted files ==="
+          find . -maxdepth 5 -type f | sort
 
       - name: Locate Android project
+        shell: bash
         run: |
           SETTINGS_FILE=$(find . -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) -print -quit)
 
           if [ -z "$SETTINGS_FILE" ]; then
             echo "ERROR: settings.gradle was not found."
-            echo "The ZIP structure is incomplete or settings.gradle is missing."
             exit 1
           fi
 
@@ -57,27 +47,25 @@ jobs:
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Check Android project
+        shell: bash
         run: |
-          echo "=== PROJECT_DIR ==="
-          echo "$PROJECT_DIR"
-
+          echo "PROJECT_DIR=$PROJECT_DIR"
           echo "=== Project root ==="
           ls -la "$PROJECT_DIR"
-
           echo "=== settings.gradle ==="
           cat "$PROJECT_DIR/settings.gradle"
-
-          echo "=== App directory ==="
+          echo "=== app ==="
           ls -la "$PROJECT_DIR/app"
 
       - name: Build Debug APK
+        shell: bash
         run: |
           cd "$PROJECT_DIR"
           gradle assembleDebug --stacktrace
 
       - name: Find APK
+        shell: bash
         run: |
-          echo "=== APK files ==="
           find "$PROJECT_DIR" -type f -name "*.apk" -print
 
       - name: Upload APK
