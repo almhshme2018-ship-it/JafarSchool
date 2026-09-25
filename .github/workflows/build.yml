@@ -1,4 +1,4 @@
-name: Diagnose Gradle Files
+name: Show JafarSchool Structure
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  diagnose:
+  show:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,21 +19,14 @@ jobs:
           mkdir -p extracted
           unzip -q *.zip -d extracted
 
-      - name: Find Gradle files
+      - name: Show Gradle Files
         run: |
-          echo "=== ALL GRADLE FILES ==="
-          find extracted -type f \( \
-            -name "settings.gradle" \
-            -o -name "settings.gradle.kts" \
-            -o -name "build.gradle" \
-            -o -name "build.gradle.kts" \
-            -o -name "gradle-wrapper.jar" \
-            -o -name "gradle-wrapper.properties" \
-            -o -name "gradlew" \
-            -o -name "gradlew.bat" \
-          \) -print
+          echo "START_GRADLE_FILES"
+          find extracted -type f | grep -E 'gradle|settings' || true
+          echo "END_GRADLE_FILES"
 
-      - name: Show project folders
+      - name: Show Project Files
         run: |
-          echo "=== PROJECT FOLDERS ==="
-          find extracted -maxdepth 4 -type d -print
+          echo "START_PROJECT_FILES"
+          find extracted -maxdepth 5 -type f | head -100
+          echo "END_PROJECT_FILES"
