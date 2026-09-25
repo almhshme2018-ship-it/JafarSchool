@@ -1,4 +1,4 @@
-name: Extract JafarSchool Project
+name: Find Android Project
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  extract:
+  find-project:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,12 +33,29 @@ jobs:
           mkdir -p extracted
           unzip -q "$ZIP_PATH" -d extracted
 
-          echo "=== Extracted project ==="
+          echo "=== Extracted files ==="
           find extracted -maxdepth 8 -type f -print
 
-      - name: Upload extracted project
-        uses: actions/upload-artifact@v4
-        with:
-          name: JafarSchool-Extracted-Project
-          path: extracted/
-          if-no-files-found: error
+      - name: Find settings.gradle
+        run: |
+          SETTINGS_FILE=$(find extracted -type f \
+            \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
+            | head -n 1)
+
+          if [ -z "$SETTINGS_FILE" ]; then
+            echo "ERROR: settings.gradle not found"
+            echo "=== Extracted folders ==="
+            find extracted -maxdepth 8 -type d -print
+            exit 1
+          fi
+
+          echo "================================"
+          echo "Android project found successfully"
+          echo "settings.gradle:"
+          echo "$SETTINGS_FILE"
+          echo "================================"
+
+          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+
+          echo "Project directory:"
+          echo "$PROJECT_DIR"
