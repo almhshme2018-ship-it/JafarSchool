@@ -1,0 +1,92 @@
+name: Build JafarSchool APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check uploaded project
+        run: |
+          echo "=== Repository files ==="
+          find . -maxdepth 3 -type f -print
+
+      - name: Find ZIP
+        run: |
+          ZIP=$(find . -maxdepth 2 -type f -name "*.zip" | head -1)
+
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: ZIP project not found"
+            exit 1
+          fi
+
+          echo "Found: $ZIP"
+          echo "ZIP_PATH=$ZIP" >> "$GITHUB_ENV"
+
+      - name: Extract project
+        run: |
+          mkdir -p extracted
+          unzip -q "$ZIP_PATH" -d extracted
+
+          echo "=== Extracted files ==="
+          find extracted -maxdepth 5 -type f -print
+
+      - name: Locate Android project
+        run: |
+          SETTINGS=$(find extracted -type f \
+            \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
+            | head -1)
+
+          if [ -z "$SETTINGS" ]; then
+            echo "ERROR: settings.gradle not found"
+            echo "=== Full extracted tree ==="
+            find extracted -maxdepth 8 -print
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS")
+
+          echo "Android project:"
+          echo "$PROJECT_DIR"
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Find APK
+        run: |
+          echo "=== APK files ==="
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
+
+      -       - name: Find APK
+        run: |
+          echo "=== APK files ==="
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JafarSchool-v2.0.0-APK
+          path: extracted/**/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
