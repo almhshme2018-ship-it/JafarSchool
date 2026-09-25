@@ -1,4 +1,4 @@
-name: Test JafarSchool Gradle
+name: Check JafarSchool Gradle
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,18 +20,21 @@ jobs:
       - name: Extract ZIP
         run: unzip -q *.zip -d extracted
 
-      - name: Test Gradle
+      - name: Find Project
         run: |
           SETTINGS=$(find extracted -name settings.gradle -print | head -n 1)
+          echo "SETTINGS=$SETTINGS"
+
           PROJECT=$(dirname "$SETTINGS")
+          echo "PROJECT=$PROJECT"
 
-          echo "Project directory:"
-          echo "$PROJECT"
-
-          echo "=== Gradle files ==="
+          echo "=== Project files ==="
           ls -la "$PROJECT"
 
-          chmod +x "$PROJECT/gradlew"
+      - name: Find Gradle Wrapper
+        run: |
+          echo "=== gradlew files ==="
+          find extracted -type f -name gradlew -print
 
-          echo "=== Gradle version ==="
-          "$PROJECT/gradlew" --version
+          echo "=== Gradle wrapper files ==="
+          find extracted -type f \( -name gradle-wrapper.jar -o -name gradle-wrapper.properties \) -print
