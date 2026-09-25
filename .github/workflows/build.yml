@@ -14,50 +14,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check repository
-        run: |
-          echo "=== Repository files ==="
-          find . -maxdepth 3 -type f -print
+      - name: List files
+        run: find . -maxdepth 3 -type f -print
 
       - name: Find ZIP
-        shell: bash
-        run: |
-          ZIP_FILE=$(find . -maxdepth 2 -type f -name "*.zip" | head -n 1)
-
-          if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: ZIP project not found"
-            exit 1
-          fi
-
-          echo "Found ZIP: $ZIP_FILE"
-          echo "ZIP_PATH=$ZIP_FILE" >> "$GITHUB_ENV"
-
-      - name: Extract project
-        shell: bash
-        run: |
-          mkdir -p extracted
-          unzip -q "$ZIP_PATH" -d extracted
-
-          echo "=== Extracted project ==="
-          find extracted -maxdepth 5 -type f -print
-
-      - name: Locate Android project
-        shell: bash
-        run: |
-          SETTINGS_FILE=$(find extracted -type f \
-            \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
-            | head -n 1)
-
-          if [ -z "$SETTINGS_FILE" ]; then
-            echo "ERROR: Android project not found"
-            find extracted -maxdepth 8 -print
-            exit 1
-          fi
-
-          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
-
-          echo "Android project directory: $PROJECT_DIR"
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+        run: find . -maxdepth 2 -type f -name "*.zip" -print
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -67,23 +28,3 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Build APK
-        working-directory: ${{ env.PROJECT_DIR }}
-        shell: bash
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
-
-      - name: Find APK
-        shell: bash
-        run: |
-          echo "=== APK files ==="
-          find "$PROJECT_DIR" -type f -name "*.apk" -print
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: JafarSchool-v2.0.0-APK
-          path: extracted/**/app/build/outputs/apk/**/*.apk
-          if-no-files-found: error
