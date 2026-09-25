@@ -1,4 +1,4 @@
-name: Build JafarSchool APK
+name: Extract JafarSchool Project
 
 on:
   workflow_dispatch:
@@ -7,24 +7,38 @@ on:
       - main
 
 jobs:
-  build:
+  extract:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: List files
-        run: find . -maxdepth 3 -type f -print
-
       - name: Find ZIP
-        run: find . -maxdepth 2 -type f -name "*.zip" -print
+        run: |
+          ZIP_FILE=$(find . -maxdepth 2 -type f -name "*.zip" | head -n 1)
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: ZIP file not found"
+            exit 1
+          fi
+
+          echo "ZIP found:"
+          echo "$ZIP_FILE"
+
+          echo "ZIP_PATH=$ZIP_FILE" >> "$GITHUB_ENV"
+
+      - name: Extract ZIP
+        run: |
+          mkdir -p extracted
+          unzip -q "$ZIP_PATH" -d extracted
+
+          echo "=== Extracted project ==="
+          find extracted -maxdepth 8 -type f -print
+
+      - name: Upload extracted project
+        uses: actions/upload-artifact@v4
         with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+          name: JafarSchool-Extracted-Project
+          path: extracted/
+          if-no-files-found: error
