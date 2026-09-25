@@ -14,33 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Find ZIP
+      - name: Extract project
         run: |
-          ZIP_FILE=$(find . -maxdepth 2 -type f -name '*.zip' | head -n 1)
-
-          if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: ZIP file not found"
-            exit 1
-          fi
-
-          echo "ZIP: $ZIP_FILE"
-          unzip -q "$ZIP_FILE" -d extracted
+          mkdir extracted
+          unzip -q *.zip -d extracted
 
       - name: Find Android project
         run: |
-          SETTINGS_FILE=$(find extracted -type f \( -name 'settings.gradle' -o -name 'settings.gradle.kts' \) | head -n 1)
-
-          if [ -z "$SETTINGS_FILE" ]; then
-            echo "ERROR: settings.gradle not found"
-            exit 1
-          fi
-
-          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
-
-          echo "Android project:"
-          echo "$PROJECT_DIR"
-
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          SETTINGS=$(find extracted -name settings.gradle | head -n 1)
+          echo "SETTINGS=$SETTINGS"
+          PROJECT=$(dirname "$SETTINGS")
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -53,14 +37,9 @@ jobs:
 
       - name: Build APK
         run: |
-          cd "$PROJECT_DIR"
+          cd "$PROJECT"
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
-
-      - name: Find APK
-        run: |
-          echo "=== APK files ==="
-          find "$PROJECT_DIR" -type f -name '*.apk' -print
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
