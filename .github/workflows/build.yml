@@ -1,4 +1,4 @@
-name: Locate JafarSchool Project
+name: Test JafarSchool Gradle
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  locate:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,16 +20,18 @@ jobs:
       - name: Extract ZIP
         run: unzip -q *.zip -d extracted
 
-      - name: Find Project
+      - name: Test Gradle
         run: |
           SETTINGS=$(find extracted -name settings.gradle -print | head -n 1)
-          echo "settings.gradle:"
-          echo "$SETTINGS"
-
           PROJECT=$(dirname "$SETTINGS")
 
           echo "Project directory:"
           echo "$PROJECT"
 
-          echo "=== Project files ==="
+          echo "=== Gradle files ==="
           ls -la "$PROJECT"
+
+          chmod +x "$PROJECT/gradlew"
+
+          echo "=== Gradle version ==="
+          "$PROJECT/gradlew" --version
