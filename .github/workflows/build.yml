@@ -1,4 +1,4 @@
-name: Test JafarSchool Gradle Wrapper
+name: Diagnose JafarSchool
 
 on:
   workflow_dispatch:
@@ -7,41 +7,40 @@ on:
       - main
 
 jobs:
-  build:
+  diagnose:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: List ZIP
-        run: ls -la *.zip
+      - name: Show ZIP
+        run: |
+          echo "=== ZIP files ==="
+          ls -la *.zip
 
       - name: Extract ZIP
-        run: unzip -q *.zip -d extracted
-
-      - name: Find and test Gradle
         run: |
-          GRADLEW=$(find extracted -type f -name gradlew | head -n 1)
+          echo "=== Extracting ==="
+          unzip -q *.zip -d extracted
+          echo "Extraction completed"
 
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew not found"
-            find extracted -maxdepth 8 -type f -print
-            exit 1
-          fi
+      - name: Show project tree
+        run: |
+          echo "=== Project tree ==="
+          find extracted -maxdepth 8 -type f -print
 
-          echo "Gradle wrapper found:"
-          echo "$GRADLEW"
+      - name: Find settings.gradle
+        run: |
+          echo "=== settings.gradle ==="
+          find extracted -type f -name settings.gradle -print
 
-          PROJECT=$(dirname "$GRADLEW")
+      - name: Find gradlew
+        run: |
+          echo "=== gradlew ==="
+          find extracted -type f -name gradlew -print
 
-          echo "Project directory:"
-          echo "$PROJECT"
-
-          echo "=== Gradle wrapper files ==="
-          ls -la "$PROJECT"
-
-          chmod +x "$GRADLEW"
-
-          echo "=== Gradle version ==="
-          "$GRADLEW" --version
+      - name: Find build.gradle
+        run: |
+          echo "=== build.gradle ==="
+          find extracted -type f \( -name build.gradle -o -name build.gradle.kts \) -print
