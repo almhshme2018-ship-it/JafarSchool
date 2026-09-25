@@ -1,4 +1,4 @@
-name: Diagnose JafarSchool
+name: Diagnose Gradle Files
 
 on:
   workflow_dispatch:
@@ -14,33 +14,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show ZIP
-        run: |
-          echo "=== ZIP files ==="
-          ls -la *.zip
-
       - name: Extract ZIP
         run: |
-          echo "=== Extracting ==="
+          mkdir -p extracted
           unzip -q *.zip -d extracted
-          echo "Extraction completed"
 
-      - name: Show project tree
+      - name: Find Gradle files
         run: |
-          echo "=== Project tree ==="
-          find extracted -maxdepth 8 -type f -print
+          echo "=== ALL GRADLE FILES ==="
+          find extracted -type f \( \
+            -name "settings.gradle" \
+            -o -name "settings.gradle.kts" \
+            -o -name "build.gradle" \
+            -o -name "build.gradle.kts" \
+            -o -name "gradle-wrapper.jar" \
+            -o -name "gradle-wrapper.properties" \
+            -o -name "gradlew" \
+            -o -name "gradlew.bat" \
+          \) -print
 
-      - name: Find settings.gradle
+      - name: Show project folders
         run: |
-          echo "=== settings.gradle ==="
-          find extracted -type f -name settings.gradle -print
-
-      - name: Find gradlew
-        run: |
-          echo "=== gradlew ==="
-          find extracted -type f -name gradlew -print
-
-      - name: Find build.gradle
-        run: |
-          echo "=== build.gradle ==="
-          find extracted -type f \( -name build.gradle -o -name build.gradle.kts \) -print
+          echo "=== PROJECT FOLDERS ==="
+          find extracted -maxdepth 4 -type d -print
