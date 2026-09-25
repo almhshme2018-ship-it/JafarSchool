@@ -14,36 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract project
-        run: |
-          mkdir extracted
-          unzip -q *.zip -d extracted
+      - name: List ZIP
+        run: ls -la *.zip
 
-      - name: Find Android project
-        run: |
-          SETTINGS=$(find extracted -name settings.gradle | head -n 1)
-          echo "SETTINGS=$SETTINGS"
-          PROJECT=$(dirname "$SETTINGS")
-          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
+      - name: Extract ZIP
+        run: unzip -q *.zip -d extracted
+
+      - name: Find Project
+        run: find extracted -name settings.gradle -print
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Build APK
-        run: |
-          cd "$PROJECT"
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: JafarSchool-APK
-          path: '**/app/build/outputs/apk/**/*.apk'
-          if-no-files-found: error
