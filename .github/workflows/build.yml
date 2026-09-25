@@ -79,11 +79,6 @@ jobs:
           echo "=== APK files ==="
           find "$PROJECT_DIR" -type f -name "*.apk" -print
 
-      -       - name: Find APK
-        run: |
-          echo "=== APK files ==="
-          find "$PROJECT_DIR" -type f -name "*.apk" -print
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
