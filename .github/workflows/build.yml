@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  test-gradle:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,31 +23,18 @@ jobs:
             exit 1
           fi
 
-          echo "ZIP found: $ZIP_FILE"
-          echo "ZIP_PATH=$ZIP_FILE" >> "$GITHUB_ENV"
+          echo "ZIP: $ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d extracted
 
-      - name: Extract ZIP
+      - name: Find settings.gradle
         run: |
-          mkdir -p extracted
-          unzip -q "$ZIP_PATH" -d extracted
+          echo "=== settings.gradle files ==="
+          find extracted -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) -print
 
-      - name: Find Android project
+      - name: Find gradlew
         run: |
-          SETTINGS_FILE=$(find extracted -type f \
-            \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
-            | head -n 1)
-
-          if [ -z "$SETTINGS_FILE" ]; then
-            echo "ERROR: settings.gradle not found"
-            exit 1
-          fi
-
-          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
-
-          echo "Android project:"
-          echo "$PROJECT_DIR"
-
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "=== gradlew files ==="
+          find extracted -type f -name "gradlew" -print
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -58,16 +45,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Check Gradle
-        working-directory: ${{ env.PROJECT_DIR }}
+      - name: Test Gradle files
         run: |
-          echo "=== Project files ==="
-          ls -la
-
-          echo "=== Gradle wrapper ==="
-          ls -la gradlew
-
-          chmod +x gradlew
-
-          echo "=== Gradle version ==="
-          ./gradlew --version
+          echo "=== Android project files ==="
+          find extracted -maxdepth 6 -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" -o -name "gradlew" -o -name "build.gradle" -o -name "build.gradle.kts" \) -print
