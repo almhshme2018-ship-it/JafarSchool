@@ -14,49 +14,49 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check uploaded project
+      - name: Check repository
         run: |
           echo "=== Repository files ==="
           find . -maxdepth 3 -type f -print
 
       - name: Find ZIP
+        shell: bash
         run: |
-          ZIP=$(find . -maxdepth 2 -type f -name "*.zip" | head -1)
+          ZIP_FILE=$(find . -maxdepth 2 -type f -name "*.zip" | head -n 1)
 
-          if [ -z "$ZIP" ]; then
+          if [ -z "$ZIP_FILE" ]; then
             echo "ERROR: ZIP project not found"
             exit 1
           fi
 
-          echo "Found: $ZIP"
-          echo "ZIP_PATH=$ZIP" >> "$GITHUB_ENV"
+          echo "Found ZIP: $ZIP_FILE"
+          echo "ZIP_PATH=$ZIP_FILE" >> "$GITHUB_ENV"
 
       - name: Extract project
+        shell: bash
         run: |
           mkdir -p extracted
           unzip -q "$ZIP_PATH" -d extracted
 
-          echo "=== Extracted files ==="
+          echo "=== Extracted project ==="
           find extracted -maxdepth 5 -type f -print
 
       - name: Locate Android project
+        shell: bash
         run: |
-          SETTINGS=$(find extracted -type f \
+          SETTINGS_FILE=$(find extracted -type f \
             \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
-            | head -1)
+            | head -n 1)
 
-          if [ -z "$SETTINGS" ]; then
-            echo "ERROR: settings.gradle not found"
-            echo "=== Full extracted tree ==="
+          if [ -z "$SETTINGS_FILE" ]; then
+            echo "ERROR: Android project not found"
             find extracted -maxdepth 8 -print
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$SETTINGS")
+          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
 
-          echo "Android project:"
-          echo "$PROJECT_DIR"
-
+          echo "Android project directory: $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Setup Java
@@ -70,11 +70,13 @@ jobs:
 
       - name: Build APK
         working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
       - name: Find APK
+        shell: bash
         run: |
           echo "=== APK files ==="
           find "$PROJECT_DIR" -type f -name "*.apk" -print
