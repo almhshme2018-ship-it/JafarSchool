@@ -1,4 +1,4 @@
-name: Check JafarSchool Gradle
+name: Test JafarSchool Gradle Wrapper
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,21 +20,28 @@ jobs:
       - name: Extract ZIP
         run: unzip -q *.zip -d extracted
 
-      - name: Find Project
+      - name: Find and test Gradle
         run: |
-          SETTINGS=$(find extracted -name settings.gradle -print | head -n 1)
-          echo "SETTINGS=$SETTINGS"
+          GRADLEW=$(find extracted -type f -name gradlew | head -n 1)
 
-          PROJECT=$(dirname "$SETTINGS")
-          echo "PROJECT=$PROJECT"
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew not found"
+            find extracted -maxdepth 8 -type f -print
+            exit 1
+          fi
 
-          echo "=== Project files ==="
-          ls -la "$PROJECT"
+          echo "Gradle wrapper found:"
+          echo "$GRADLEW"
 
-      - name: Find Gradle Wrapper
-        run: |
-          echo "=== gradlew files ==="
-          find extracted -type f -name gradlew -print
+          PROJECT=$(dirname "$GRADLEW")
+
+          echo "Project directory:"
+          echo "$PROJECT"
 
           echo "=== Gradle wrapper files ==="
-          find extracted -type f \( -name gradle-wrapper.jar -o -name gradle-wrapper.properties \) -print
+          ls -la "$PROJECT"
+
+          chmod +x "$GRADLEW"
+
+          echo "=== Gradle version ==="
+          "$GRADLEW" --version
