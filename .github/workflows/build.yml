@@ -1,4 +1,4 @@
-name: Test JafarSchool Gradle
+name: Build JafarSchool APK
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,15 +26,23 @@ jobs:
           echo "ZIP: $ZIP_FILE"
           unzip -q "$ZIP_FILE" -d extracted
 
-      - name: Find settings.gradle
+      - name: Find Android project
         run: |
-          echo "=== settings.gradle files ==="
-          find extracted -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) -print
+          SETTINGS_FILE=$(find extracted -type f \
+            \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
+            | head -n 1)
 
-      - name: Find gradlew
-        run: |
-          echo "=== gradlew files ==="
-          find extracted -type f -name "gradlew" -print
+          if [ -z "$SETTINGS_FILE" ]; then
+            echo "ERROR: settings.gradle not found"
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+
+          echo "Android project:"
+          echo "$PROJECT_DIR"
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -45,7 +53,20 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Test Gradle files
+      - name: Build APK
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          echo "=== Android project files ==="
-          find extracted -maxdepth 6 -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" -o -name "gradlew" -o -name "build.gradle" -o -name "build.gradle.kts" \) -print
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Find APK
+        run: |
+          echo "=== APK files ==="
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JafarSchool-APK
+          path: "**/app/build/outputs/apk/**/*.apk"
+          if-no-files-found: error
