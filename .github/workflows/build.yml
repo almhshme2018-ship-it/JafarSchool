@@ -1,4 +1,4 @@
-name: Find Android Project
+name: Test JafarSchool Gradle
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  find-project:
+  test-gradle:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +23,7 @@ jobs:
             exit 1
           fi
 
-          echo "ZIP found:"
-          echo "$ZIP_FILE"
-
+          echo "ZIP found: $ZIP_FILE"
           echo "ZIP_PATH=$ZIP_FILE" >> "$GITHUB_ENV"
 
       - name: Extract ZIP
@@ -33,10 +31,7 @@ jobs:
           mkdir -p extracted
           unzip -q "$ZIP_PATH" -d extracted
 
-          echo "=== Extracted files ==="
-          find extracted -maxdepth 8 -type f -print
-
-      - name: Find settings.gradle
+      - name: Find Android project
         run: |
           SETTINGS_FILE=$(find extracted -type f \
             \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
@@ -44,18 +39,35 @@ jobs:
 
           if [ -z "$SETTINGS_FILE" ]; then
             echo "ERROR: settings.gradle not found"
-            echo "=== Extracted folders ==="
-            find extracted -maxdepth 8 -type d -print
             exit 1
           fi
 
-          echo "================================"
-          echo "Android project found successfully"
-          echo "settings.gradle:"
-          echo "$SETTINGS_FILE"
-          echo "================================"
-
           PROJECT_DIR=$(dirname "$SETTINGS_FILE")
 
-          echo "Project directory:"
+          echo "Android project:"
           echo "$PROJECT_DIR"
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Check Gradle
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          echo "=== Project files ==="
+          ls -la
+
+          echo "=== Gradle wrapper ==="
+          ls -la gradlew
+
+          chmod +x gradlew
+
+          echo "=== Gradle version ==="
+          ./gradlew --version
