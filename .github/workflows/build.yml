@@ -1,4 +1,4 @@
-name: Build JafarSchool APK
+name: Diagnose JafarSchool Build
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build:
+  diagnose:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,19 +30,17 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build APK
+      - name: Show Gradle configuration
         run: |
           cd extracted
-          gradle assembleDebug --stacktrace
+          echo "=== SETTINGS.GRADLE ==="
+          cat settings.gradle
+          echo "=== ROOT BUILD.GRADLE ==="
+          cat build.gradle
+          echo "=== APP BUILD.GRADLE ==="
+          cat app/build.gradle
 
-      - name: Find APK
+      - name: Test Gradle
         run: |
-          echo "=== APK FILES ==="
-          find extracted -type f -name "*.apk" -print
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: JafarSchool-APK
-          path: extracted/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          cd extracted
+          gradle tasks --stacktrace --info
