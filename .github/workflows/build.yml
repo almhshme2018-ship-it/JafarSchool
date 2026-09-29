@@ -1,4 +1,4 @@
-name: Diagnose JafarSchool Build
+name: Show Java Error
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  diagnose:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,51 +19,10 @@ jobs:
           mkdir -p extracted
           unzip -q *.zip -d extracted
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-
-      - name: Build APK
-        continue-on-error: true
-        run: |
-          cd extracted
-          gradle assembleDebug --console=plain 2>&1 | tee build.log
-          echo ${PIPESTATUS[0]} > build.exit
-
-      - name: Show build error
+      - name: Show MainActivity lines
         run: |
           echo "================================"
-          echo "BUILD RESULT"
+          echo "MainActivity.java lines 410-435"
           echo "================================"
 
-          if [ -f extracted/build.exit ]; then
-            echo "Exit code:"
-            cat extracted/build.exit
-          fi
-
-          echo "================================"
-          echo "IMPORTANT ERROR"
-          echo "================================"
-
-          grep -n -B 5 -A 15 \
-            -E "FAILURE:|What went wrong|Execution failed|Could not|error:" \
-            extracted/build.log \
-            | tail -150 || true
-
-          echo "================================"
-          echo "LAST 80 LINES"
-          echo "================================"
-
-          tail -80 extracted/build.log
-
-      - name: Check APK
-        run: |
-          echo "=== APK FILES ==="
-          find extracted -type f -name "*.apk" -print
+          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '410,435p'
