@@ -1,4 +1,4 @@
-name: Build JafarSchool APK
+name: Diagnose APK Build
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build:
+  diagnose:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
           mkdir -p extracted
           unzip -q *.zip -d extracted
 
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -30,17 +30,33 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build Debug APK
+      - name: Build APK with clear error
+        continue-on-error: true
         run: |
           cd extracted
-          gradle assembleDebug
+          gradle assembleDebug --console=plain 2>&1 | tee build.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Show important error
+        if: failure()
+        run: |
+          echo "=============================="
+          echo "IMPORTANT BUILD ERROR"
+          echo "=============================="
+
+          grep -n -B 5 -A 15 \
+            -E "What went wrong|Execution failed|Could not|error:" \
+            extracted/build.log \
+            | tail -100 || true
 
       - name: Show APK
+        if: success()
         run: |
           echo "=== APK FILES ==="
           find extracted -type f -name "*.apk" -print
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: JafarSchool-APK
