@@ -1,4 +1,4 @@
-name: Fix and Build JafarSchool APK
+name: Check MainActivity Braces
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,54 +19,27 @@ jobs:
           mkdir -p extracted
           unzip -q *.zip -d extracted
 
-      - name: Fix MainActivity line
+      - name: Show lines 550 to 600
+        run: |
+          echo "=== MainActivity 550-600 ==="
+          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '550,600p'
+
+      - name: Check brace balance
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          file = Path("extracted/app/src/main/java/com/jafar/school/MainActivity.java")
+          p = Path("extracted/app/src/main/java/com/jafar/school/MainActivity.java")
+          lines = p.read_text(encoding="utf-8").splitlines()
 
-          text = file.read_text(encoding="utf-8")
+          balance = 0
 
-          old = 'addCard("📴 التشغيل دون إنترنت","لا يحتاج التطبيق إلى اتصال بالإنترنت للوظائف الأساسية. سيتم استخدام الاتصال فقط مستقبلاً إذا أضيفت مزامنة أو تحديثات اختيارية.");addCard("🏫 بيانات المدرسة","مدرسة جعفر بن أبي طالب الأساسية\\nالجمهورية اليمنية – إب – مذيخرة – الأشعوب");'
+          for i, line in enumerate(lines, 1):
+              balance += line.count("{")
+              balance -= line.count("}")
 
-          new = 'addCard("📴 التشغيل دون إنترنت","لا يحتاج التطبيق إلى اتصال بالإنترنت للوظائف الأساسية.");addCard("🏫 بيانات المدرسة","مدرسة جعفر بن أبي طالب الأساسية");'
+              if 540 <= i <= 600:
+                  print(f"{i}: balance={balance} | {line}")
 
-          if old not in text:
-              print("النص المطلوب لم يُعثر عليه")
-              raise SystemExit(1)
-
-          text = text.replace(old, new, 1)
-
-          file.write_text(text, encoding="utf-8")
-
-          print("تم إصلاح النص بدون إضافة أو حذف أي أقواس.")
+          print("FINAL BALANCE:", balance)
           PY
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-
-      - name: Build APK
-        run: |
-          cd extracted
-          gradle assembleDebug --console=plain
-
-      - name: Find APK
-        run: |
-          echo "=== APK ==="
-          find extracted -type f -name "*.apk" -print
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: JafarSchool-APK
-          path: extracted/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
