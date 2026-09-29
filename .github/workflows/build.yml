@@ -1,4 +1,4 @@
-name: Fix MainActivity and Build APK
+name: Check MainActivity Braces
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
           mkdir -p extracted
           unzip -q *.zip -d extracted
 
-      - name: Fix MainActivity
+      - name: Check MainActivity
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -27,58 +27,17 @@ jobs:
           p = Path("extracted/app/src/main/java/com/jafar/school/MainActivity.java")
           lines = p.read_text(encoding="utf-8").splitlines()
 
-          # إزالة القوس الذي يغلق MainActivity قبل دوال الإدخال الجماعي
-          if lines[569].strip() == "}":
-              del lines[569]
+          balance = 0
 
-          # إضافة القوس في نهاية دالة gradeEntryPeriodName
-          # إذا كانت الدالة موجودة ولم يكن هناك إغلاق بعدها
-          end = None
-          for i, line in enumerate(lines):
-              if "default: return \"الفترة\";" in line:
-                  end = i
-                  break
+          for n, line in enumerate(lines, 1):
+              balance += line.count("{")
+              balance -= line.count("}")
 
-          if end is None:
-              raise SystemExit("لم يتم العثور على gradeEntryPeriodName")
+              if n >= 550:
+                  print(f"{n}: balance={balance} | {line}")
 
-          if end + 1 >= len(lines) or lines[end + 1].strip() != "}":
-              lines.insert(end + 1, "}")
-
-          p.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-          print("تم إصلاح موضع قوس MainActivity")
+          print("================================")
+          print("FINAL BRACE BALANCE:", balance)
+          print("TOTAL LINES:", len(lines))
+          print("================================")
           PY
-
-      - name: Check corrected section
-        run: |
-          echo "=== CORRECTED 565-600 ==="
-          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '565,600p'
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-
-      - name: Build APK
-        run: |
-          cd extracted
-          gradle assembleDebug --console=plain
-
-      - name: Find APK
-        run: |
-          echo "=== APK FILES ==="
-          find extracted -type f -name "*.apk" -print
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: JafarSchool-APK
-          path: extracted/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
