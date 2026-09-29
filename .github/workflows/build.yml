@@ -1,4 +1,4 @@
-name: Build JafarSchool APK
+name: Fix and Build JafarSchool APK
 
 on:
   workflow_dispatch:
@@ -19,22 +19,28 @@ jobs:
           mkdir -p extracted
           unzip -q *.zip -d extracted
 
-      - name: Fix MainActivity
+      - name: Fix MainActivity line
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
           file = Path("extracted/app/src/main/java/com/jafar/school/MainActivity.java")
 
-          lines = file.read_text(encoding="utf-8").splitlines()
+          text = file.read_text(encoding="utf-8")
 
-          lines[421] = '        addCard("📴 التشغيل دون إنترنت","لا يحتاج التطبيق إلى اتصال بالإنترنت للوظائف الأساسية.");'
-          lines.insert(422, '        addCard("🏫 بيانات المدرسة","مدرسة جعفر بن أبي طالب الأساسية");')
-          lines.insert(423, '        addCard("🌍 موقع المدرسة","الجمهورية اليمنية - إب - مذيخرة - الأشعوب");')
+          old = 'addCard("📴 التشغيل دون إنترنت","لا يحتاج التطبيق إلى اتصال بالإنترنت للوظائف الأساسية. سيتم استخدام الاتصال فقط مستقبلاً إذا أضيفت مزامنة أو تحديثات اختيارية.");addCard("🏫 بيانات المدرسة","مدرسة جعفر بن أبي طالب الأساسية\\nالجمهورية اليمنية – إب – مذيخرة – الأشعوب");'
 
-          file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          new = 'addCard("📴 التشغيل دون إنترنت","لا يحتاج التطبيق إلى اتصال بالإنترنت للوظائف الأساسية.");addCard("🏫 بيانات المدرسة","مدرسة جعفر بن أبي طالب الأساسية");'
 
-          print("MainActivity.java fixed successfully")
+          if old not in text:
+              print("النص المطلوب لم يُعثر عليه")
+              raise SystemExit(1)
+
+          text = text.replace(old, new, 1)
+
+          file.write_text(text, encoding="utf-8")
+
+          print("تم إصلاح النص بدون إضافة أو حذف أي أقواس.")
           PY
 
       - name: Setup Java
@@ -55,7 +61,7 @@ jobs:
 
       - name: Find APK
         run: |
-          echo "=== APK FILES ==="
+          echo "=== APK ==="
           find extracted -type f -name "*.apk" -print
 
       - name: Upload APK
