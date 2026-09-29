@@ -1,4 +1,4 @@
-name: Check MainActivity Braces
+name: Fix MainActivity and Build APK
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,12 +19,7 @@ jobs:
           mkdir -p extracted
           unzip -q *.zip -d extracted
 
-      - name: Show lines 550 to 600
-        run: |
-          echo "=== MainActivity 550-600 ==="
-          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '550,600p'
-
-      - name: Check brace balance
+      - name: Fix MainActivity
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -32,14 +27,58 @@ jobs:
           p = Path("extracted/app/src/main/java/com/jafar/school/MainActivity.java")
           lines = p.read_text(encoding="utf-8").splitlines()
 
-          balance = 0
+          # إزالة القوس الذي يغلق MainActivity قبل دوال الإدخال الجماعي
+          if lines[569].strip() == "}":
+              del lines[569]
 
-          for i, line in enumerate(lines, 1):
-              balance += line.count("{")
-              balance -= line.count("}")
+          # إضافة القوس في نهاية دالة gradeEntryPeriodName
+          # إذا كانت الدالة موجودة ولم يكن هناك إغلاق بعدها
+          end = None
+          for i, line in enumerate(lines):
+              if "default: return \"الفترة\";" in line:
+                  end = i
+                  break
 
-              if 540 <= i <= 600:
-                  print(f"{i}: balance={balance} | {line}")
+          if end is None:
+              raise SystemExit("لم يتم العثور على gradeEntryPeriodName")
 
-          print("FINAL BALANCE:", balance)
+          if end + 1 >= len(lines) or lines[end + 1].strip() != "}":
+              lines.insert(end + 1, "}")
+
+          p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          print("تم إصلاح موضع قوس MainActivity")
           PY
+
+      - name: Check corrected section
+        run: |
+          echo "=== CORRECTED 565-600 ==="
+          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '565,600p'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build APK
+        run: |
+          cd extracted
+          gradle assembleDebug --console=plain
+
+      - name: Find APK
+        run: |
+          echo "=== APK FILES ==="
+          find extracted -type f -name "*.apk" -print
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JafarSchool-APK
+          path: extracted/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
