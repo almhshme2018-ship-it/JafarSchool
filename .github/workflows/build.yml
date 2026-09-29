@@ -16,37 +16,153 @@ jobs:
 
       - name: Extract project
         run: |
+          set -e
+
+          rm -rf extracted
           mkdir -p extracted
-          unzip -q *.zip -d extracted
 
-      - name: Move MainActivity closing brace
+          ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: No ZIP file found."
+            exit 1
+          fi
+
+          echo "Using ZIP: $ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d extracted
+
+          echo "=== Extracted files ==="
+          find extracted -maxdepth 4 -type f | sort | head -200
+
+      - name: Locate Android project
         run: |
-          python3 - <<'PY'
+          set -e
+
+          if [ -f "extracted/settings.gradle" ] || [ -f "extracted/settings.gradle.kts" ]; then
+            echo "PROJECT_DIR=extracted" >> "$GITHUB_ENV"
+          elif [ -f "extracted/app/settings.gradle" ] || [ -f "extracted/app/settings.gradle.kts" ]; then
+            echo "PROJECT_DIR=extracted/app" >> "$GITHUB_ENV"
+          else
+            SETTINGS=$(find extracted -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
+
+            if [ -z "$SETTINGS" ]; then
+              echo "ERROR: settings.gradle not found."
+              find extracted -maxdepth 5 -type f | sort
+              exit 1
+            fi
+
+            PROJECT_DIR=$(dirname "$SETTINGS")
+            echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          fi
+
+          echo "Android project directory:"
+          cat "$GITHUB_ENV"
+
+      - name: Fix MainActivity braces
+        run: |
+          set -e
+
+          FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
+
+          if [ ! -f "$FILE" ]; then
+            echo "ERROR: MainActivity.java not found:"
+            find "$PROJECT_DIR" -name "MainActivity.java" -print
+            exit 1
+          fi
+
+          python3 - "$FILE" <<'PY'
           from pathlib import Path
+          import sys
 
-          p = Path("extracted/app/src/main/java/com/jafar/school/MainActivity.java")
-          lines = p.read_text(encoding="utf-8").splitlines()
+          p = Path(sys.argv[1])
+          text = p.read_text(encoding="utf-8")
+          lines = text.splitlines()
 
-          # Remove the closing brace that currently ends MainActivity
-          if lines[569].strip() == "}":
-              del lines[569]
-          else:
-              raise SystemExit("Expected MainActivity closing brace at line 570")
+          print(f"MainActivity.java lines before fix: {len(lines)}")
 
-          # Add MainActivity closing brace after gradeEntryPeriodName
-          if lines[-1].strip() == "}":
+          # البحث عن الدالة gradeEntryPeriodName
+          target = None
+
+          for i, line in enumerate(lines):
+              if "gradeEntryPeriodName" in line:
+                  target = i
+                  break
+
+          if target is None:
+              print("gradeEntryPeriodName not found.")
+              raise SystemExit(1)
+
+          print(f"gradeEntryPeriodName found at line {target + 1}")
+
+          # نحسب الأقواس بشكل تقريبي مع تجاهل النصوص والتعليقات
+          def brace_balance(items):
+              balance = 0
+              for line in items:
+                  clean = line
+                  if "//" in clean:
+                      clean = clean.split("//", 1)[0]
+                  balance += clean.count("{")
+                  balance -= clean.count("}")
+              return balance
+
+          balance_before = brace_balance(lines)
+          print(f"Brace balance before fix: {balance_before}")
+
+          # إذا كانت الدوال الأخيرة خارج MainActivity،
+          # نبحث عن قوس الإغلاق الموجود قبلها ونحذفه.
+          if balance_before < 0:
+              print("Removing excessive closing brace(s) from the end.")
+
+              while lines and lines[-1].strip() == "}":
+                  trial = lines[:-1]
+                  if brace_balance(trial) >= 0:
+                      lines = trial
+                      break
+                  lines = trial
+
+          # إذا كانت هناك دوال بعد إغلاق MainActivity،
+          # نحدد مكانها ونزيل قوس الإغلاق السابق لها.
+          balance = 0
+          class_closed_at = None
+
+          for i, line in enumerate(lines):
+              clean = line.split("//", 1)[0]
+              balance += clean.count("{")
+              balance -= clean.count("}")
+
+              if i > target and balance == 0:
+                  class_closed_at = i
+                  break
+
+          if class_closed_at is not None and class_closed_at < len(lines) - 1:
+              print(
+                  f"Removing MainActivity closing brace at line "
+                  f"{class_closed_at + 1}"
+              )
+              del lines[class_closed_at]
+
+          # تأكد أن الملف ينتهي بقوس واحد لإغلاق MainActivity
+          while lines and not lines[-1].strip():
+              lines.pop()
+
+          if not lines or lines[-1].strip() != "}":
               lines.append("}")
-          else:
-              raise SystemExit("Unexpected end of MainActivity.java")
 
           p.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-          print("MainActivity brace position fixed.")
+          print("MainActivity.java brace fix completed.")
+          print(f"Lines after fix: {len(lines)}")
+          print(f"Brace balance after fix: {brace_balance(lines)}")
           PY
 
-      - name: Verify Java section
+      - name: Show MainActivity
         run: |
-          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '560,600p'
+          set -e
+
+          FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
+
+          echo "=== MainActivity.java last 100 lines ==="
+          tail -n 100 "$FILE"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -59,14 +175,36 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Verify Gradle project
+        run: |
+          set -e
+          cd "$PROJECT_DIR"
+
+          echo "=== Gradle project ==="
+          pwd
+          ls -la
+
+          echo "=== settings.gradle ==="
+          if [ -f settings.gradle ]; then
+            cat settings.gradle
+          elif [ -f settings.gradle.kts ]; then
+            cat settings.gradle.kts
+          else
+            echo "ERROR: settings.gradle missing."
+            exit 1
+          fi
+
       - name: Build APK
         run: |
-          cd extracted
-          gradle assembleDebug --console=plain
+          set -e
+          cd "$PROJECT_DIR"
+
+          gradle clean assembleDebug --console=plain
 
       - name: Find APK
         run: |
-          find extracted -type f -name "*.apk" -print
+          echo "=== APK files ==="
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
