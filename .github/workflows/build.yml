@@ -148,7 +148,18 @@ jobs:
               + methods
               + text[main_close:]
           )
+          print("=== IMPORTS ===")
+          for line in text.splitlines():
+              if line.startswith("import "):
+                  print(line)
 
+          print("=== COPY METHODS ===")
+          for line_no, line in enumerate(text.splitlines(), 1):
+              if "copyFile(" in line:
+                  print(line_no, line)
+
+          print("=== DB isOpen ===")
+          print("boolean isOpen()" in text)
           p.write_text(text, encoding="utf-8")
 
           print("MainActivity Java fixed successfully.")
