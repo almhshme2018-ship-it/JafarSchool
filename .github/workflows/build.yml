@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -39,16 +40,16 @@ jobs:
 
           if [ -z "$SETTINGS" ]; then
             echo "ERROR: settings.gradle not found"
-            find extracted -maxdepth 5 -type f | sort
             exit 1
           fi
 
           PROJECT_DIR=$(dirname "$SETTINGS")
 
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
           echo "Android project: $PROJECT_DIR"
 
-      -       - name: Fix MainActivity Java
+      - name: Fix MainActivity Java
         run: |
           set -e
 
@@ -61,7 +62,7 @@ jobs:
           p = Path(sys.argv[1])
           text = p.read_text(encoding="utf-8")
 
-          # إصلاح \n المكتوبة خارج النص
+          # Fix literal \n before changePassword
           text = text.replace(
               "\\n    void changePassword()",
               "\n    void changePassword()"
@@ -77,7 +78,7 @@ jobs:
 
               if brace == -1:
                   raise SystemExit(
-                      "ERROR: opening brace not found for " + signature
+                      "ERROR: opening brace not found: " + signature
                   )
 
               depth = 0
@@ -94,7 +95,7 @@ jobs:
 
               if end == -1:
                   raise SystemExit(
-                      "ERROR: closing brace not found for " + signature
+                      "ERROR: closing brace not found: " + signature
                   )
 
               method = src[start:end]
@@ -103,7 +104,6 @@ jobs:
 
               return src, method
 
-          # استخراج الدالتين أينما كانتا
           text, method_open = extract_method(
               text,
               "private void openGroupGradeEntry()"
@@ -122,34 +122,31 @@ jobs:
               print("ERROR: gradeEntryPeriodName not found")
               sys.exit(1)
 
-          # تحديد بداية class DB
           db_pos = text.find("\nclass DB")
 
           if db_pos == -1:
               print("ERROR: class DB not found")
               sys.exit(1)
 
-          # العثور على قوس إغلاق MainActivity قبل class DB
-          close_pos = text.rfind("}", 0, db_pos)
+          main_close = text.rfind("}", 0, db_pos)
 
-          if close_pos == -1:
+          if main_close == -1:
               print("ERROR: MainActivity closing brace not found")
               sys.exit(1)
 
-          # وضع الدالتين داخل MainActivity مباشرة قبل قوس الإغلاق
           methods = (
-              "\n\n        // V1.7.0 GROUP GRADE ENTRY\n"
-              + "        "
-              + method_open.replace("\n", "\n        ")
-              + "\n\n        "
-              + method_period.replace("\n", "\n        ")
+              "\n\n    // V1.7.0 GROUP GRADE ENTRY\n"
+              + "    "
+              + method_open.replace("\n", "\n    ")
+              + "\n\n    "
+              + method_period.replace("\n", "\n    ")
               + "\n"
           )
 
           text = (
-              text[:close_pos]
+              text[:main_close]
               + methods
-              + text[close_pos:]
+              + text[main_close:]
           )
 
           p.write_text(text, encoding="utf-8")
@@ -159,13 +156,11 @@ jobs:
           print("gradeEntryPeriodName moved inside MainActivity.")
           PY
 
-          echo "=== VERIFY GROUP METHODS ==="
+          echo "=== VERIFY METHODS ==="
+
           grep -n -B 5 -A 15 \
             -E "openGroupGradeEntry|gradeEntryPeriodName|class DB" \
             "$FILE"
-
-          echo "=== VERIFY END OF MAINACTIVITY ==="
-          nl -ba "$FILE" | tail -n 45
 
       - name: Setup Java
         uses: actions/setup-java@v4
