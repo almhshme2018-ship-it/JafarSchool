@@ -23,44 +23,43 @@ jobs:
           ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
 
           if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: No ZIP file found."
+            echo "ERROR: No ZIP file found"
             exit 1
           fi
 
-          echo "Using ZIP: $ZIP_FILE"
           unzip -q "$ZIP_FILE" -d extracted
 
-          echo "=== Project files ==="
+          echo "=== Extracted project ==="
           find extracted -maxdepth 4 -type f | sort | head -200
 
       - name: Locate Android project
         run: |
           set -e
 
-          if [ -f "extracted/settings.gradle" ]; then
-            echo "PROJECT_DIR=extracted" >> "$GITHUB_ENV"
-          elif [ -f "extracted/settings.gradle.kts" ]; then
-            echo "PROJECT_DIR=extracted" >> "$GITHUB_ENV"
-          else
-            SETTINGS=$(find extracted -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
+          SETTINGS=$(find extracted -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
 
-            if [ -z "$SETTINGS" ]; then
-              echo "ERROR: settings.gradle not found."
-              find extracted -maxdepth 5 -type f | sort
-              exit 1
-            fi
-
-            PROJECT_DIR=$(dirname "$SETTINGS")
-            echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          if [ -z "$SETTINGS" ]; then
+            echo "ERROR: settings.gradle not found"
+            find extracted -maxdepth 5 -type f | sort
+            exit 1
           fi
 
-          echo "Android project located."
+          PROJECT_DIR=$(dirname "$SETTINGS")
 
-            - name: Fix MainActivity Java
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+          echo "Android project: $PROJECT_DIR"
+
+      - name: Fix MainActivity Java
         run: |
           set -e
 
           FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
+
+          if [ ! -f "$FILE" ]; then
+            echo "ERROR: MainActivity.java not found"
+            exit 1
+          fi
 
           python3 - "$FILE" <<'PY'
           from pathlib import Path
@@ -69,13 +68,17 @@ jobs:
           p = Path(sys.argv[1])
           text = p.read_text(encoding="utf-8")
 
-          # إصلاح \n المكتوبة كنص فعلي خارج String في السطر 422
-          text = text.replace('\\n    void changePassword()', '\n    void changePassword()')
+          # إصلاح newline مكتوبة حرفياً داخل Java
+          text = text.replace(
+              '\\n    void changePassword()',
+              '\n    void changePassword()'
+          )
 
           lines = text.splitlines()
 
           # البحث عن openGroupGradeEntry
           target = None
+
           for i, line in enumerate(lines):
               if "private void openGroupGradeEntry()" in line:
                   target = i
@@ -85,94 +88,36 @@ jobs:
               print("ERROR: openGroupGradeEntry() not found")
               sys.exit(1)
 
-          print("openGroupGradeEntry found at line:", target + 1)
+          print("openGroupGradeEntry line:", target + 1)
 
-          # احذف القوس الموجود مباشرة قبل openGroupGradeEntry
-          # إذا كان هو القوس الذي أغلق MainActivity مبكراً
+          # إزالة القوس الذي أغلق MainActivity قبل الدالة
           j = target - 1
 
           while j >= 0 and not lines[j].strip():
               j -= 1
 
           if j >= 0 and lines[j].strip() == "}":
-              print("Removing misplaced closing brace at line:", j + 1)
+              print("Removing misplaced brace at line:", j + 1)
               del lines[j]
-          else:
-              print("No immediate misplaced closing brace found.")
 
-          # تأكد من أن الملف ينتهي بقوس إغلاق
-          while lines and not lines[-1].strip():
-              lines.pop()
+          p.write_text(
+              "\n".join(lines) + "\n",
+              encoding="utf-8"
+          )
 
-          if not lines or lines[-1].strip() != "}":
-              lines.append("}")
-
-          p.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-          print("MainActivity.java fixed successfully.")
+          print("MainActivity.java fixed")
           PY
 
-          FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
-
-          if [ ! -f "$FILE" ]; then
-            echo "ERROR: MainActivity.java not found."
-            find "$PROJECT_DIR" -name "MainActivity.java" -print
-            exit 1
-          fi
-
-          python3 - "$FILE" <<'PY'
-          from pathlib import Path
-          import sys
-
-          p = Path(sys.argv[1])
-          lines = p.read_text(encoding="utf-8").splitlines()
-
-          target = None
-
-          for i, line in enumerate(lines):
-              if "private void openGroupGradeEntry()" in line:
-                  target = i
-                  break
-
-          if target is None:
-              print("ERROR: openGroupGradeEntry() not found")
-              sys.exit(1)
-
-          print("openGroupGradeEntry found at line:", target + 1)
-
-          balance = 0
-          closing_line = None
-
-          for i in range(target):
-              line = lines[i]
-
-              if "//" in line:
-                  line = line.split("//", 1)[0]
-
-              balance += line.count("{")
-              balance -= line.count("}")
-
-              if balance == 0 and i > 0:
-                  closing_line = i
-
-          if closing_line is not None:
-              print("Removing misplaced closing brace at line:", closing_line + 1)
-              del lines[closing_line]
-
-          p.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-          print("MainActivity.java correction completed.")
-          PY
-
-            - name: Show MainActivity
+      - name: Show Java section
         run: |
           FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
 
-          echo "=== MainActivity lines 415-430 ==="
+          echo "=== Lines 415-430 ==="
           nl -ba "$FILE" | sed -n '415,430p'
 
-          echo "=== MainActivity lines 565-595 ==="
+          echo "=== Lines 565-595 ==="
           nl -ba "$FILE" | sed -n '565,595p'
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -192,7 +137,6 @@ jobs:
 
       - name: Find APK
         run: |
-          echo "=== APK files ==="
           find extracted -type f -name "*.apk" -print
 
       - name: Upload APK
