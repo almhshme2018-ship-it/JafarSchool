@@ -30,7 +30,7 @@ jobs:
           unzip -q "$ZIP_FILE" -d extracted
 
           echo "=== Extracted project ==="
-          find extracted -maxdepth 4 -type f | sort | head -200
+          find extracted -maxdepth 4 -type f | sort | head -n 200
 
       - name: Locate Android project
         run: |
@@ -45,12 +45,10 @@ jobs:
           fi
 
           PROJECT_DIR=$(dirname "$SETTINGS")
-
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-
           echo "Android project: $PROJECT_DIR"
 
-            - name: Fix MainActivity Java
+      - name: Fix MainActivity Java
         run: |
           set -e
 
@@ -71,8 +69,7 @@ jobs:
               print("ERROR: GROUP GRADE ENTRY block not found")
               sys.exit(1)
 
-          # نهاية block الدوال الحالية
-          end_marker = '\n}\n'
+          end_marker = "\n}\n"
           end = text.find(end_marker, start)
 
           if end == -1:
@@ -83,10 +80,8 @@ jobs:
 
           block = text[start:end]
 
-          # حذف الدوال من مكانها الحالي
           text = text[:start] + text[end:]
 
-          # إدخال الدوال داخل MainActivity
           class_end_marker = "\n}\n\nclass DB"
 
           class_end = text.find(class_end_marker)
@@ -95,7 +90,6 @@ jobs:
               print("ERROR: MainActivity closing brace not found")
               sys.exit(1)
 
-          # ضع الدوال قبل قوس إغلاق MainActivity
           insertion = "\n\n" + block.rstrip() + "\n"
 
           text = (
@@ -112,6 +106,7 @@ jobs:
           echo "=== VERIFY LOCATION ==="
           nl -ba "$FILE" | sed -n '410,450p'
           nl -ba "$FILE" | sed -n '555,610p'
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -122,12 +117,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Show exact Java problem
-        run: |
-          FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
 
-          echo "===== LINES 560-595 ====="
-          nl -ba "$FILE" | sed -n '560,595p'
       - name: Build APK
         run: |
           set -e
@@ -136,7 +126,7 @@ jobs:
 
       - name: Find APK
         run: |
-          find extracted -type f -name "*.apk" -print
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
