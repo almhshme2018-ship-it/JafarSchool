@@ -29,7 +29,6 @@ jobs:
 
           unzip -q "$ZIP_FILE" -d extracted
 
-          echo "=== Extracted project ==="
           find extracted -maxdepth 4 -type f | sort | head -n 200
 
       - name: Locate Android project
@@ -45,10 +44,11 @@ jobs:
           fi
 
           PROJECT_DIR=$(dirname "$SETTINGS")
+
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
           echo "Android project: $PROJECT_DIR"
 
-            - name: Fix MainActivity Java
+      - name: Fix MainActivity Java
         run: |
           set -e
 
@@ -67,41 +67,44 @@ jobs:
               "\n    void changePassword()"
           )
 
-          start_marker = "// V1.7.0 GROUP GRADE ENTRY"
-          start = text.find(start_marker)
+          # Remove old group grade methods if they are outside MainActivity
+          start = text.find("// V1.7.0 GROUP GRADE ENTRY")
 
-          if start == -1:
-              print("ERROR: GROUP GRADE ENTRY block not found")
-              sys.exit(1)
+          if start != -1:
+              class_db = text.find("\nclass DB", start)
 
-          # Find the two methods as one block
-          class_db = text.find("\nclass DB", start)
+              if class_db != -1:
+                  block = text[start:class_db]
 
-          if class_db == -1:
-              print("ERROR: class DB not found")
-              sys.exit(1)
+                  open_start = block.find("private void openGroupGradeEntry()")
+                  period_start = block.find("private String gradeEntryPeriodName(int period)")
 
-          block = text[start:class_db]
+                  methods = ""
 
-          # Remove the old block
-          text = text[:start] + text[class_db:]
+                  if open_start != -1:
+                      end = block.find("\n    }", open_start)
+                      if end != -1:
+                          end += len("\n    }")
+                          methods += "\n" + block[open_start:end]
 
-          # Find MainActivity closing brace immediately before class DB
-          marker = "\n}\n\nclass DB"
-          pos = text.find(marker)
+                  if period_start != -1:
+                      end = block.find("\n    }", period_start)
+                      if end != -1:
+                          end += len("\n    }")
+                          methods += "\n" + block[period_start:end]
 
-          if pos == -1:
-              print("ERROR: MainActivity closing brace not found")
-              sys.exit(1)
+                  text = text[:start] + text[class_db:]
 
-          # Insert both methods before MainActivity closing brace
-          text = (
-              text[:pos]
-              + "\n"
-              + block.rstrip()
-              + "\n"
-              + text[pos:]
-          )
+                  # Insert methods before MainActivity closing brace
+                  marker = "\n}\n\nclass DB"
+
+                  pos = text.find(marker)
+
+                  if pos == -1:
+                      print("ERROR: MainActivity closing brace not found")
+                      sys.exit(1)
+
+                  text = text[:pos] + methods + "\n" + text[pos:]
 
           p.write_text(text, encoding="utf-8")
 
@@ -113,6 +116,7 @@ jobs:
 
           echo "=== VERIFY 570-605 ==="
           nl -ba "$FILE" | sed -n '570,605p'
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
