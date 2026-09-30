@@ -50,16 +50,11 @@ jobs:
 
           echo "Android project: $PROJECT_DIR"
 
-      - name: Fix MainActivity Java
+            - name: Fix MainActivity Java
         run: |
           set -e
 
           FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
-
-          if [ ! -f "$FILE" ]; then
-            echo "ERROR: MainActivity.java not found"
-            exit 1
-          fi
 
           python3 - "$FILE" <<'PY'
           from pathlib import Path
@@ -68,59 +63,55 @@ jobs:
           p = Path(sys.argv[1])
           text = p.read_text(encoding="utf-8")
 
-          # إصلاح newline مكتوبة حرفياً داخل Java
-          text = text.replace(
-              '\\n    void changePassword()',
-              '\n    void changePassword()'
-          )
+          start_marker = "// V1.7.0 GROUP GRADE ENTRY"
 
-          lines = text.splitlines()
+          start = text.find(start_marker)
 
-          # البحث عن openGroupGradeEntry
-          target = None
-
-          for i, line in enumerate(lines):
-              if "private void openGroupGradeEntry()" in line:
-                  target = i
-                  break
-
-          if target is None:
-              print("ERROR: openGroupGradeEntry() not found")
+          if start == -1:
+              print("ERROR: GROUP GRADE ENTRY block not found")
               sys.exit(1)
 
-          print("openGroupGradeEntry line:", target + 1)
+          # نهاية block الدوال الحالية
+          end_marker = '\n}\n'
+          end = text.find(end_marker, start)
 
-          # إزالة القوس الذي أغلق MainActivity قبل الدالة
-          j = target - 1
+          if end == -1:
+              print("ERROR: End of GROUP GRADE ENTRY block not found")
+              sys.exit(1)
 
-          while j >= 0 and not lines[j].strip():
-              j -= 1
+          end += len(end_marker)
 
-          if j >= 0 and lines[j].strip() == "}":
-              print("Removing misplaced brace at line:", j + 1)
-              del lines[j]
+          block = text[start:end]
 
-          p.write_text(
-              "\n".join(lines) + "\n",
-              encoding="utf-8"
+          # حذف الدوال من مكانها الحالي
+          text = text[:start] + text[end:]
+
+          # إدخال الدوال داخل MainActivity
+          class_end_marker = "\n}\n\nclass DB"
+
+          class_end = text.find(class_end_marker)
+
+          if class_end == -1:
+              print("ERROR: MainActivity closing brace not found")
+              sys.exit(1)
+
+          # ضع الدوال قبل قوس إغلاق MainActivity
+          insertion = "\n\n" + block.rstrip() + "\n"
+
+          text = (
+              text[:class_end]
+              + insertion
+              + text[class_end:]
           )
 
-          print("MainActivity.java fixed")
+          p.write_text(text, encoding="utf-8")
+
+          print("GROUP GRADE ENTRY methods moved inside MainActivity.")
           PY
 
-      - name: Show Java section
-        run: |
-          FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
-
-          echo "=== Lines 415-430 ==="
-          nl -ba "$FILE" | sed -n '415,430p'
-
-          echo "=== Lines 565-595 ==="
-          nl -ba "$FILE" | sed -n '565,595p'
-      - name: Show MainActivity problem area
-        run: |
-          echo "=== MainActivity 540-600 ==="
-          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '540,600p'
+          echo "=== VERIFY LOCATION ==="
+          nl -ba "$FILE" | sed -n '410,450p'
+          nl -ba "$FILE" | sed -n '555,610p'
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
