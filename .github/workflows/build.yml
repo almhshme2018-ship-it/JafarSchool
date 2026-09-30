@@ -117,7 +117,10 @@ jobs:
 
           echo "=== Lines 565-595 ==="
           nl -ba "$FILE" | sed -n '565,595p'
-
+      - name: Show MainActivity problem area
+        run: |
+          echo "=== MainActivity 540-600 ==="
+          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '540,600p'
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
