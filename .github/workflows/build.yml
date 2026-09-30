@@ -48,7 +48,7 @@ jobs:
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
           echo "Android project: $PROJECT_DIR"
 
-      - name: Fix MainActivity Java
+      -       - name: Fix MainActivity Java
         run: |
           set -e
 
@@ -61,61 +61,111 @@ jobs:
           p = Path(sys.argv[1])
           text = p.read_text(encoding="utf-8")
 
-          # Fix literal backslash-n before changePassword
+          # إصلاح \n المكتوبة خارج النص
           text = text.replace(
               "\\n    void changePassword()",
               "\n    void changePassword()"
           )
 
-          # Remove old group grade methods if they are outside MainActivity
-          start = text.find("// V1.7.0 GROUP GRADE ENTRY")
+          def extract_method(src, signature):
+              start = src.find(signature)
 
-          if start != -1:
-              class_db = text.find("\nclass DB", start)
+              if start == -1:
+                  return src, ""
 
-              if class_db != -1:
-                  block = text[start:class_db]
+              brace = src.find("{", start)
 
-                  open_start = block.find("private void openGroupGradeEntry()")
-                  period_start = block.find("private String gradeEntryPeriodName(int period)")
+              if brace == -1:
+                  raise SystemExit(
+                      "ERROR: opening brace not found for " + signature
+                  )
 
-                  methods = ""
+              depth = 0
+              end = -1
 
-                  if open_start != -1:
-                      end = block.find("\n    }", open_start)
-                      if end != -1:
-                          end += len("\n    }")
-                          methods += "\n" + block[open_start:end]
+              for i in range(brace, len(src)):
+                  if src[i] == "{":
+                      depth += 1
+                  elif src[i] == "}":
+                      depth -= 1
+                      if depth == 0:
+                          end = i + 1
+                          break
 
-                  if period_start != -1:
-                      end = block.find("\n    }", period_start)
-                      if end != -1:
-                          end += len("\n    }")
-                          methods += "\n" + block[period_start:end]
+              if end == -1:
+                  raise SystemExit(
+                      "ERROR: closing brace not found for " + signature
+                  )
 
-                  text = text[:start] + text[class_db:]
+              method = src[start:end]
 
-                  # Insert methods before MainActivity closing brace
-                  marker = "\n}\n\nclass DB"
+              src = src[:start] + src[end:]
 
-                  pos = text.find(marker)
+              return src, method
 
-                  if pos == -1:
-                      print("ERROR: MainActivity closing brace not found")
-                      sys.exit(1)
+          # استخراج الدالتين أينما كانتا
+          text, method_open = extract_method(
+              text,
+              "private void openGroupGradeEntry()"
+          )
 
-                  text = text[:pos] + methods + "\n" + text[pos:]
+          text, method_period = extract_method(
+              text,
+              "private String gradeEntryPeriodName(int period)"
+          )
+
+          if not method_open:
+              print("ERROR: openGroupGradeEntry not found")
+              sys.exit(1)
+
+          if not method_period:
+              print("ERROR: gradeEntryPeriodName not found")
+              sys.exit(1)
+
+          # تحديد بداية class DB
+          db_pos = text.find("\nclass DB")
+
+          if db_pos == -1:
+              print("ERROR: class DB not found")
+              sys.exit(1)
+
+          # العثور على قوس إغلاق MainActivity قبل class DB
+          close_pos = text.rfind("}", 0, db_pos)
+
+          if close_pos == -1:
+              print("ERROR: MainActivity closing brace not found")
+              sys.exit(1)
+
+          # وضع الدالتين داخل MainActivity مباشرة قبل قوس الإغلاق
+          methods = (
+              "\n\n        // V1.7.0 GROUP GRADE ENTRY\n"
+              + "        "
+              + method_open.replace("\n", "\n        ")
+              + "\n\n        "
+              + method_period.replace("\n", "\n        ")
+              + "\n"
+          )
+
+          text = (
+              text[:close_pos]
+              + methods
+              + text[close_pos:]
+          )
 
           p.write_text(text, encoding="utf-8")
 
           print("MainActivity Java fixed successfully.")
+          print("openGroupGradeEntry moved inside MainActivity.")
+          print("gradeEntryPeriodName moved inside MainActivity.")
           PY
 
-          echo "=== VERIFY 415-445 ==="
-          nl -ba "$FILE" | sed -n '415,445p'
+          echo "=== VERIFY GROUP METHODS ==="
+          grep -n -B 5 -A 15 \
+            -E "openGroupGradeEntry|gradeEntryPeriodName|class DB" \
+            "$FILE"
 
-          echo "=== VERIFY 570-605 ==="
-          nl -ba "$FILE" | sed -n '570,605p'
+          echo "=== VERIFY END OF MAINACTIVITY ==="
+          nl -ba "$FILE" | tail -n 45
 
       - name: Setup Java
         uses: actions/setup-java@v4
