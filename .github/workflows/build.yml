@@ -131,7 +131,12 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+      - name: Show exact Java problem
+        run: |
+          FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
 
+          echo "===== LINES 560-595 ====="
+          nl -ba "$FILE" | sed -n '560,595p'
       - name: Build APK
         run: |
           set -e
