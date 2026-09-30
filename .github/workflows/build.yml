@@ -48,7 +48,7 @@ jobs:
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
           echo "Android project: $PROJECT_DIR"
 
-      - name: Fix MainActivity Java
+            - name: Fix MainActivity Java
         run: |
           set -e
 
@@ -61,52 +61,58 @@ jobs:
           p = Path(sys.argv[1])
           text = p.read_text(encoding="utf-8")
 
-          start_marker = "// V1.7.0 GROUP GRADE ENTRY"
+          # Fix literal backslash-n before changePassword
+          text = text.replace(
+              "\\n    void changePassword()",
+              "\n    void changePassword()"
+          )
 
+          start_marker = "// V1.7.0 GROUP GRADE ENTRY"
           start = text.find(start_marker)
 
           if start == -1:
               print("ERROR: GROUP GRADE ENTRY block not found")
               sys.exit(1)
 
-          end_marker = "\n}\n"
-          end = text.find(end_marker, start)
+          # Find the two methods as one block
+          class_db = text.find("\nclass DB", start)
 
-          if end == -1:
-              print("ERROR: End of GROUP GRADE ENTRY block not found")
+          if class_db == -1:
+              print("ERROR: class DB not found")
               sys.exit(1)
 
-          end += len(end_marker)
+          block = text[start:class_db]
 
-          block = text[start:end]
+          # Remove the old block
+          text = text[:start] + text[class_db:]
 
-          text = text[:start] + text[end:]
+          # Find MainActivity closing brace immediately before class DB
+          marker = "\n}\n\nclass DB"
+          pos = text.find(marker)
 
-          class_end_marker = "\n}\n\nclass DB"
-
-          class_end = text.find(class_end_marker)
-
-          if class_end == -1:
+          if pos == -1:
               print("ERROR: MainActivity closing brace not found")
               sys.exit(1)
 
-          insertion = "\n\n" + block.rstrip() + "\n"
-
+          # Insert both methods before MainActivity closing brace
           text = (
-              text[:class_end]
-              + insertion
-              + text[class_end:]
+              text[:pos]
+              + "\n"
+              + block.rstrip()
+              + "\n"
+              + text[pos:]
           )
 
           p.write_text(text, encoding="utf-8")
 
-          print("GROUP GRADE ENTRY methods moved inside MainActivity.")
+          print("MainActivity Java fixed successfully.")
           PY
 
-          echo "=== VERIFY LOCATION ==="
-          nl -ba "$FILE" | sed -n '410,450p'
-          nl -ba "$FILE" | sed -n '555,610p'
+          echo "=== VERIFY 415-445 ==="
+          nl -ba "$FILE" | sed -n '415,445p'
 
+          echo "=== VERIFY 570-605 ==="
+          nl -ba "$FILE" | sed -n '570,605p'
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
