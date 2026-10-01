@@ -412,12 +412,41 @@ public class MainActivity extends Activity {
             db=new DB(this);
             Toast.makeText(this,"تمت استعادة البيانات بنجاح. أعد فتح التطبيق للتأكد من جميع البيانات.",Toast.LENGTH_LONG).show();
             showLogin();
-        }catch(Exception e){
-            try{if(!db.isOpen())db=new DB(this);}catch(Exception ignored){}
-            Toast.makeText(this,"فشلت الاستعادة: "+e.getMessage(),Toast.LENGTH_LONG).show();
-        }
+}catch(Exception e){
+    try{db=new DB(this);}catch(Exception ignored){}
+    Toast.makeText(this,"فشلت الاستعادة: "+e.getMessage(),Toast.LENGTH_LONG).show();
+}
     }
-    void copyFile(File source,OutputStream out)throws Exception{InputStream in=new FileInputStream(source);copyFile(in,out);in.close();}
+    void copyFile(File source,File target)throws Exception{
+    InputStream in=new FileInputStream(source);
+    OutputStream out=new FileOutputStream(target);
+    try{
+        byte[] buf=new byte[8192];
+        int n;
+        while((n=in.read(buf))!=-1)out.write(buf,0,n);
+        out.flush();
+    }finally{
+        try{in.close();}catch(Exception ignored){}
+        try{out.close();}catch(Exception ignored){}
+    }
+}
+
+void copyFile(File source,OutputStream out)throws Exception{
+    InputStream in=new FileInputStream(source);
+    copyFile(in,out);
+}
+
+void copyFile(InputStream in,OutputStream out)throws Exception{
+    try{
+        byte[] buf=new byte[8192];
+        int n;
+        while((n=in.read(buf))!=-1)out.write(buf,0,n);
+        out.flush();
+    }finally{
+        try{in.close();}catch(Exception ignored){}
+        try{out.close();}catch(Exception ignored){}
+    }
+}
     void copyFile(InputStream in,OutputStream out)throws Exception{try{byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);out.flush();}finally{out.close();}}
     void settings(){page("⚙️ الإعدادات");addCard("👤 حسابي","الاسم: "+currentUser+"\nاسم المستخدم: "+currentUsername+"\nالدور: "+role);Button cp=btn("🔑 تغيير كلمة المرور");content.addView(cp);cp.setOnClickListener(v->changePassword());if(admin()){addCard("🔐 الصلاحيات","صلاحيات القائم بأعمال المدير مستقلة ولا تُمنح لأي مدرس آخر تلقائياً.");}else{addCard("🔐 صلاحياتي","يمكنك الوصول فقط إلى المهام المسموحة لدورك والصف المكلف به.");}addCard("📅 التقويم المدرسي","الدوام: السبت إلى الأربعاء\nالعطلة الرسمية: الخميس والجمعة");
         addCard("📴 التشغيل دون إنترنت","لا يحتاج التطبيق إلى اتصال بالإنترنت للوظائف الأساسية. سيتم استخدام الاتصال فقط مستقبلاً إذا أضيفت مزامنة أو تحديثات اختيارية.");addCard("🏫 بيانات المدرسة","مدرسة جعفر بن أبي طالب الأساسية\nالجمهورية اليمنية – إب – مذيخرة – الأشعوب");}\n    void changePassword(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);EditText old=new EditText(this);old.setHint("كلمة المرور الحالية");old.setInputType(0x81);EditText nw=new EditText(this);nw.setHint("كلمة المرور الجديدة");nw.setInputType(0x81);EditText confirm=new EditText(this);confirm.setHint("تأكيد كلمة المرور الجديدة");confirm.setInputType(0x81);l.addView(old);l.addView(nw);l.addView(confirm);new AlertDialog.Builder(this).setTitle("تغيير كلمة المرور").setView(l).setPositiveButton("حفظ",(d,w)->{if(nw.getText().length()<4||!nw.getText().toString().equals(confirm.getText().toString())){Toast.makeText(this,"تأكد من كلمة المرور الجديدة (4 أحرف على الأقل)",Toast.LENGTH_SHORT).show();return;}if(!db.changePassword(currentUsername,old.getText().toString(),nw.getText().toString()))Toast.makeText(this,"كلمة المرور الحالية غير صحيحة",Toast.LENGTH_SHORT).show();else Toast.makeText(this,"تم تغيير كلمة المرور بنجاح",Toast.LENGTH_SHORT).show();}).setNegativeButton("إلغاء",null).show();}
