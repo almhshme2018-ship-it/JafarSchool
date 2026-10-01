@@ -1,202 +1,60 @@
-name: Build JafarSchool APK
+name: Extract MainActivity
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
-  build:
+  extract:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Extract project
         run: |
           set -e
+
           rm -rf extracted
           mkdir -p extracted
 
           ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
 
           if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: No ZIP file found"
+            echo "ERROR: ZIP file not found"
             exit 1
           fi
+
+          echo "ZIP: $ZIP_FILE"
 
           unzip -q "$ZIP_FILE" -d extracted
 
-          find extracted -maxdepth 4 -type f | sort | head -n 200
+          echo "=== Searching MainActivity.java ==="
+          find extracted -type f -name "MainActivity.java" -print
 
-      - name: Locate Android project
+      - name: Copy MainActivity
         run: |
           set -e
 
-          SETTINGS=$(find extracted -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
+          FILE=$(find extracted -type f -name "MainActivity.java" | head -n 1)
 
-          if [ -z "$SETTINGS" ]; then
-            echo "ERROR: settings.gradle not found"
+          if [ -z "$FILE" ]; then
+            echo "ERROR: MainActivity.java not found"
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$SETTINGS")
+          echo "Found: $FILE"
 
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          mkdir -p output
+          cp "$FILE" output/MainActivity.java
 
-          echo "Android project: $PROJECT_DIR"
+          echo "=== File information ==="
+          wc -l output/MainActivity.java
+          ls -lh output/MainActivity.java
 
-      - name: Fix MainActivity Java
-        run: |
-          set -e
-
-          FILE="$PROJECT_DIR/app/src/main/java/com/jafar/school/MainActivity.java"
-
-          python3 - "$FILE" <<'PY'
-          from pathlib import Path
-          import sys
-
-          p = Path(sys.argv[1])
-          text = p.read_text(encoding="utf-8")
-
-          # Fix literal \n before changePassword
-          text = text.replace(
-              "\\n    void changePassword()",
-              "\n    void changePassword()"
-          )
-
-          def extract_method(src, signature):
-              start = src.find(signature)
-
-              if start == -1:
-                  return src, ""
-
-              brace = src.find("{", start)
-
-              if brace == -1:
-                  raise SystemExit(
-                      "ERROR: opening brace not found: " + signature
-                  )
-
-              depth = 0
-              end = -1
-
-              for i in range(brace, len(src)):
-                  if src[i] == "{":
-                      depth += 1
-                  elif src[i] == "}":
-                      depth -= 1
-                      if depth == 0:
-                          end = i + 1
-                          break
-
-              if end == -1:
-                  raise SystemExit(
-                      "ERROR: closing brace not found: " + signature
-                  )
-
-              method = src[start:end]
-
-              src = src[:start] + src[end:]
-
-              return src, method
-
-          text, method_open = extract_method(
-              text,
-              "private void openGroupGradeEntry()"
-          )
-
-          text, method_period = extract_method(
-              text,
-              "private String gradeEntryPeriodName(int period)"
-          )
-
-          if not method_open:
-              print("ERROR: openGroupGradeEntry not found")
-              sys.exit(1)
-
-          if not method_period:
-              print("ERROR: gradeEntryPeriodName not found")
-              sys.exit(1)
-
-          db_pos = text.find("\nclass DB")
-
-          if db_pos == -1:
-              print("ERROR: class DB not found")
-              sys.exit(1)
-
-          main_close = text.rfind("}", 0, db_pos)
-
-          if main_close == -1:
-              print("ERROR: MainActivity closing brace not found")
-              sys.exit(1)
-
-          methods = (
-              "\n\n    // V1.7.0 GROUP GRADE ENTRY\n"
-              + "    "
-              + method_open.replace("\n", "\n    ")
-              + "\n\n    "
-              + method_period.replace("\n", "\n    ")
-              + "\n"
-          )
-
-          text = (
-              text[:main_close]
-              + methods
-              + text[main_close:]
-          )
-          print("=== IMPORTS ===")
-          for line in text.splitlines():
-              if line.startswith("import "):
-                  print(line)
-
-          print("=== COPY METHODS ===")
-          for line_no, line in enumerate(text.splitlines(), 1):
-              if "copyFile(" in line:
-                  print(line_no, line)
-
-          print("=== DB isOpen ===")
-          print("boolean isOpen()" in text)
-          p.write_text(text, encoding="utf-8")
-
-          print("MainActivity Java fixed successfully.")
-          print("openGroupGradeEntry moved inside MainActivity.")
-          print("gradeEntryPeriodName moved inside MainActivity.")
-          PY
-
-          echo "=== VERIFY METHODS ==="
-
-          grep -n -B 5 -A 15 \
-            -E "openGroupGradeEntry|gradeEntryPeriodName|class DB" \
-            "$FILE"
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-
-      - name: Build APK
-        run: |
-          set -e
-          cd "$PROJECT_DIR"
-          gradle clean assembleDebug --console=plain
-
-      - name: Find APK
-        run: |
-          find "$PROJECT_DIR" -type f -name "*.apk" -print
-
-      - name: Upload APK
+      - name: Upload MainActivity
         uses: actions/upload-artifact@v4
         with:
-          name: JafarSchool-APK
-          path: extracted/app/build/outputs/apk/debug/*.apk
+          name: MainActivity-source
+          path: output/MainActivity.java
           if-no-files-found: error
