@@ -57,8 +57,7 @@ jobs:
 
           echo "Project: $PROJECT_DIR"
 
-      - name: Use corrected MainActivity
-        run: |
+          - name: Use corrected MainActivity      run: |
           set -e
 
           SOURCE=$(find "$PROJECT_DIR" -type f -name "MainActivity.java" | head -n 1)
@@ -72,27 +71,25 @@ jobs:
             echo "ERROR: Root MainActivity.java not found"
             exit 1
           fi
+
           cp MainActivity.java "$SOURCE"
 
-      - name: Build APK
-        run: |
-          set -e
-          cd "$PROJECT_DIR"
-          gradle clean assembleDebug --console=plain
+          python3 - "$SOURCE" <<'PY'
+          import sys
 
-      - name: Find APK
-        run: |
-          set -e
+          path = sys.argv[1]
 
-          APK=$(find "$PROJECT_DIR/app/build/outputs/apk/debug" -type f -name "*.apk" | head -n 1)
+          with open(path, "r", encoding="utf-8") as f:
+              s = f.read()
 
-          if [ -z "$APK" ]; then
-            echo "ERROR: APK not found"
-            exit 1
-          fi
+          # إصلاح \n الموجود خارج النصوص في نهاية الأسطر
+          s = s.replace('");}\\n    void ', '");}\n    void ')
 
-          echo "APK=$APK" >> "$GITHUB_ENV"
-          ls -lh "$APK"
+          with open(path, "w", encoding="utf-8") as f:
+              f.write(s)
+
+          print("MainActivity.java fixed")
+          PY
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
