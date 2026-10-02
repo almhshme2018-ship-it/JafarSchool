@@ -45,7 +45,7 @@ jobs:
         run: |
           set -e
 
-          SETTINGS=$(find extracted -name "settings.gradle" -o -name "settings.gradle.kts" | head -n 1)
+          SETTINGS=$(find extracted \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
 
           if [ -z "$SETTINGS" ]; then
             echo "ERROR: settings.gradle not found"
@@ -57,7 +57,8 @@ jobs:
 
           echo "Project: $PROJECT_DIR"
 
-          - name: Use corrected MainActivity      run: |
+      - name: Use corrected MainActivity
+        run: |
           set -e
 
           SOURCE=$(find "$PROJECT_DIR" -type f -name "MainActivity.java" | head -n 1)
@@ -82,7 +83,6 @@ jobs:
           with open(path, "r", encoding="utf-8") as f:
               s = f.read()
 
-          # إصلاح \n الموجود خارج النصوص في نهاية الأسطر
           s = s.replace('");}\\n    void ', '");}\n    void ')
 
           with open(path, "w", encoding="utf-8") as f:
@@ -90,37 +90,24 @@ jobs:
 
           print("MainActivity.java fixed")
           PY
-      - name: Find generated APK
+
+      - name: Build APK
         run: |
-          echo "=== Searching for APK files ==="
-          find extracted -type f -name "*.apk" -print
-            - name: Find and Prepare APK
-          run: |
+          set -e
+
+          echo "=== Building JafarSchool APK ==="
+          cd "$PROJECT_DIR"
+
+          gradle assembleDebug --no-daemon
+
+      - name: Find and Prepare APK
+        run: |
           set -e
 
           echo "=== Searching for APK ==="
-          find . -type f -name "*.apk" -print
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
 
-          APK=$(find . -type f -name "*.apk" | head -n 1)
-
-          if [ -z "APK" ]; then
-            echo "ERROR: No APK file was generated"
-            exit 1
-          fi
-
-          echo "APK found: $APK"
-
-          mkdir -p artifact
-          cp "APK" artifact/JafarSchool-APK.apk
-
-            - name: Find and Prepare APK
-          run: |
-          set -e
-
-          echo "=== Searching for APK ==="
-          find . -type f -name "*.apk" -print
-
-          APK=$(find . -type f -name "*.apk" | head -n 1)
+          APK=$(find "$PROJECT_DIR" -type f -name "*.apk" | head -n 1)
 
           if [ -z "$APK" ]; then
             echo "ERROR: No APK file was generated"
