@@ -94,11 +94,49 @@ jobs:
         run: |
           echo "=== Searching for APK files ==="
           find extracted -type f -name "*.apk" -print
+            - name: Find and Prepare APK
+          run: |
+          set -e
+
+          echo "=== Searching for APK ==="
+          find . -type f -name "*.apk" -print
+
+          APK=$(find . -type f -name "*.apk" | head -n 1)
+
+          if [ -z "APK" ]; then
+            echo "ERROR: No APK file was generated"
+            exit 1
+          fi
+
+          echo "APK found: $APK"
+
+          mkdir -p artifact
+          cp "APK" artifact/JafarSchool-APK.apk
+
+            - name: Find and Prepare APK
+          run: |
+          set -e
+
+          echo "=== Searching for APK ==="
+          find . -type f -name "*.apk" -print
+
+          APK=$(find . -type f -name "*.apk" | head -n 1)
+
+          if [ -z "$APK" ]; then
+            echo "ERROR: No APK file was generated"
+            exit 1
+          fi
+
+          echo "APK found: $APK"
+
+          mkdir -p artifact
+          cp "$APK" artifact/JafarSchool-APK.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: JafarSchool-APK
-          path: extracted/**/build/outputs/apk/debug/*.apk
+          path: artifact/JafarSchool-APK.apk
           if-no-files-found: error
 
       - name: Create Release
@@ -110,7 +148,7 @@ jobs:
           TAG="v2.0.0-build-${{ github.run_number }}"
 
           gh release create "$TAG" \
-            "$APK" \
+            "artifact/JafarSchool-APK.apk" \
             --title "مدرسة جعفر - $TAG" \
             --notes "نسخة APK قابلة للتثبيت من تطبيق مدرسة جعفر." \
             --latest
