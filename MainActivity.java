@@ -328,8 +328,42 @@ public class MainActivity extends Activity {
     }
 
     void timetable(){page("📅 الجدول المدرسي");addCard("أيام الدوام","السبت، الأحد، الاثنين، الثلاثاء، الأربعاء\nالخميس والجمعة عطلة رسمية");if(admin()){Button edit=btn("✏️ تعديل الجدول");content.addView(edit);edit.setOnClickListener(v->scheduleEditor());}for(String d:DAYS)addCard("📅 "+d,db.daySchedule(d));}
-    void scheduleEditor(){page("✏️ تعديل الجدول");for(String day:DAYS){for(int lesson=1;lesson<=5;lesson++){LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.addView(tv(day+" — الحصة "+lesson,15,true),new LinearLayout.LayoutParams(0,58,1));EditText e=new EditText(this);e.setHint("المادة");e.setText(db.scheduleSubject(day,lesson));Button save=btn("حفظ");save.setOnClickListener(v->{db.setSchedule(day,lesson,e.getText().toString());Toast.makeText(this,"تم حفظ الحصة",Toast.LENGTH_SHORT).show();});row.addView(e,new LinearLayout.LayoutParams(0,55,1));row.addView(save,new LinearLayout.LayoutParams(72,52));content.addView(row);}}}
+    void scheduleEditor(){
+    page("✏️ تعديل الجدول");
+    for(String day:DAYS){
+        final String d=day;
+        for(int lesson=1;lesson<=5;lesson++){
+            final int l=lesson;
 
+            LinearLayout row=new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+
+            row.addView(
+                tv(d+" — الحصة "+l,15,true),
+                new LinearLayout.LayoutParams(0,58,1)
+            );
+
+            EditText e=new EditText(this);
+            e.setHint("المادة");
+            e.setText(db.scheduleSubject(d,l));
+
+            Button save=btn("حفظ");
+
+            save.setOnClickListener(v->{
+                db.setSchedule(d,l,e.getText().toString());
+                Toast.makeText(
+                    this,
+                    "تم حفظ الحصة",
+                    Toast.LENGTH_SHORT
+                ).show();
+            });
+
+            row.addView(e,new LinearLayout.LayoutParams(0,55,1));
+            row.addView(save,new LinearLayout.LayoutParams(72,52));
+            content.addView(row);
+        }
+    }
+}
     void reports(){page("📈 التقارير والإحصائيات");Button pr=btn("🖨️ طباعة تقرير المدرسة");content.addView(pr);pr.setOnClickListener(v->printReport());addCard("👨‍🎓 الطلاب","الإجمالي: "+db.count("students"));addCard("👨‍🏫 المعلمون","الإجمالي: "+db.count("teachers"));addCard("🏫 الصفوف والشعب","الإجمالي: "+db.count("classes"));addCard("✅ الحضور اليوم","حاضر: "+db.todayPresent()+"\nغائب: "+db.todayAbsent()+"\nمتأخر: "+db.todayLate()+"\nبعذر: "+db.todayExcused());addCard("📊 متوسط الدرجات",String.format(Locale.US,"%.1f / 100",db.averageGrades()));}
     void printReport(){
         WebView w=new WebView(this);
