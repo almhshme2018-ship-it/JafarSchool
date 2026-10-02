@@ -45,7 +45,26 @@ jobs:
 
           echo "=== Searching settings.gradle ==="
           find extracted -name "settings.gradle" -o -name "settings.gradle.kts"
+      - name: Use corrected MainActivity
+        run: |
+          set -e
 
+          SOURCE=$(find extracted -type f -name "MainActivity.java" | head -n 1)
+
+          if [ -z "$SOURCE" ]; then
+            echo "ERROR: MainActivity.java not found in extracted project"
+            exit 1
+          fi
+
+          if [ ! -f "MainActivity.java" ]; then
+            echo "ERROR: Root MainActivity.java not found"
+            exit 1
+          fi
+
+          cp MainActivity.java "$SOURCE"
+
+          echo "Corrected MainActivity.java copied successfully"
+          wc -l "$SOURCE"
       - name: Find project
         run: |
           set -e
