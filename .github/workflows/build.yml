@@ -90,7 +90,10 @@ jobs:
 
           print("MainActivity.java fixed")
           PY
-
+      - name: Find generated APK
+        run: |
+          echo "=== Searching for APK files ==="
+          find extracted -type f -name "*.apk" -print
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
