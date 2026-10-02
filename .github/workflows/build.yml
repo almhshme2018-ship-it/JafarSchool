@@ -1,0 +1,54 @@
+name: Build JafarSchool APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract ZIP
+        run: |
+          unzip -q JafarSchool_v2.0.0_COMPLETE_OFFLINE.zip -d extracted
+
+      - name: Find Project
+        run: |
+          PROJECT_DIR=$(find extracted -name settings.gradle -exec dirname {} \; | head -n 1)
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Project: $PROJECT_DIR"
+
+      - name: Replace MainActivity
+        run: |
+          SOURCE=$(find "$PROJECT_DIR" -name MainActivity.java | head -n 1)
+          cp MainActivity.java "$SOURCE"
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug --no-daemon
+
+      - name: Find APK
+        run: |
+          find "$PROJECT_DIR" -name "*.apk" -print
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JafarSchool-APK
+          path: '**/*.apk'
+          if-no-files-found: error
