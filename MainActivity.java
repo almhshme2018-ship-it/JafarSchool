@@ -79,7 +79,7 @@ public class MainActivity extends Activity {
     void showHome(){
         base();LinearLayout head=new LinearLayout(this);head.setPadding(8,8,8,3);head.setGravity(Gravity.CENTER_VERTICAL);
         TextView h=tv("🏫 مدرسة جعفر\n"+role,19,true);head.addView(h,new LinearLayout.LayoutParams(0,72,1));Button out=btn("خروج");out.setOnClickListener(v->showLogin());head.addView(out,new LinearLayout.LayoutParams(84,52));root.addView(head);
-        ScrollView sv=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(9,5,9,28);sv.addView(content);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));
+        ScrollView sv=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(9,8,9,12);;sv.addView(content);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));
         addCard("👋 لوحة التحكم","أنت: "+role+"\nصلاحيات الإدارة لا تُمنح لأي معلم آخر تلقائياً.");
         addCard("📴 وضع التشغيل","التطبيق يعمل دون إنترنت. البيانات والدرجات والحضور والجدول والتقارير محفوظة محلياً على الجهاز.");
         addStats(); if(teacher()){Button my=btn("👨‍🏫 صفي / مهامي");content.addView(my);my.setOnClickListener(v->myClass());} addGrid(); addCard("📢 آخر الإعلانات",db.latestAnnouncements());
@@ -93,8 +93,60 @@ public class MainActivity extends Activity {
     }
 
     void addStats(){LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);String[] a={"👨‍🎓\nالطلاب\n"+db.count("students"),"👨‍🏫\nالمعلمون\n"+db.count("teachers"),"🟢\nحاضر اليوم\n"+db.todayPresent(),"🔴\nغائب اليوم\n"+db.todayAbsent()};for(String x:a){TextView t=tv(x,14,true);t.setGravity(Gravity.CENTER);t.setBackgroundColor(WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,92,1);p.setMargins(2,2,2,2);r.addView(t,p);}content.addView(r);}
-    void addCard(String a,String b){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(6,7,6,7);TextView x=tv(a,18,true);x.setTextColor(DARK);TextView y=tv(b,14,false);c.addView(x);c.addView(y);c.setBackgroundColor(WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(3,6,3,6);content.addView(c,p);}
-    void addGrid(){ArrayList<String[]> list=new ArrayList<>();list.add(new String[]{"👨‍🎓 الطلاب","students"});list.add(new String[]{"📊 الدرجات","grades"});list.add(new String[]{"✅ الحضور","attendance"});list.add(new String[]{"📅 الجدول","timetable"});if(admin()){list.add(new String[]{"👨‍🏫 المعلمون","teachers"});list.add(new String[]{"🏫 الصفوف والشعب","classes"});list.add(new String[]{"📈 التقارير","reports"});list.add(new String[]{"🔔 الإعلانات","announcements"});list.add(new String[]{"🔐 المستخدمون والصلاحيات","users"});list.add(new String[]{"📁 الملفات","files"});list.add(new String[]{"⚙️ الإعدادات","settings"});}else{list.add(new String[]{"👨‍🏫 صفي / مهامي","myclass"});list.add(new String[]{"👨‍🎓 طلاب صفي","students"});list.add(new String[]{"🔔 الإعلانات","announcements"});list.add(new String[]{"⚙️ حسابي","settings"});}LinearLayout row=null;int i=0;for(String[] item:list){if(i%2==0){row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);content.addView(row,new LinearLayout.LayoutParams(-1,88));}Button b=btn(item[0]);row.addView(b,new LinearLayout.LayoutParams(0,80,1));final String key=item[1];b.setOnClickListener(v->{if(key.equals("myclass"))myClass();else open(key);});i++;}}
+    void addCard(String a,String b){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(6,7,6,7);TextView x=tv(a,18,true);x.setTextColor(DARK);TextView y=tv(b,14,false);c.addView(x);c.addView(y);c.setBackgroundColor(WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(3,6,3,6);content.addView(c,p);}void addGrid(){
+    ArrayList<String[]> list=new ArrayList<>();
+    list.add(new String[]{"👨‍🎓 الطلاب","students"});
+    list.add(new String[]{"📊 الدرجات","grades"});
+    list.add(new String[]{"✅ الحضور","attendance"});
+    list.add(new String[]{"📅 الجدول","timetable"});
+
+    if(admin()){
+        list.add(new String[]{"👨‍🏫 المعلمون","teachers"});
+        list.add(new String[]{"🏫 الصفوف والشعب","classes"});
+        list.add(new String[]{"📈 التقارير","reports"});
+        list.add(new String[]{"🔔 الإعلانات","announcements"});
+        list.add(new String[]{"🔐 المستخدمون والصلاحيات","users"});
+        list.add(new String[]{"📁 الملفات","files"});
+        list.add(new String[]{"⚙️ الإعدادات","settings"});
+    }else{
+        list.add(new String[]{"👨‍🏫 صفي / مهامي","myclass"});
+        list.add(new String[]{"👨‍🎓 طلاب صفي","students"});
+        list.add(new String[]{"🔔 الإعلانات","announcements"});
+        list.add(new String[]{"⚙️ حسابي","settings"});
+    }
+
+    LinearLayout grid=new LinearLayout(this);
+    grid.setOrientation(LinearLayout.VERTICAL);
+
+    for(int i=0;i<list.size();i+=2){
+        LinearLayout row=new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        for(int j=i;j<i+2 && j<list.size();j++){
+            String[] item=list.get(j);
+            Button b=btn(item[0]);
+            b.setTextSize(16);
+            b.setMinHeight(70);
+            b.setPadding(8,8,8,8);
+
+            LinearLayout.LayoutParams p=
+                    new LinearLayout.LayoutParams(0,82,1);
+            p.setMargins(4,4,4,4);
+            row.addView(b,p);
+
+            final String key=item[1];
+            b.setOnClickListener(v->{
+                if(key.equals("myclass")) myClass();
+                else open(key);
+            });
+        }
+
+        grid.addView(row,new LinearLayout.LayoutParams(-1,90));
+    }
+
+    content.addView(grid,new LinearLayout.LayoutParams(-1,-2));
+}
     void open(String k){if(k.equals("students")){students();return;}if(k.equals("teachers")){teachers();return;}if(k.equals("classes")){classes();return;}if(k.equals("grades")){grades();return;}if(k.equals("attendance")){attendance();return;}if(k.equals("timetable")){timetable();return;}if(k.equals("reports")){reports();return;}if(k.equals("announcements")){announcements();return;}if(k.equals("users")){users();return;}if(k.equals("files")){files();return;}if(k.equals("settings")){settings();}}
     void page(String name){base();LinearLayout top=new LinearLayout(this);Button back=btn("رجوع");back.setOnClickListener(v->showHome());top.addView(back,new LinearLayout.LayoutParams(86,56));top.addView(tv(name,20,true),new LinearLayout.LayoutParams(0,56,1));root.addView(top);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(9,6,9,28);ScrollView s=new ScrollView(this);s.addView(content);root.addView(s,new LinearLayout.LayoutParams(-1,0,1));}
 
