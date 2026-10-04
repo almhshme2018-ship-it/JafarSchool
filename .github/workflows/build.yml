@@ -36,7 +36,10 @@ jobs:
         run: |
           SOURCE=$(find "$PROJECT_DIR" -name MainActivity.java | head -n 1)
           cp MainActivity.java "$SOURCE"
-
+      - name: Inspect Java around error
+        run: |
+          echo "=== MainActivity lines 500-615 ==="
+          nl -ba extracted/app/src/main/java/com/jafar/school/MainActivity.java | sed -n '500,615p'
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
