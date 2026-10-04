@@ -76,8 +76,7 @@ String currentPage = "home";
     }
 
     boolean admin(){return role.equals("القائم بأعمال المدير");}
-    boolean teacher(){return role.equals("معلم")||admin();}
-    void showHome(){
+    boolean teacher(){return role.equals("معلم")||admin(); 
     void showHome(){
     currentPage = "home";
     base();
