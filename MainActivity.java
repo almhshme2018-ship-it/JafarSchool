@@ -1,6 +1,5 @@
 package com.jafar.school;
-ArrayList<String> pageHistory = new ArrayList<>();
-String currentPage = "home";
+
 import android.app.*;
 import android.os.*;
 import android.content.*;
@@ -25,7 +24,8 @@ import android.text.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity {ArrayList<String> pageHistory = new ArrayList<>();
+String currentPage = "home";
     static final int REQ_BACKUP=7101, REQ_RESTORE=7102;
     LinearLayout root, content;
     String role="القائم بأعمال المدير";
