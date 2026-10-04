@@ -242,11 +242,17 @@ void addStats(){
                 }else{
                     open(key);
                 }
-            });
-        }
-    }
-}
+void addGrid(){
+
+    ArrayList<String[]> list = new ArrayList<>();
+
+    list.add(new String[]{"👨‍🎓 الطلاب","students"});
+    list.add(new String[]{"📊 الدرجات","grades"});
+    list.add(new String[]{"✅ الحضور","attendance"});
+    list.add(new String[]{"📅 الجدول","timetable"});
+
     if(admin()){
+
         list.add(new String[]{"👨‍🏫 المعلمون","teachers"});
         list.add(new String[]{"🏫 الصفوف والشعب","classes"});
         list.add(new String[]{"📈 التقارير","reports"});
@@ -254,44 +260,67 @@ void addStats(){
         list.add(new String[]{"🔐 المستخدمون والصلاحيات","users"});
         list.add(new String[]{"📁 الملفات","files"});
         list.add(new String[]{"⚙️ الإعدادات","settings"});
+
     }else{
+
         list.add(new String[]{"👨‍🏫 صفي / مهامي","myclass"});
         list.add(new String[]{"👨‍🎓 طلاب صفي","students"});
         list.add(new String[]{"🔔 الإعلانات","announcements"});
         list.add(new String[]{"⚙️ حسابي","settings"});
     }
 
-    LinearLayout grid=new LinearLayout(this);
+    LinearLayout grid = new LinearLayout(this);
     grid.setOrientation(LinearLayout.VERTICAL);
 
     for(int i=0;i<list.size();i+=2){
-        LinearLayout row=new LinearLayout(this);
+
+        LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setGravity(Gravity.CENTER);
+
+        LinearLayout.LayoutParams rp =
+                new LinearLayout.LayoutParams(-1,88);
+
+        rp.setMargins(0,2,0,2);
+
+        grid.addView(row,rp);
 
         for(int j=i;j<i+2 && j<list.size();j++){
-            String[] item=list.get(j);
-            Button b=btn(item[0]);
-            b.setTextSize(16);
-            b.setMinHeight(70);
-            b.setPadding(8,8,8,8);
 
-            LinearLayout.LayoutParams p=
-                    new LinearLayout.LayoutParams(0,82,1);
-            p.setMargins(4,4,4,4);
-            row.addView(b,p);
+            String[] item = list.get(j);
 
-            final String key=item[1];
+            Button b = btn(item[0]);
+            b.setTextSize(15);
+            b.setAllCaps(false);
+
+            LinearLayout.LayoutParams bp =
+                    new LinearLayout.LayoutParams(0,78,1);
+
+            bp.setMargins(3,3,3,3);
+
+            row.addView(b,bp);
+
+            final String key = item[1];
+
             b.setOnClickListener(v->{
-                if(key.equals("myclass")) myClass();
-                else open(key);
+
+                pageHistory.add(currentPage);
+                currentPage = key;
+
+                if(key.equals("myclass")){
+                    myClass();
+                }else{
+                    open(key);
+                }
+
             });
         }
-
-        grid.addView(row,new LinearLayout.LayoutParams(-1,90));
     }
 
-    content.addView(grid,new LinearLayout.LayoutParams(-1,-2));
+    content.addView(
+            grid,
+            new LinearLayout.LayoutParams(-1,-2)
+    );
 }
     void open(String k){if(k.equals("students")){students();return;}if(k.equals("teachers")){teachers();return;}if(k.equals("classes")){classes();return;}if(k.equals("grades")){grades();return;}if(k.equals("attendance")){attendance();return;}if(k.equals("timetable")){timetable();return;}if(k.equals("reports")){reports();return;}if(k.equals("announcements")){announcements();return;}if(k.equals("users")){users();return;}if(k.equals("files")){files();return;}if(k.equals("settings")){settings();}}
     void page(String name){
