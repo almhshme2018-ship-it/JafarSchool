@@ -512,7 +512,7 @@ void addGrid(){
             }catch(Exception ex){Toast.makeText(this,"تحقق من الدرجات والحدود قبل الحفظ",Toast.LENGTH_SHORT).show();}
         });
     }
-    Spinner.OnItemSelectedListener simpleRender(Runnable r){return new Spinner.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){} public void onItemSelected(android.widget.AdapterView<?> p,View v,int pos,long id){r.run();}};}
+    android.widget.AdapterView.OnItemSelectedListener simpleRender(Runnable r){{return new Spinner.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){} public void onItemSelected(android.widget.AdapterView<?> p,View v,int pos,long id){r.run();}};}
     EditText numberBox(String hint){EditText e=new EditText(this);e.setHint(hint);e.setTextSize(12);e.setGravity(Gravity.CENTER);e.setInputType(2|8192);return e;}
     double parse(EditText e){String x=e.getText().toString().trim();return x.isEmpty()?0:Double.parseDouble(x);}
     String fmt(double x){return Math.abs(x-Math.round(x))<.001?String.valueOf(Math.round(x)):String.format(Locale.US,"%.1f",x);}
