@@ -1,5 +1,6 @@
 package com.jafar.school;
-
+ArrayList<String> pageHistory = new ArrayList<>();
+String currentPage = "home";
 import android.app.*;
 import android.os.*;
 import android.content.*;
@@ -77,13 +78,72 @@ public class MainActivity extends Activity {
     boolean admin(){return role.equals("القائم بأعمال المدير");}
     boolean teacher(){return role.equals("معلم")||admin();}
     void showHome(){
-        base();LinearLayout head=new LinearLayout(this);head.setPadding(8,8,8,3);head.setGravity(Gravity.CENTER_VERTICAL);
-        TextView h=tv("🏫 مدرسة جعفر\n"+role,19,true);head.addView(h,new LinearLayout.LayoutParams(0,72,1));Button out=btn("خروج");out.setOnClickListener(v->showLogin());head.addView(out,new LinearLayout.LayoutParams(84,52));root.addView(head);
-        ScrollView sv=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(9,8,9,12);;sv.addView(content);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));
-        addCard("👋 لوحة التحكم","أنت: "+role+"\nصلاحيات الإدارة لا تُمنح لأي معلم آخر تلقائياً.");
-        addCard("📴 وضع التشغيل","التطبيق يعمل دون إنترنت. البيانات والدرجات والحضور والجدول والتقارير محفوظة محلياً على الجهاز.");
-        addStats(); if(teacher()){Button my=btn("👨‍🏫 صفي / مهامي");content.addView(my);my.setOnClickListener(v->myClass());} addGrid(); addCard("📢 آخر الإعلانات",db.latestAnnouncements());
+    void showHome(){
+    currentPage = "home";
+    base();
+
+    LinearLayout head = new LinearLayout(this);
+    head.setOrientation(LinearLayout.HORIZONTAL);
+    head.setGravity(Gravity.CENTER_VERTICAL);
+    head.setPadding(12,10,12,8);
+
+    TextView logo = tv("📖",30,true);
+    logo.setGravity(Gravity.CENTER);
+    head.addView(logo,new LinearLayout.LayoutParams(58,70));
+
+    TextView h = tv(
+            "مدرسة جعفر\n" + role,
+            19,
+            true
+    );
+    h.setGravity(Gravity.CENTER_VERTICAL);
+    head.addView(h,new LinearLayout.LayoutParams(0,70,1));
+
+    Button out = btn("خروج");
+    out.setTextSize(15);
+    head.addView(out,new LinearLayout.LayoutParams(92,58));
+    out.setOnClickListener(v->showLogin());
+
+    root.addView(head);
+
+    ScrollView sv = new ScrollView(this);
+    sv.setFillViewport(true);
+
+    content = new LinearLayout(this);
+    content.setOrientation(LinearLayout.VERTICAL);
+    content.setPadding(10,6,10,20);
+
+    sv.addView(content);
+
+    root.addView(
+            sv,
+            new LinearLayout.LayoutParams(-1,0,1)
+    );
+
+    addCard(
+            "🏫 لوحة التحكم",
+            "أهلاً بك في مدرسة جعفر\nأنت: " + role +
+            "\nجميع البيانات محفوظة محلياً ويمكن تشغيل البرنامج دون إنترنت."
+    );
+
+    addStats();
+
+    if(teacher()){
+        Button my = btn("👨‍🏫 صفي / مهامي");
+        LinearLayout.LayoutParams mp =
+                new LinearLayout.LayoutParams(-1,62);
+        mp.setMargins(4,5,4,5);
+        content.addView(my,mp);
+        my.setOnClickListener(v->myClass());
     }
+
+    addGrid();
+
+    addCard(
+            "📢 آخر الإعلانات",
+            db.latestAnnouncements()
+    );
+}
     void myClass(){
         page("👨‍🏫 صفي / مهامي");
         String g=assignedGrade, c=assignedClass;
@@ -91,15 +151,98 @@ public class MainActivity extends Activity {
         addCard("صفّي", "الصف: "+g+"\nالشعبة: "+(c==null?"":c));
         for(String[] r:db.studentsInClass(g,c)) addCard("👨‍🎓 "+r[0],"الرقم: "+r[1]+"\nالحضور اليوم: "+(db.attendanceStatus(r[1]).isEmpty()?"لم يسجل":db.attendanceStatus(r[1]))+"\nالدرجات: "+db.studentGrades(r[1]));
     }
+void addStats(){
+    LinearLayout r = new LinearLayout(this);
+    r.setOrientation(LinearLayout.HORIZONTAL);
+    r.setGravity(Gravity.CENTER);
 
-    void addStats(){LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);String[] a={"👨‍🎓\nالطلاب\n"+db.count("students"),"👨‍🏫\nالمعلمون\n"+db.count("teachers"),"🟢\nحاضر اليوم\n"+db.todayPresent(),"🔴\nغائب اليوم\n"+db.todayAbsent()};for(String x:a){TextView t=tv(x,14,true);t.setGravity(Gravity.CENTER);t.setBackgroundColor(WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,92,1);p.setMargins(2,2,2,2);r.addView(t,p);}content.addView(r);}
-    void addCard(String a,String b){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(6,7,6,7);TextView x=tv(a,18,true);x.setTextColor(DARK);TextView y=tv(b,14,false);c.addView(x);c.addView(y);c.setBackgroundColor(WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(3,6,3,6);content.addView(c,p);}void addGrid(){
-    ArrayList<String[]> list=new ArrayList<>();
+    String[] a = {
+        "👨‍🎓\nالطلاب\n" + db.count("students"),
+        "👨‍🏫\nالمعلمون\n" + db.count("teachers"),
+        "🟢\nحاضر اليوم\n" + db.todayPresent(),
+        "🔴\nغائب اليوم\n" + db.todayAbsent()
+    };
+
+    for(String x : a){
+        TextView t = tv(x,14,true);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(4,8,4,8);
+        t.setBackgroundColor(WHITE);
+
+        LinearLayout.LayoutParams p =
+                new LinearLayout.LayoutParams(0,105,1);
+
+        p.setMargins(3,4,3,4);
+        r.addView(t,p);
+    }
+
+    content.addView(r);
+}
+    void addGrid(){
+    ArrayList<String[]> list = new ArrayList<>();
+
     list.add(new String[]{"👨‍🎓 الطلاب","students"});
     list.add(new String[]{"📊 الدرجات","grades"});
     list.add(new String[]{"✅ الحضور","attendance"});
     list.add(new String[]{"📅 الجدول","timetable"});
 
+    if(admin()){
+        list.add(new String[]{"👨‍🏫 المعلمون","teachers"});
+        list.add(new String[]{"🏫 الصفوف والشعب","classes"});
+        list.add(new String[]{"📈 التقارير","reports"});
+        list.add(new String[]{"🔔 الإعلانات","announcements"});
+        list.add(new String[]{"🔐 المستخدمون والصلاحيات","users"});
+        list.add(new String[]{"📁 الملفات","files"});
+        list.add(new String[]{"⚙️ الإعدادات","settings"});
+    }else{
+        list.add(new String[]{"👨‍🏫 صفي / مهامي","myclass"});
+        list.add(new String[]{"👨‍🎓 طلاب صفي","students"});
+        list.add(new String[]{"🔔 الإعلانات","announcements"});
+        list.add(new String[]{"⚙️ حسابي","settings"});
+    }
+
+    for(int i=0;i<list.size();i+=2){
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER);
+
+        LinearLayout.LayoutParams rp =
+                new LinearLayout.LayoutParams(-1,88);
+        rp.setMargins(0,2,0,2);
+
+        content.addView(row,rp);
+
+        for(int j=i;j<i+2 && j<list.size();j++){
+
+            String[] item = list.get(j);
+
+            Button b = btn(item[0]);
+            b.setTextSize(15);
+            b.setAllCaps(false);
+
+            LinearLayout.LayoutParams bp =
+                    new LinearLayout.LayoutParams(0,78,1);
+
+            bp.setMargins(3,3,3,3);
+
+            row.addView(b,bp);
+
+            final String key = item[1];
+
+            b.setOnClickListener(v->{
+                pageHistory.add(currentPage);
+                currentPage = key;
+
+                if(key.equals("myclass")){
+                    myClass();
+                }else{
+                    open(key);
+                }
+            });
+        }
+    }
+}
     if(admin()){
         list.add(new String[]{"👨‍🏫 المعلمون","teachers"});
         list.add(new String[]{"🏫 الصفوف والشعب","classes"});
@@ -148,8 +291,87 @@ public class MainActivity extends Activity {
     content.addView(grid,new LinearLayout.LayoutParams(-1,-2));
 }
     void open(String k){if(k.equals("students")){students();return;}if(k.equals("teachers")){teachers();return;}if(k.equals("classes")){classes();return;}if(k.equals("grades")){grades();return;}if(k.equals("attendance")){attendance();return;}if(k.equals("timetable")){timetable();return;}if(k.equals("reports")){reports();return;}if(k.equals("announcements")){announcements();return;}if(k.equals("users")){users();return;}if(k.equals("files")){files();return;}if(k.equals("settings")){settings();}}
-    void page(String name){base();LinearLayout top=new LinearLayout(this);Button back=btn("رجوع");back.setOnClickListener(v->showHome());top.addView(back,new LinearLayout.LayoutParams(86,56));top.addView(tv(name,20,true),new LinearLayout.LayoutParams(0,56,1));root.addView(top);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(9,6,9,28);ScrollView s=new ScrollView(this);s.addView(content);root.addView(s,new LinearLayout.LayoutParams(-1,0,1));}
+    void page(String name){
+    base();
 
+    LinearLayout top = new LinearLayout(this);
+    top.setOrientation(LinearLayout.HORIZONTAL);
+    top.setGravity(Gravity.CENTER_VERTICAL);
+    top.setPadding(8,6,8,6);
+
+    Button back = btn("↩ رجوع");
+
+    back.setTextSize(16);
+    back.setAllCaps(false);
+
+    /*
+     * مساحة الضغط الفعلية أكبر من شكل الزر
+     * حتى يكون الضغط عليه سهلاً في الهاتف.
+     */
+    LinearLayout.LayoutParams bp =
+            new LinearLayout.LayoutParams(125,68);
+
+    bp.setMargins(6,4,10,4);
+
+    top.addView(back,bp);
+
+    TextView title = tv(name,20,true);
+    title.setGravity(Gravity.CENTER_VERTICAL);
+
+    top.addView(
+            title,
+            new LinearLayout.LayoutParams(0,68,1)
+    );
+
+    root.addView(top);
+
+    back.setOnClickListener(v->goBack());
+
+    content = new LinearLayout(this);
+    content.setOrientation(LinearLayout.VERTICAL);
+    content.setPadding(10,8,10,28);
+
+    ScrollView s = new ScrollView(this);
+    s.setFillViewport(true);
+    s.addView(content);
+
+    root.addView(
+            s,
+            new LinearLayout.LayoutParams(-1,0,1)
+    );
+}
+   void goBack(){
+
+    if(pageHistory.size() > 0){
+
+        String previous =
+                pageHistory.remove(pageHistory.size()-1);
+
+        if(previous.equals("home")){
+            showHome();
+            return;
+        }
+
+        currentPage = previous;
+
+        if(previous.equals("students")) students();
+        else if(previous.equals("teachers")) teachers();
+        else if(previous.equals("classes")) classes();
+        else if(previous.equals("grades")) grades();
+        else if(previous.equals("attendance")) attendance();
+        else if(previous.equals("timetable")) timetable();
+        else if(previous.equals("reports")) reports();
+        else if(previous.equals("announcements")) announcements();
+        else if(previous.equals("users")) users();
+        else if(previous.equals("files")) files();
+        else if(previous.equals("settings")) settings();
+        else if(previous.equals("myclass")) myClass();
+        else showHome();
+
+    }else{
+        showHome();
+    }
+} 
     void students(){
         page("👨‍🎓 إدارة الطلاب");
         EditText search=new EditText(this);search.setHint("ابحث بالاسم أو الرقم");content.addView(search);
