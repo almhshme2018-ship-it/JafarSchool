@@ -181,67 +181,7 @@ void addStats(){
 
     content.addView(r);
 }
-    void addGrid(){
-    ArrayList<String[]> list = new ArrayList<>();
-
-    list.add(new String[]{"👨‍🎓 الطلاب","students"});
-    list.add(new String[]{"📊 الدرجات","grades"});
-    list.add(new String[]{"✅ الحضور","attendance"});
-    list.add(new String[]{"📅 الجدول","timetable"});
-
-    if(admin()){
-        list.add(new String[]{"👨‍🏫 المعلمون","teachers"});
-        list.add(new String[]{"🏫 الصفوف والشعب","classes"});
-        list.add(new String[]{"📈 التقارير","reports"});
-        list.add(new String[]{"🔔 الإعلانات","announcements"});
-        list.add(new String[]{"🔐 المستخدمون والصلاحيات","users"});
-        list.add(new String[]{"📁 الملفات","files"});
-        list.add(new String[]{"⚙️ الإعدادات","settings"});
-    }else{
-        list.add(new String[]{"👨‍🏫 صفي / مهامي","myclass"});
-        list.add(new String[]{"👨‍🎓 طلاب صفي","students"});
-        list.add(new String[]{"🔔 الإعلانات","announcements"});
-        list.add(new String[]{"⚙️ حسابي","settings"});
-    }
-
-    for(int i=0;i<list.size();i+=2){
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER);
-
-        LinearLayout.LayoutParams rp =
-                new LinearLayout.LayoutParams(-1,88);
-        rp.setMargins(0,2,0,2);
-
-        content.addView(row,rp);
-
-        for(int j=i;j<i+2 && j<list.size();j++){
-
-            String[] item = list.get(j);
-
-            Button b = btn(item[0]);
-            b.setTextSize(15);
-            b.setAllCaps(false);
-
-            LinearLayout.LayoutParams bp =
-                    new LinearLayout.LayoutParams(0,78,1);
-
-            bp.setMargins(3,3,3,3);
-
-            row.addView(b,bp);
-
-            final String key = item[1];
-
-            b.setOnClickListener(v->{
-                pageHistory.add(currentPage);
-                currentPage = key;
-
-                if(key.equals("myclass")){
-                    myClass();
-                }else{
-                    open(key);
-                }
+    
 void addGrid(){
 
     ArrayList<String[]> list = new ArrayList<>();
@@ -302,7 +242,7 @@ void addGrid(){
 
             final String key = item[1];
 
-            b.setOnClickListener(v->{
+            b.setOnClickListener(v -> {
 
                 pageHistory.add(currentPage);
                 currentPage = key;
