@@ -731,7 +731,26 @@ void copyFile(InputStream in,OutputStream out)throws Exception{
     void changePassword(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);EditText old=new EditText(this);old.setHint("كلمة المرور الحالية");old.setInputType(0x81);EditText nw=new EditText(this);nw.setHint("كلمة المرور الجديدة");nw.setInputType(0x81);EditText confirm=new EditText(this);confirm.setHint("تأكيد كلمة المرور الجديدة");confirm.setInputType(0x81);l.addView(old);l.addView(nw);l.addView(confirm);new AlertDialog.Builder(this).setTitle("تغيير كلمة المرور").setView(l).setPositiveButton("حفظ",(d,w)->{if(nw.getText().length()<4||!nw.getText().toString().equals(confirm.getText().toString())){Toast.makeText(this,"تأكد من كلمة المرور الجديدة (4 أحرف على الأقل)",Toast.LENGTH_SHORT).show();return;}if(!db.changePassword(currentUsername,old.getText().toString(),nw.getText().toString()))Toast.makeText(this,"كلمة المرور الحالية غير صحيحة",Toast.LENGTH_SHORT).show();else Toast.makeText(this,"تم تغيير كلمة المرور بنجاح",Toast.LENGTH_SHORT).show();}).setNegativeButton("إلغاء",null).show();}
     String date(){return new SimpleDateFormat("yyyy-MM-dd",Locale.US).format(new Date());}
 }
+void addCard(String title,String text){
+    LinearLayout card=new LinearLayout(this);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setPadding(16,12,16,12);
 
+    TextView t=tv(title,17,true);
+    TextView d=tv(text,14,false);
+
+    card.addView(t);
+    card.addView(d);
+
+    LinearLayout.LayoutParams p=
+        new LinearLayout.LayoutParams(-1,-2);
+
+    p.setMargins(4,6,4,6);
+
+    content.addView(card,p);
+}
+
+}
 class DB extends android.database.sqlite.SQLiteOpenHelper {
     DB(Context c){super(c,"jafar_school.db",null,7);}
     public void onCreate(android.database.sqlite.SQLiteDatabase d){
@@ -896,24 +915,6 @@ private String gradeEntryPeriodName(int period) {
         case 7: return "الاختبار النهائي";
         default: return "الفترة";
     }
-}
-void addCard(String title,String text){
-    LinearLayout card=new LinearLayout(this);
-    card.setOrientation(LinearLayout.VERTICAL);
-    card.setPadding(16,12,16,12);
-
-    TextView t=tv(title,17,true);
-    TextView d=tv(text,14,false);
-
-    card.addView(t);
-    card.addView(d);
-
-    LinearLayout.LayoutParams p=
-        new LinearLayout.LayoutParams(-1,-2);
-
-    p.setMargins(4,6,4,6);
-
-    content.addView(card,p);
 }
 
 }
