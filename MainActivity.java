@@ -749,7 +749,6 @@ void addCard(String title,String text){
 
     content.addView(card,p);
 }
-
 }
 class DB extends android.database.sqlite.SQLiteOpenHelper {
     DB(Context c){super(c,"jafar_school.db",null,7);}
@@ -917,4 +916,3 @@ private String gradeEntryPeriodName(int period) {
     }
 }
 
-}
