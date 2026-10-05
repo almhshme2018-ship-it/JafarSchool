@@ -897,5 +897,23 @@ private String gradeEntryPeriodName(int period) {
         default: return "الفترة";
     }
 }
+void addCard(String title,String text){
+    LinearLayout card=new LinearLayout(this);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setPadding(16,12,16,12);
+
+    TextView t=tv(title,17,true);
+    TextView d=tv(text,14,false);
+
+    card.addView(t);
+    card.addView(d);
+
+    LinearLayout.LayoutParams p=
+        new LinearLayout.LayoutParams(-1,-2);
+
+    p.setMargins(4,6,4,6);
+
+    content.addView(card,p);
+}
 
 }
