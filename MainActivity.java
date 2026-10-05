@@ -343,7 +343,7 @@ void addGrid(){
     }else{
         showHome();
     }
-} 
+}
     void students(){
         page("👨‍🎓 إدارة الطلاب");
         EditText search=new EditText(this);search.setHint("ابحث بالاسم أو الرقم");content.addView(search);
