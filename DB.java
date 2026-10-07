@@ -14,6 +14,7 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         super(c, "jafar_school.db", null, 9);
     }
 
+    @Override
     public void onCreate(android.database.sqlite.SQLiteDatabase d) {
 
         d.execSQL("CREATE TABLE students(" +
@@ -70,11 +71,22 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         );
     }
 
+    @Override
     public void onUpgrade(
             android.database.sqlite.SQLiteDatabase d,
             int oldVersion,
             int newVersion) {
+
+        /*
+         * لا توجد تغييرات بنيوية مطلوبة في الجداول الحالية.
+         * جدول الحضور يحتوي أصلاً على التاريخ،
+         * لذلك يمكن تسجيل أي يوم من الشهر مباشرة.
+         */
     }
+
+    // =========================================================
+    // تسجيل الدخول
+    // =========================================================
 
     String[] authenticate(String u, String p) {
 
@@ -98,8 +110,13 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         };
 
         c.close();
+
         return r;
     }
+
+    // =========================================================
+    // الإحصائيات
+    // =========================================================
 
     int count(String t) {
 
@@ -117,6 +134,10 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return n;
     }
 
+    // =========================================================
+    // الطلاب
+    // =========================================================
+
     void saveStudent(
             String n,
             String id,
@@ -126,8 +147,17 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
             String ph) {
 
         getWritableDatabase().execSQL(
-                "INSERT OR REPLACE INTO students VALUES(?,?,?,?,?,?)",
-                new Object[]{n, id, g, cl, p, ph}
+                "INSERT OR REPLACE INTO students " +
+                "(name,id,grade,classroom,parent,phone) " +
+                "VALUES(?,?,?,?,?,?)",
+                new Object[]{
+                        n,
+                        id,
+                        g,
+                        cl,
+                        p,
+                        ph
+                }
         );
     }
 
@@ -138,12 +168,16 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT name,id,grade,classroom " +
                 "FROM students " +
-                "WHERE name LIKE? OR id LIKE? " +
+                "WHERE name LIKE ? OR id LIKE ? " +
                 "ORDER BY name",
-                new String[]{"%" + q + "%", "%" + q + "%"}
+                new String[]{
+                        "%" + q + "%",
+                        "%" + q + "%"
+                }
         );
 
         while (c.moveToNext()) {
+
             a.add(new String[]{
                     c.getString(0),
                     c.getString(1),
@@ -183,18 +217,25 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return r;
     }
 
-    ArrayList<String[]> studentsInClass(String g, String cl) {
+    ArrayList<String[]> studentsInClass(
+            String g,
+            String cl) {
 
         ArrayList<String[]> a = new ArrayList<>();
 
         Cursor c = getReadableDatabase().rawQuery(
-                "SELECT name,id FROM students " +
+                "SELECT name,id " +
+                "FROM students " +
                 "WHERE grade=? AND classroom=? " +
                 "ORDER BY name",
-                new String[]{g, cl}
+                new String[]{
+                        g,
+                        cl
+                }
         );
 
         while (c.moveToNext()) {
+
             a.add(new String[]{
                     c.getString(0),
                     c.getString(1)
@@ -206,11 +247,22 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return a;
     }
 
-    void addTeacher(String n, String s, String r) {
+    // =========================================================
+    // المعلمون
+    // =========================================================
+
+    void addTeacher(
+            String n,
+            String s,
+            String r) {
 
         getWritableDatabase().execSQL(
                 "INSERT INTO teachers VALUES(?,?,?)",
-                new Object[]{n, s, r}
+                new Object[]{
+                        n,
+                        s,
+                        r
+                }
         );
     }
 
@@ -224,6 +276,7 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         );
 
         while (c.moveToNext()) {
+
             a.add(new String[]{
                     c.getString(0),
                     c.getString(1),
@@ -236,11 +289,21 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return a;
     }
 
-    void addClass(String g, String c) {
+    // =========================================================
+    // الصفوف والشعب
+    // =========================================================
+
+    void addClass(
+            String g,
+            String c) {
 
         getWritableDatabase().execSQL(
-                "INSERT OR IGNORE INTO classes VALUES(?,?)",
-                new Object[]{g, c}
+                "INSERT OR IGNORE INTO classes " +
+                "VALUES(?,?)",
+                new Object[]{
+                        g,
+                        c
+                }
         );
     }
 
@@ -250,13 +313,17 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
 
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT c.grade,c.classroom," +
-                "(SELECT COUNT(*) FROM students s " +
-                "WHERE s.grade=c.grade AND s.classroom=c.classroom) " +
-                "FROM classes c",
+                "(SELECT COUNT(*) " +
+                "FROM students s " +
+                "WHERE s.grade=c.grade " +
+                "AND s.classroom=c.classroom) " +
+                "FROM classes c " +
+                "ORDER BY c.grade,c.classroom",
                 null
         );
 
         while (c.moveToNext()) {
+
             a.add(new String[]{
                     c.getString(0),
                     c.getString(1),
@@ -269,16 +336,54 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return a;
     }
 
+    // =========================================================
+    // التاريخ
+    // =========================================================
+
+    String todayDate() {
+
+        return new SimpleDateFormat(
+                "yyyy-MM-dd",
+                Locale.US
+        ).format(new Date());
+    }
+
+    String formatDate(
+            Calendar cal) {
+
+        return new SimpleDateFormat(
+                "yyyy-MM-dd",
+                Locale.US
+        ).format(cal.getTime());
+    }
+
+    // =========================================================
+    // الحضور - اليوم الحالي
+    // =========================================================
+
     String attendanceStatus(String id) {
 
-        String date =
-                new SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                        .format(new Date());
+        return attendanceStatus(
+                id,
+                todayDate()
+        );
+    }
+
+    // =========================================================
+    // الحضور - تاريخ محدد
+    // =========================================================
+
+    String attendanceStatus(
+            String id,
+            String date) {
 
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT status FROM attendance " +
                 "WHERE student_id=? AND date=?",
-                new String[]{id, date}
+                new String[]{
+                        id,
+                        date
+                }
         );
 
         String s = "";
@@ -292,17 +397,75 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return s;
     }
 
-    void setAttendance(String id, String st) {
+    // =========================================================
+    // حفظ حضور اليوم
+    // =========================================================
 
-        String date =
-                new SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                        .format(new Date());
+    void setAttendance(
+            String id,
+            String st) {
 
-        getWritableDatabase().execSQL(
-                "INSERT OR REPLACE INTO attendance VALUES(?,?,?)",
-                new Object[]{id, date, st}
+        setAttendance(
+                id,
+                todayDate(),
+                st
         );
     }
+
+    // =========================================================
+    // حفظ حضور بتاريخ محدد
+    // =========================================================
+
+    void setAttendance(
+            String id,
+            String date,
+            String st) {
+
+        if (id == null || id.trim().isEmpty()) {
+            return;
+        }
+
+        if (date == null || date.trim().isEmpty()) {
+            return;
+        }
+
+        if (st == null || st.trim().isEmpty()) {
+            return;
+        }
+
+        getWritableDatabase().execSQL(
+                "INSERT OR REPLACE INTO attendance " +
+                "(student_id,date,status) " +
+                "VALUES(?,?,?)",
+                new Object[]{
+                        id,
+                        date,
+                        st
+                }
+        );
+    }
+
+    // =========================================================
+    // حذف تسجيل حضور ليوم معين
+    // =========================================================
+
+    void clearAttendance(
+            String id,
+            String date) {
+
+        getWritableDatabase().execSQL(
+                "DELETE FROM attendance " +
+                "WHERE student_id=? AND date=?",
+                new Object[]{
+                        id,
+                        date
+                }
+        );
+    }
+
+    // =========================================================
+    // إحصائيات حضور اليوم
+    // =========================================================
 
     int todayPresent() {
         return todayCount("حاضر");
@@ -312,16 +475,34 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return todayCount("غائب");
     }
 
+    int todayLate() {
+        return todayCount("متأخر");
+    }
+
+    int todayExcused() {
+        return todayCount("بعذر");
+    }
+
     int todayCount(String st) {
 
-        String date =
-                new SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                        .format(new Date());
+        return dateCount(
+                todayDate(),
+                st
+        );
+    }
+
+    int dateCount(
+            String date,
+            String st) {
 
         Cursor c = getReadableDatabase().rawQuery(
-                "SELECT COUNT(*) FROM attendance " +
+                "SELECT COUNT(*) " +
+                "FROM attendance " +
                 "WHERE date=? AND status=?",
-                new String[]{date, st}
+                new String[]{
+                        date,
+                        st
+                }
         );
 
         c.moveToFirst();
@@ -332,6 +513,103 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
 
         return n;
     }
+
+    // =========================================================
+    // الحضور الشهري لطالب
+    // =========================================================
+
+    int monthlyAttendanceCount(
+            String id,
+            int year,
+            int month,
+            String status) {
+
+        String prefix = String.format(
+                Locale.US,
+                "%04d-%02d-",
+                year,
+                month
+        );
+
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT COUNT(*) " +
+                "FROM attendance " +
+                "WHERE student_id=? " +
+                "AND date LIKE ? " +
+                "AND status=?",
+                new String[]{
+                        id,
+                        prefix + "%",
+                        status
+                }
+        );
+
+        c.moveToFirst();
+
+        int n = c.getInt(0);
+
+        c.close();
+
+        return n;
+    }
+
+    // =========================================================
+    // نسبة حضور الطالب في شهر
+    // =========================================================
+
+    double monthlyAttendancePercentage(
+            String id,
+            int year,
+            int month) {
+
+        int present =
+                monthlyAttendanceCount(
+                        id,
+                        year,
+                        month,
+                        "حاضر"
+                );
+
+        int absent =
+                monthlyAttendanceCount(
+                        id,
+                        year,
+                        month,
+                        "غائب"
+                );
+
+        int late =
+                monthlyAttendanceCount(
+                        id,
+                        year,
+                        month,
+                        "متأخر"
+                );
+
+        int excused =
+                monthlyAttendanceCount(
+                        id,
+                        year,
+                        month,
+                        "بعذر"
+                );
+
+        int total =
+                present +
+                absent +
+                late +
+                excused;
+
+        if (total <= 0) {
+            return 0;
+        }
+
+        return present * 100.0 / total;
+    }
+
+    // =========================================================
+    // الدرجات الشهرية
+    // =========================================================
 
     void setMonthlyScore(
             String id,
@@ -345,23 +623,19 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
 
         getWritableDatabase().execSQL(
                 "INSERT OR REPLACE INTO monthly_scores " +
+                "(student_id,subject,semester,month," +
+                "regular,oral,homework,written) " +
                 "VALUES(?,?,?,?,?,?,?,?)",
                 new Object[]{
-                        id, sub, sem, mon,
-                        r1, r2, r3, r4
+                        id,
+                        sub,
+                        sem,
+                        mon,
+                        r1,
+                        r2,
+                        r3,
+                        r4
                 }
-        );
-    }
-
-    void setExam(
-            String id,
-            String sub,
-            int sem,
-            double sc) {
-
-        getWritableDatabase().execSQL(
-                "INSERT OR REPLACE INTO exams VALUES(?,?,?,?)",
-                new Object[]{id, sub, sem, sc}
         );
     }
 
@@ -374,8 +648,10 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT regular,oral,homework,written " +
                 "FROM monthly_scores " +
-                "WHERE student_id=? AND subject=? " +
-                "AND semester=? AND month=?",
+                "WHERE student_id=? " +
+                "AND subject=? " +
+                "AND semester=? " +
+                "AND month=?",
                 new String[]{
                         id,
                         sub,
@@ -401,11 +677,67 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return v;
     }
 
-    double exam(String id, String sub, int sem) {
+    // =========================================================
+    // مجموع درجة الشهر من 100
+    // =========================================================
+
+    double monthlyTotal(
+            String id,
+            String sub,
+            int sem,
+            int mon) {
+
+        double[] v =
+                monthlyValues(
+                        id,
+                        sub,
+                        sem,
+                        mon
+                );
+
+        if (v == null) {
+            return 0;
+        }
+
+        return v[0] +
+                v[1] +
+                v[2] +
+                v[3];
+    }
+
+    // =========================================================
+    // الاختبار
+    // =========================================================
+
+    void setExam(
+            String id,
+            String sub,
+            int sem,
+            double sc) {
+
+        getWritableDatabase().execSQL(
+                "INSERT OR REPLACE INTO exams " +
+                "(student_id,subject,semester,score) " +
+                "VALUES(?,?,?,?)",
+                new Object[]{
+                        id,
+                        sub,
+                        sem,
+                        sc
+                }
+        );
+    }
+
+    double exam(
+            String id,
+            String sub,
+            int sem) {
 
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT score FROM exams " +
-                "WHERE student_id=? AND subject=? AND semester=?",
+                "WHERE student_id=? " +
+                "AND subject=? " +
+                "AND semester=?",
                 new String[]{
                         id,
                         sub,
@@ -425,6 +757,10 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return x;
     }
 
+    // =========================================================
+    // المواد
+    // =========================================================
+
     String[] subjects() {
 
         return new String[]{
@@ -437,122 +773,276 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         };
     }
 
-    String resultLine(String id, int mode) {
+    // =========================================================
+    // متوسط الأشهر الثلاثة للمادة
+    // =========================================================
+
+    double semesterMonthlyAverage(
+            String id,
+            String sub,
+            int semester) {
+
+        double sum = 0;
+        int count = 0;
+
+        for (int m = 1; m <= 3; m++) {
+
+            double[] v =
+                    monthlyValues(
+                            id,
+                            sub,
+                            semester,
+                            m
+                    );
+
+            if (v != null) {
+
+                sum +=
+                        v[0] +
+                        v[1] +
+                        v[2] +
+                        v[3];
+
+                count++;
+            }
+        }
+
+        if (count == 0) {
+            return 0;
+        }
+
+        return sum / count;
+    }
+
+    // =========================================================
+    // المحصلة الفصلية للمادة من 50
+    //
+    // متوسط الأشهر الثلاثة /100
+    // يحول إلى /20
+    //
+    // الاختبار /30
+    //
+    // المجموع = /50
+    // =========================================================
+
+    double semesterSubjectResult(
+            String id,
+            String sub,
+            int semester) {
+
+        double monthly =
+                semesterMonthlyAverage(
+                        id,
+                        sub,
+                        semester
+                );
+
+        double monthly20 =
+                monthly * 20.0 / 100.0;
+
+        double exam30 =
+                exam(
+                        id,
+                        sub,
+                        semester
+                );
+
+        return monthly20 + exam30;
+    }
+
+    // =========================================================
+    // النتيجة العامة للطالب
+    //
+    // mode 0 = الفصل الأول /300
+    // mode 1 = الفصل الثاني /300
+    // mode 2 = السنوي /600
+    //
+    // لأن عدد المواد = 6
+    // المادة في الفصل = 50
+    // المادة سنوياً = 100
+    // =========================================================
+
+    String resultLine(
+            String id,
+            int mode) {
 
         double total = 0;
 
-        for (String sub : subjects()) {
+        String[] subs = subjects();
 
-            double sum = 0;
+        for (String sub : subs) {
 
-            if (mode == 0 || mode == 2) {
+            if (mode == 0) {
 
-                for (int m = 1; m <= 3; m++) {
+                total +=
+                        semesterSubjectResult(
+                                id,
+                                sub,
+                                1
+                        );
 
-                    double[] v =
-                            monthlyValues(id, sub, 1, m);
+            } else if (mode == 1) {
 
-                    if (v != null) {
-                        sum += v[0] + v[1] + v[2] + v[3];
-                    }
-                }
+                total +=
+                        semesterSubjectResult(
+                                id,
+                                sub,
+                                2
+                        );
 
-                sum += exam(id, sub, 1);
+            } else if (mode == 2) {
+
+                total +=
+                        semesterSubjectResult(
+                                id,
+                                sub,
+                                1
+                        );
+
+                total +=
+                        semesterSubjectResult(
+                                id,
+                                sub,
+                                2
+                        );
             }
-
-            if (mode == 1 || mode == 2) {
-
-                double s2 = 0;
-
-                for (int m = 1; m <= 3; m++) {
-
-                    double[] v =
-                            monthlyValues(id, sub, 2, m);
-
-                    if (v != null) {
-                        s2 += v[0] + v[1] + v[2] + v[3];
-                    }
-                }
-
-                s2 += exam(id, sub, 2);
-
-                if (mode == 2) {
-                    sum += s2;
-                } else {
-                    sum = s2;
-                }
-            }
-
-            total += sum;
         }
 
-        double max =
-                subjects().length *
-                (mode == 2 ? 200 : 100);
+        double max;
+
+        if (mode == 2) {
+            max = subs.length * 100.0;
+        } else {
+            max = subs.length * 50.0;
+        }
 
         double pct =
-                max > 0 ? total * 100 / max : 0;
+                max > 0
+                        ? total * 100.0 / max
+                        : 0;
 
         String taq =
-                pct >= 90 ? "ممتاز" :
-                pct >= 80 ? "جيد جدا" :
-                pct >= 65 ? "جيد" :
-                pct >= 50 ? "مقبول" :
-                "ضعيف";
+                pct >= 90
+                        ? "ممتاز"
+                        : pct >= 80
+                        ? "جيد جدا"
+                        : pct >= 65
+                        ? "جيد"
+                        : pct >= 50
+                        ? "مقبول"
+                        : "ضعيف";
+
+        String result =
+                pct >= 50
+                        ? "ناجح"
+                        : "راسب";
 
         return String.format(
                 Locale.US,
-                "المجموع: %.0f / %.0f - %.1f%% - %s",
+                "المجموع: %.1f / %.0f - %.1f%% - %s - %s",
                 total,
                 max,
                 pct,
-                taq
+                taq,
+                result
         );
     }
 
-    String studentAttendanceSummary(String id) {
+    // =========================================================
+    // نتيجة مادة واحدة
+    // =========================================================
+
+    double subjectResult(
+            String id,
+            String sub,
+            int semester) {
+
+        return semesterSubjectResult(
+                id,
+                sub,
+                semester
+        );
+    }
+
+    // =========================================================
+    // الحضور العام للطالب
+    // =========================================================
+
+    String studentAttendanceSummary(
+            String id) {
+
+        int h = countAttendanceStatus(
+                id,
+                "حاضر"
+        );
+
+        int g = countAttendanceStatus(
+                id,
+                "غائب"
+        );
+
+        int l = countAttendanceStatus(
+                id,
+                "متأخر"
+        );
+
+        int b = countAttendanceStatus(
+                id,
+                "بعذر"
+        );
+
+        return "حاضر: " + h +
+                " | غائب: " + g +
+                " | متأخر: " + l +
+                " | بعذر: " + b;
+    }
+
+    int countAttendanceStatus(
+            String id,
+            String status) {
 
         Cursor c = getReadableDatabase().rawQuery(
-                "SELECT COUNT(*) FROM attendance " +
-                "WHERE student_id=? AND status='حاضر'",
-                new String[]{id}
+                "SELECT COUNT(*) " +
+                "FROM attendance " +
+                "WHERE student_id=? " +
+                "AND status=?",
+                new String[]{
+                        id,
+                        status
+                }
         );
 
         c.moveToFirst();
 
-        int h = c.getInt(0);
+        int n = c.getInt(0);
 
         c.close();
 
-        c = getReadableDatabase().rawQuery(
-                "SELECT COUNT(*) FROM attendance " +
-                "WHERE student_id=? AND status='غائب'",
-                new String[]{id}
-        );
-
-        c.moveToFirst();
-
-        int g = c.getInt(0);
-
-        c.close();
-
-        return "حاضر: " + h + " | غائب: " + g;
+        return n;
     }
+
+    // =========================================================
+    // جدول المدرسة
+    // =========================================================
 
     String daySchedule(String day) {
 
-        return "جدول " + day + " محفوظ محلياً";
+        return "جدول " +
+                day +
+                " محفوظ محلياً";
     }
+
+    // =========================================================
+    // الإعلانات
+    // =========================================================
 
     void addAnnouncement(String t) {
 
         getWritableDatabase().execSQL(
-                "INSERT INTO announcements VALUES(?,?)",
+                "INSERT INTO announcements " +
+                "(date,text) VALUES(?,?)",
                 new Object[]{
-                        new SimpleDateFormat(
-                                "yyyy-MM-dd",
-                                Locale.US
-                        ).format(new Date()),
+                        todayDate(),
                         t
                 }
         );
@@ -560,10 +1050,12 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
 
     ArrayList<String[]> announcements() {
 
-        ArrayList<String[]> a = new ArrayList<>();
+        ArrayList<String[]> a =
+                new ArrayList<>();
 
         Cursor c = getReadableDatabase().rawQuery(
-                "SELECT date,text FROM announcements " +
+                "SELECT date,text " +
+                "FROM announcements " +
                 "ORDER BY date DESC",
                 null
         );
@@ -583,19 +1075,26 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
 
     String latestAnnouncements() {
 
-        ArrayList<String[]> a = announcements();
+        ArrayList<String[]> a =
+                announcements();
 
         return a.isEmpty()
                 ? "لا توجد إعلانات"
                 : a.get(0)[1];
     }
 
+    // =========================================================
+    // المستخدمون
+    // =========================================================
+
     ArrayList<String[]> users() {
 
-        ArrayList<String[]> a = new ArrayList<>();
+        ArrayList<String[]> a =
+                new ArrayList<>();
 
         Cursor c = getReadableDatabase().rawQuery(
-                "SELECT name,role,permissions,username FROM users",
+                "SELECT name,role,permissions,username " +
+                "FROM users",
                 null
         );
 
@@ -622,6 +1121,8 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
 
         getWritableDatabase().execSQL(
                 "INSERT OR REPLACE INTO users " +
+                "(name,role,permissions,username," +
+                "password_hash,grade,classroom) " +
                 "VALUES(?,?,?,?,?,?,?)",
                 new Object[]{
                         name,
@@ -635,9 +1136,11 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         );
     }
 
-    ArrayList<String[]> linkedStudents(String username) {
+    ArrayList<String[]> linkedStudents(
+            String username) {
 
-        ArrayList<String[]> a = new ArrayList<>();
+        ArrayList<String[]> a =
+                new ArrayList<>();
 
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT s.name,s.id,s.grade,s.classroom " +
@@ -645,7 +1148,9 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
                 "INNER JOIN user_students u " +
                 "ON u.student_id=s.id " +
                 "WHERE u.username=?",
-                new String[]{username}
+                new String[]{
+                        username
+                }
         );
 
         while (c.moveToNext()) {
@@ -663,12 +1168,18 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
         return a;
     }
 
+    // =========================================================
+    // التشفير
+    // =========================================================
+
     static String sha256(String x) {
 
         try {
 
             MessageDigest md =
-                    MessageDigest.getInstance("SHA-256");
+                    MessageDigest.getInstance(
+                            "SHA-256"
+                    );
 
             byte[] b =
                     md.digest(
@@ -677,7 +1188,8 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
                             )
                     );
 
-            StringBuilder s = new StringBuilder();
+            StringBuilder s =
+                    new StringBuilder();
 
             for (byte v : b) {
 
