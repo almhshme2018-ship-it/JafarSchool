@@ -8,13 +8,14 @@ import android.graphics.pdf.PdfDocument;
 import android.graphics.drawable.GradientDrawable;
 import android.view.*;
 import android.widget.*;
-import androidx.core.content.FileProvider;
-import java.io.*;
-import java.text.SimpleDateFormat;
-import java.util.*;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.Editable;
+import androidx.core.content.FileProvider;
+
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class MainActivity extends Activity {
 
@@ -33,6 +34,7 @@ public class MainActivity extends Activity {
     final int BLUE = Color.rgb(17, 96, 177);
     final int BG = Color.rgb(244, 247, 251);
     final int WHITE = Color.WHITE;
+    final int TEXT = Color.rgb(25, 45, 68);
 
     final String[] DAYS = {
             "السبت",
@@ -43,26 +45,28 @@ public class MainActivity extends Activity {
     };
 
     /*
-     * سجل الصفحات.
+     * سجل التنقل:
      *
-     * مثال:
      * الرئيسية
-     *    ↓
+     *   ↓
      * الطلاب
-     *    ↓
+     *   ↓
      * ملف الطالب
      *
-     * عند الضغط على رجوع من ملف الطالب:
-     * ملف الطالب ← الطلاب
-     *
-     * ثم:
-     * الطلاب ← الرئيسية
+     * زر الهاتف:
+     * ملف الطالب ← الطلاب ← الرئيسية
      */
     private final Stack<Runnable> navHistory = new Stack<>();
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+
+        /*
+         * استخدام مساحة الشاشة بشكل طبيعي وكامل.
+         */
+        getWindow().setStatusBarColor(BLUE);
+        getWindow().setNavigationBarColor(Color.BLACK);
 
         getWindow().getDecorView().setLayoutDirection(
                 View.LAYOUT_DIRECTION_RTL
@@ -73,17 +77,20 @@ public class MainActivity extends Activity {
         showLogin();
     }
 
+    /*
+     * زر الرجوع الموجود في الهاتف.
+     *
+     * لا يوجد اعتماد على زر رجوع داخل الشاشة.
+     */
     @Override
     public void onBackPressed() {
 
-        /*
-         * إذا توجد صفحة سابقة:
-         * احذف الصفحة الحالية ثم اعرض الصفحة السابقة.
-         */
         if (navHistory.size() > 1) {
+
             navHistory.pop();
 
-            Runnable previous = navHistory.peek();
+            Runnable previous =
+                    navHistory.peek();
 
             if (previous != null) {
                 previous.run();
@@ -93,70 +100,156 @@ public class MainActivity extends Activity {
         }
 
         /*
-         * إذا كانت هذه الصفحة الرئيسية فلا توجد صفحة
-         * داخلية للرجوع إليها.
+         * إذا كان المستخدم في الرئيسية:
+         * لا نرجع إلى شاشة داخلية.
          */
+        if (navHistory.size() == 1) {
+
+            Toast.makeText(
+                    this,
+                    "أنت في الصفحة الرئيسية",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
         super.onBackPressed();
     }
 
+    /*
+     * نص عام.
+     */
     TextView tv(String s, int sp, boolean bold) {
-        TextView t = new TextView(this);
 
-        t.setText(s);
+        TextView t =
+                new TextView(this);
+
+        t.setText(
+                s == null ? "" : s
+        );
+
         t.setTextSize(sp);
-        t.setTextColor(Color.rgb(25, 45, 68));
+        t.setTextColor(TEXT);
 
         t.setTypeface(
                 null,
-                bold ? Typeface.BOLD : Typeface.NORMAL
+                bold
+                        ? Typeface.BOLD
+                        : Typeface.NORMAL
         );
 
-        t.setPadding(14, 9, 14, 9);
+        /*
+         * مهم جدًا للعربية:
+         * السماح للنص بالظهور على أكثر من سطر.
+         */
+        t.setSingleLine(false);
+        t.setMaxLines(10);
+        t.setEllipsize(null);
+        t.setIncludeFontPadding(true);
+
+        t.setGravity(
+                Gravity.CENTER_VERTICAL |
+                Gravity.RIGHT
+        );
+
+        t.setPadding(
+                14,
+                10,
+                14,
+                10
+        );
+
+        t.setLayoutDirection(
+                View.LAYOUT_DIRECTION_RTL
+        );
 
         return t;
     }
 
+    /*
+     * زر عام.
+     *
+     * تم تعديل الزر لمنع قص الكتابة.
+     */
     Button btn(String s) {
 
-        Button b = new Button(this);
+        Button b =
+                new Button(this);
 
-        b.setText(s);
+        b.setText(
+                s == null ? "" : s
+        );
+
         b.setTextSize(14);
         b.setTextColor(WHITE);
         b.setAllCaps(false);
 
-        b.setGravity(Gravity.CENTER);
+        b.setGravity(
+                Gravity.CENTER
+        );
 
-        GradientDrawable g = new GradientDrawable();
+        b.setSingleLine(false);
+        b.setMaxLines(3);
+        b.setEllipsize(null);
+
+        b.setPadding(
+                12,
+                8,
+                12,
+                8
+        );
+
+        b.setMinHeight(60);
+        b.setMinimumHeight(60);
+
+        GradientDrawable g =
+                new GradientDrawable();
+
         g.setColor(BLUE);
         g.setCornerRadius(18);
 
         b.setBackground(g);
 
-        /*
-         * يجعل منطقة اللمس مريحة.
-         */
-        b.setMinHeight(54);
-        b.setMinimumHeight(54);
+        b.setLayoutDirection(
+                View.LAYOUT_DIRECTION_RTL
+        );
 
         return b;
     }
 
+    /*
+     * إنشاء أساس الصفحة.
+     */
     void base() {
 
-        root = new LinearLayout(this);
+        root =
+                new LinearLayout(this);
 
-        root.setOrientation(LinearLayout.VERTICAL);
+        root.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
         root.setBackgroundColor(BG);
-        root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+
+        root.setLayoutDirection(
+                View.LAYOUT_DIRECTION_RTL
+        );
+
+        root.setGravity(
+                Gravity.FILL
+        );
 
         setContentView(root);
     }
 
     /*
-     * فتح صفحة جديدة وإضافتها إلى سجل التنقل.
+     * فتح صفحة جديدة.
      */
     void navigateTo(Runnable screen) {
+
+        if (screen == null)
+            return;
 
         navHistory.push(screen);
 
@@ -164,116 +257,98 @@ public class MainActivity extends Activity {
     }
 
     /*
-     * إنشاء صفحة داخلية.
+     * صفحة داخلية.
      *
-     * تم إصلاح مشكلة زر الرجوع هنا:
-     *
-     * 1. إضافة مسافة علوية واضحة.
-     * 2. زر أكبر.
-     * 3. عدم وضعه ملاصقاً لشريط حالة الهاتف.
-     * 4. منطقة لمس واسعة.
+     * لا يوجد زر رجوع هنا.
+     * الرجوع يتم من زر الهاتف.
      */
     void page(String name) {
 
         base();
 
-        LinearLayout top = new LinearLayout(this);
-
-        top.setOrientation(LinearLayout.HORIZONTAL);
-
         /*
-         * مسافة علوية حتى لا يكون الزر ملاصقاً
-         * لشريط حالة الهاتف.
+         * شريط العنوان فقط.
          */
+        LinearLayout top =
+                new LinearLayout(this);
+
+        top.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        top.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
         top.setPadding(
-                8,
-                18,
-                8,
+                12,
+                10,
+                12,
                 8
         );
 
-        top.setGravity(Gravity.CENTER_VERTICAL);
-
-        /*
-         * زر الرجوع.
-         */
-        Button back = btn("رجوع");
-
-        back.setTextSize(15);
-
-        back.setGravity(Gravity.CENTER);
-
-        /*
-         * مساحة الزر أكبر من السابق.
-         */
-        LinearLayout.LayoutParams backParams =
-                new LinearLayout.LayoutParams(
-                        125,
-                        58
-                );
-
-        backParams.setMargins(
-                5,
-                2,
-                8,
-                2
+        top.setBackgroundColor(
+                WHITE
         );
 
-        top.addView(back, backParams);
+        TextView title =
+                tv(name, 19, true);
 
-        /*
-         * الرجوع إلى الصفحة السابقة.
-         */
-        back.setOnClickListener(v -> onBackPressed());
+        title.setGravity(
+                Gravity.CENTER
+        );
 
-        /*
-         * عنوان الصفحة.
-         */
-        TextView title = tv(name, 18, true);
+        title.setTextAlignment(
+                View.TEXT_ALIGNMENT_CENTER
+        );
 
-        title.setGravity(Gravity.CENTER_VERTICAL);
-
-        LinearLayout.LayoutParams titleParams =
+        top.addView(
+                title,
                 new LinearLayout.LayoutParams(
-                        0,
-                        58,
-                        1
-                );
-
-        top.addView(title, titleParams);
+                        -1,
+                        60
+                )
+        );
 
         root.addView(
                 top,
                 new LinearLayout.LayoutParams(
                         -1,
-                        -2
+                        80
                 )
         );
 
         /*
          * محتوى الصفحة.
          */
-        content = new LinearLayout(this);
+        content =
+                new LinearLayout(this);
 
         content.setOrientation(
                 LinearLayout.VERTICAL
         );
 
         content.setPadding(
-                9,
-                6,
-                9,
-                28
+                12,
+                8,
+                12,
+                35
         );
 
-        ScrollView s = new ScrollView(this);
+        content.setLayoutDirection(
+                View.LAYOUT_DIRECTION_RTL
+        );
 
-        s.setFillViewport(true);
+        ScrollView scroll =
+                new ScrollView(this);
 
-        s.addView(content);
+        scroll.setFillViewport(true);
+        scroll.setClipToPadding(false);
+
+        scroll.addView(content);
 
         root.addView(
-                s,
+                scroll,
                 new LinearLayout.LayoutParams(
                         -1,
                         0,
@@ -282,22 +357,55 @@ public class MainActivity extends Activity {
         );
     }
 
+    /*
+     * بطاقة.
+     */
     void addCard(String a, String b) {
 
-        LinearLayout c = new LinearLayout(this);
+        LinearLayout c =
+                new LinearLayout(this);
 
         c.setOrientation(
                 LinearLayout.VERTICAL
         );
 
         c.setPadding(
+                16,
                 14,
-                12,
-                14,
-                12
+                16,
+                14
         );
 
-        c.setBackgroundColor(WHITE);
+        c.setBackgroundColor(
+                WHITE
+        );
+
+        TextView title =
+                tv(a, 16, true);
+
+        TextView body =
+                tv(b, 14, false);
+
+        body.setLineSpacing(
+                3,
+                1.0f
+        );
+
+        c.addView(
+                title,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                )
+        );
+
+        c.addView(
+                body,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                )
+        );
 
         LinearLayout.LayoutParams p =
                 new LinearLayout.LayoutParams(
@@ -307,17 +415,9 @@ public class MainActivity extends Activity {
 
         p.setMargins(
                 3,
-                8,
+                7,
                 3,
-                8
-        );
-
-        c.addView(
-                tv(a, 16, true)
-        );
-
-        c.addView(
-                tv(b, 13, false)
+                7
         );
 
         content.addView(c, p);
@@ -332,6 +432,11 @@ public class MainActivity extends Activity {
 
         base();
 
+        ScrollView scroll =
+                new ScrollView(this);
+
+        scroll.setFillViewport(true);
+
         LinearLayout box =
                 new LinearLayout(this);
 
@@ -339,35 +444,53 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        box.setGravity(Gravity.CENTER);
-
-        box.setPadding(
-                26,
-                30,
-                26,
-                25
+        box.setGravity(
+                Gravity.CENTER
         );
 
+        box.setPadding(
+                28,
+                35,
+                28,
+                35
+        );
+
+        scroll.addView(box);
+
         root.addView(
-                box,
+                scroll,
                 new LinearLayout.LayoutParams(
                         -1,
-                        -1
+                        0,
+                        1
                 )
         );
 
+        TextView logo =
+                tv("🏫", 60, true);
+
+        logo.setGravity(
+                Gravity.CENTER
+        );
+
         box.addView(
-                tv("🏫", 64, true)
+                logo,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        90
+                )
         );
 
         TextView h =
                 tv(
                         "مدرسة جعفر بن أبي طالب",
-                        22,
+                        23,
                         true
                 );
 
-        h.setGravity(Gravity.CENTER);
+        h.setGravity(
+                Gravity.CENTER
+        );
 
         box.addView(h);
 
@@ -379,53 +502,129 @@ public class MainActivity extends Activity {
                         false
                 );
 
-        sub.setGravity(Gravity.CENTER);
-
-        box.addView(sub);
+        sub.setGravity(
+                Gravity.CENTER
+        );
 
         box.addView(
-                tv("تسجيل الدخول", 18, true)
+                sub,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                )
+        );
+
+        TextView loginTitle =
+                tv(
+                        "تسجيل الدخول",
+                        19,
+                        true
+                );
+
+        loginTitle.setGravity(
+                Gravity.CENTER
+        );
+
+        LinearLayout.LayoutParams lpTitle =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                );
+
+        lpTitle.setMargins(
+                0,
+                20,
+                0,
+                8
+        );
+
+        box.addView(
+                loginTitle,
+                lpTitle
         );
 
         EditText user =
                 new EditText(this);
 
-        user.setHint("اسم المستخدم");
+        user.setHint(
+                "اسم المستخدم"
+        );
 
-        box.addView(user);
+        user.setTextSize(16);
+        user.setSingleLine(true);
+
+        box.addView(
+                user,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        60
+                )
+        );
 
         EditText pass =
                 new EditText(this);
 
-        pass.setHint("كلمة المرور");
+        pass.setHint(
+                "كلمة المرور"
+        );
+
+        pass.setTextSize(16);
+
+        pass.setSingleLine(true);
 
         pass.setInputType(
                 InputType.TYPE_CLASS_TEXT |
                 InputType.TYPE_TEXT_VARIATION_PASSWORD
         );
 
-        box.addView(pass);
-
-        Button go = btn("دخول");
-
         box.addView(
-                go,
+                pass,
                 new LinearLayout.LayoutParams(
                         -1,
-                        58
+                        60
                 )
         );
 
-        box.addView(
-                tv("admin / 1234", 12, false)
+        Button go =
+                btn("دخول");
+
+        LinearLayout.LayoutParams goP =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        62
+                );
+
+        goP.setMargins(
+                0,
+                14,
+                0,
+                5
         );
+
+        box.addView(go, goP);
+
+        TextView demo =
+                tv(
+                        "admin / 1234",
+                        12,
+                        false
+                );
+
+        demo.setGravity(
+                Gravity.CENTER
+        );
+
+        box.addView(demo);
 
         go.setOnClickListener(v -> {
 
             String[] a =
                     db.authenticate(
-                            user.getText().toString().trim(),
-                            pass.getText().toString()
+                            user.getText()
+                                    .toString()
+                                    .trim(),
+                            pass.getText()
+                                    .toString()
                     );
 
             if (a == null) {
@@ -464,19 +663,27 @@ public class MainActivity extends Activity {
         LinearLayout head =
                 new LinearLayout(this);
 
-        head.setPadding(
-                8,
-                8,
-                8,
-                3
+        head.setGravity(
+                Gravity.CENTER_VERTICAL
         );
 
-        head.addView(
+        head.setPadding(
+                10,
+                10,
+                10,
+                5
+        );
+
+        TextView title =
                 tv(
-                        "بوابة ولي الأمر\n" + currentUser,
+                        "بوابة ولي الأمر\n" +
+                        currentUser,
                         16,
                         true
-                ),
+                );
+
+        head.addView(
+                title,
                 new LinearLayout.LayoutParams(
                         0,
                         -2,
@@ -484,24 +691,27 @@ public class MainActivity extends Activity {
                 )
         );
 
-        Button out = btn("خروج");
-
-        out.setOnClickListener(
-                v -> showLogin()
-        );
+        Button out =
+                btn("خروج");
 
         head.addView(
                 out,
                 new LinearLayout.LayoutParams(
-                        84,
-                        52
+                        95,
+                        58
                 )
+        );
+
+        out.setOnClickListener(
+                v -> showLogin()
         );
 
         root.addView(head);
 
         ScrollView sv =
                 new ScrollView(this);
+
+        sv.setFillViewport(true);
 
         content =
                 new LinearLayout(this);
@@ -511,10 +721,10 @@ public class MainActivity extends Activity {
         );
 
         content.setPadding(
-                9,
-                5,
-                9,
-                28
+                12,
+                8,
+                12,
+                35
         );
 
         sv.addView(content);
@@ -539,21 +749,33 @@ public class MainActivity extends Activity {
         );
 
         for (String[] st :
-                db.linkedStudents(currentUsername)) {
+                db.linkedStudents(
+                        currentUsername
+                )) {
 
             addCard(
                     "👨‍🎓 " + st[0],
                     "الرقم: " + st[1] +
                     "\nالصف: " + st[2] +
-                    "-" + st[3] +
-                    "\n" + db.resultLine(st[1], 2) +
-                    "\n" + db.studentAttendanceSummary(st[1])
+                    " - " + st[3] +
+                    "\n" +
+                    db.resultLine(st[1], 2) +
+                    "\n" +
+                    db.studentAttendanceSummary(
+                            st[1]
+                    )
             );
 
             Button pdf =
                     btn("📄 كشف درجات PDF");
 
-            content.addView(pdf);
+            content.addView(
+                    pdf,
+                    new LinearLayout.LayoutParams(
+                            -1,
+                            62
+                    )
+            );
 
             String id = st[1];
 
@@ -580,20 +802,29 @@ public class MainActivity extends Activity {
         LinearLayout head =
                 new LinearLayout(this);
 
-        head.setPadding(
-                8,
-                8,
-                8,
-                3
+        head.setGravity(
+                Gravity.CENTER_VERTICAL
         );
 
-        head.addView(
+        head.setPadding(
+                10,
+                10,
+                10,
+                5
+        );
+
+        TextView title =
                 tv(
                         "🏫 مدرسة جعفر\n" +
-                        role + " : " + currentUser,
+                        role +
+                        " : " +
+                        currentUser,
                         16,
                         true
-                ),
+                );
+
+        head.addView(
+                title,
                 new LinearLayout.LayoutParams(
                         0,
                         -2,
@@ -601,24 +832,27 @@ public class MainActivity extends Activity {
                 )
         );
 
-        Button out = btn("خروج");
-
-        out.setOnClickListener(
-                v -> showLogin()
-        );
+        Button out =
+                btn("خروج");
 
         head.addView(
                 out,
                 new LinearLayout.LayoutParams(
-                        84,
-                        52
+                        95,
+                        58
                 )
+        );
+
+        out.setOnClickListener(
+                v -> showLogin()
         );
 
         root.addView(head);
 
         ScrollView sv =
                 new ScrollView(this);
+
+        sv.setFillViewport(true);
 
         content =
                 new LinearLayout(this);
@@ -628,10 +862,10 @@ public class MainActivity extends Activity {
         );
 
         content.setPadding(
-                9,
-                5,
-                9,
-                28
+                12,
+                8,
+                12,
+                35
         );
 
         sv.addView(content);
@@ -687,14 +921,20 @@ public class MainActivity extends Activity {
                     Gravity.CENTER
             );
 
+            t.setTextAlignment(
+                    View.TEXT_ALIGNMENT_CENTER
+            );
+
             t.setBackgroundColor(
                     WHITE
             );
 
+            t.setMinHeight(82);
+
             LinearLayout.LayoutParams p =
                     new LinearLayout.LayoutParams(
                             0,
-                            -2,
+                            82,
                             1
                     );
 
@@ -702,13 +942,19 @@ public class MainActivity extends Activity {
                     3,
                     3,
                     3,
-                    3
+                    8
             );
 
             r.addView(t, p);
         }
 
-        content.addView(r);
+        content.addView(
+                r,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        -2
+                )
+        );
     }
 
     void addGrid() {
@@ -717,45 +963,75 @@ public class MainActivity extends Activity {
                 new ArrayList<>();
 
         list.add(
-                new String[]{"👨‍🎓 الطلاب", "students"}
+                new String[]{
+                        "👨‍🎓 الطلاب",
+                        "students"
+                }
         );
 
         list.add(
-                new String[]{"📊 الدرجات", "grades"}
+                new String[]{
+                        "📊 الدرجات",
+                        "grades"
+                }
         );
 
         list.add(
-                new String[]{"✅ الحضور", "attendance"}
+                new String[]{
+                        "✅ الحضور",
+                        "attendance"
+                }
         );
 
         list.add(
-                new String[]{"📅 الجدول", "timetable"}
+                new String[]{
+                        "📅 الجدول",
+                        "timetable"
+                }
         );
 
         if (admin()) {
 
             list.add(
-                    new String[]{"👨‍🏫 المعلمون", "teachers"}
+                    new String[]{
+                            "👨‍🏫 المعلمون",
+                            "teachers"
+                    }
             );
 
             list.add(
-                    new String[]{"🏫 الصفوف", "classes"}
+                    new String[]{
+                            "🏫 الصفوف",
+                            "classes"
+                    }
             );
 
             list.add(
-                    new String[]{"📈 التقارير", "reports"}
+                    new String[]{
+                            "📈 التقارير",
+                            "reports"
+                    }
             );
 
             list.add(
-                    new String[]{"🔔 الإعلانات", "announcements"}
+                    new String[]{
+                            "🔔 الإعلانات",
+                            "announcements"
+                    }
             );
 
             list.add(
-                    new String[]{"🔐 المستخدمون", "users"}
+                    new String[]{
+                            "🔐 المستخدمون",
+                            "users"
+                    }
             );
 
             list.add(
-                    new String[]{"📁 نسخ احتياطي", "files"}
+                    new String[]{
+                            "📁 نسخ احتياطي",
+                            "files"
+                    }
             );
         }
 
@@ -774,20 +1050,37 @@ public class MainActivity extends Activity {
                         LinearLayout.HORIZONTAL
                 );
 
-                content.addView(row);
+                row.setGravity(
+                        Gravity.CENTER
+                );
+
+                content.addView(
+                        row,
+                        new LinearLayout.LayoutParams(
+                                -1,
+                                88
+                        )
+                );
             }
 
             Button b =
                     btn(item[0]);
 
-            row.addView(
-                    b,
+            LinearLayout.LayoutParams bp =
                     new LinearLayout.LayoutParams(
                             0,
-                            70,
+                            76,
                             1
-                    )
+                    );
+
+            bp.setMargins(
+                    4,
+                    4,
+                    4,
+                    4
             );
+
+            row.addView(b, bp);
 
             String key = item[1];
 
@@ -842,16 +1135,30 @@ public class MainActivity extends Activity {
         EditText s =
                 new EditText(this);
 
-        s.setHint("بحث...");
+        s.setHint("بحث عن طالب...");
+        s.setTextSize(16);
+        s.setSingleLine(true);
 
-        content.addView(s);
+        content.addView(
+                s,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        60
+                )
+        );
 
         if (admin()) {
 
             Button a =
                     btn("＋ إضافة طالب");
 
-            content.addView(a);
+            content.addView(
+                    a,
+                    new LinearLayout.LayoutParams(
+                            -1,
+                            64
+                    )
+            );
 
             a.setOnClickListener(
                     v -> studentDialog(null)
@@ -873,25 +1180,65 @@ public class MainActivity extends Activity {
 
             for (String[] r :
                     db.students(
-                            s.getText().toString()
+                            s.getText()
+                                    .toString()
                     )) {
 
                 Button b =
                         btn(
+                                "👨‍🎓 " +
                                 r[0] +
-                                " | " +
+                                "\nالرقم: " +
                                 r[1] +
-                                " | " +
+                                "   الصف: " +
                                 r[2] +
                                 "/" +
                                 r[3]
                         );
 
-                list.addView(b);
+                LinearLayout.LayoutParams bp =
+                        new LinearLayout.LayoutParams(
+                                -1,
+                                78
+                        );
+
+                bp.setMargins(
+                        0,
+                        4,
+                        0,
+                        4
+                );
+
+                list.addView(b, bp);
 
                 b.setOnClickListener(
                         v -> navigateTo(
-                                () -> studentDetails(r[1])
+                                () ->
+                                        studentDetails(
+                                                r[1]
+                                        )
+                        )
+                );
+            }
+
+            if (list.getChildCount() == 0) {
+
+                TextView empty =
+                        tv(
+                                "لا توجد بيانات للعرض",
+                                16,
+                                false
+                        );
+
+                empty.setGravity(
+                        Gravity.CENTER
+                );
+
+                list.addView(
+                        empty,
+                        new LinearLayout.LayoutParams(
+                                -1,
+                                80
                         )
                 );
             }
@@ -925,19 +1272,15 @@ public class MainActivity extends Activity {
         ref.run();
     }
 
-    /*
-     * إضافة / تعديل طالب.
-     *
-     * مهم:
-     * بعد الحفظ نعيد عرض الطلاب فقط،
-     * ولا نضيف صفحة جديدة إلى سجل الرجوع.
-     */
     void studentDialog(String id) {
 
-        boolean edit = id != null;
+        boolean edit =
+                id != null;
 
         String[] old =
-                edit ? db.student(id) : null;
+                edit
+                        ? db.student(id)
+                        : null;
 
         EditText n = new EditText(this);
         EditText sid = new EditText(this);
@@ -973,17 +1316,37 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
+        l.setPadding(
+                8,
+                5,
+                8,
+                5
+        );
+
         for (EditText e :
                 new EditText[]{
-                        n, sid, g, cl, pa, ph
+                        n,
+                        sid,
+                        g,
+                        cl,
+                        pa,
+                        ph
                 }) {
 
-            l.addView(e);
+            l.addView(
+                    e,
+                    new LinearLayout.LayoutParams(
+                            -1,
+                            58
+                    )
+            );
         }
 
         new AlertDialog.Builder(this)
                 .setTitle(
-                        edit ? "تعديل" : "إضافة طالب"
+                        edit
+                                ? "تعديل الطالب"
+                                : "إضافة طالب"
                 )
                 .setView(l)
                 .setPositiveButton(
@@ -991,18 +1354,20 @@ public class MainActivity extends Activity {
                         (d, w) -> {
 
                             db.saveStudent(
-                                    n.getText().toString(),
-                                    sid.getText().toString(),
-                                    g.getText().toString(),
-                                    cl.getText().toString(),
-                                    pa.getText().toString(),
-                                    ph.getText().toString()
+                                    n.getText()
+                                            .toString(),
+                                    sid.getText()
+                                            .toString(),
+                                    g.getText()
+                                            .toString(),
+                                    cl.getText()
+                                            .toString(),
+                                    pa.getText()
+                                            .toString(),
+                                    ph.getText()
+                                            .toString()
                             );
 
-                            /*
-                             * إعادة بناء صفحة الطلاب الحالية
-                             * بدون إضافة سجل جديد.
-                             */
                             students();
                         }
                 )
@@ -1018,20 +1383,28 @@ public class MainActivity extends Activity {
      */
     void studentDetails(String id) {
 
-        page("ملف الطالب");
+        page("👨‍🎓 ملف الطالب");
 
         String[] r =
                 db.student(id);
 
-        if (r == null)
+        if (r == null) {
+
+            addCard(
+                    "خطأ",
+                    "لم يتم العثور على الطالب"
+            );
+
             return;
+        }
 
         addCard(
                 "👨‍🎓 " + r[0],
                 "الرقم: " + r[1] +
                 "\nالصف: " + r[2] +
-                "-" + r[3] +
-                "\nولي الأمر: " + r[4]
+                " - " + r[3] +
+                "\nولي الأمر: " + r[4] +
+                "\nالهاتف: " + r[5]
         );
 
         addCard(
@@ -1051,7 +1424,13 @@ public class MainActivity extends Activity {
         Button pdf =
                 btn("📄 طباعة PDF");
 
-        content.addView(pdf);
+        content.addView(
+                pdf,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        64
+                )
+        );
 
         pdf.setOnClickListener(
                 v -> generateStudentPdf(id)
@@ -1068,9 +1447,15 @@ public class MainActivity extends Activity {
         if (admin()) {
 
             Button a =
-                    btn("＋ إضافة");
+                    btn("＋ إضافة معلم");
 
-            content.addView(a);
+            content.addView(
+                    a,
+                    new LinearLayout.LayoutParams(
+                            -1,
+                            64
+                    )
+            );
 
             a.setOnClickListener(v -> {
 
@@ -1080,7 +1465,7 @@ public class MainActivity extends Activity {
                 EditText s =
                         new EditText(this);
 
-                n.setHint("الاسم");
+                n.setHint("اسم المعلم");
                 s.setHint("المادة");
 
                 LinearLayout l =
@@ -1094,14 +1479,19 @@ public class MainActivity extends Activity {
                 l.addView(s);
 
                 new AlertDialog.Builder(this)
+                        .setTitle(
+                                "إضافة معلم"
+                        )
                         .setView(l)
                         .setPositiveButton(
                                 "حفظ",
                                 (d, w) -> {
 
                                     db.addTeacher(
-                                            n.getText().toString(),
-                                            s.getText().toString(),
+                                            n.getText()
+                                                    .toString(),
+                                            s.getText()
+                                                    .toString(),
                                             "معلم"
                                     );
 
@@ -1121,7 +1511,8 @@ public class MainActivity extends Activity {
 
             addCard(
                     "👨‍🏫 " + r[0],
-                    "المادة: " + r[1]
+                    "المادة: " + r[1] +
+                    "\nالدور: " + r[2]
             );
         }
     }
@@ -1131,14 +1522,20 @@ public class MainActivity extends Activity {
      */
     void classes() {
 
-        page("🏫 الصفوف");
+        page("🏫 الصفوف والشعب");
 
         if (admin()) {
 
             Button a =
-                    btn("＋ إضافة صف");
+                    btn("＋ إضافة صف / شعبة");
 
-            content.addView(a);
+            content.addView(
+                    a,
+                    new LinearLayout.LayoutParams(
+                            -1,
+                            64
+                    )
+            );
 
             a.setOnClickListener(v -> {
 
@@ -1162,14 +1559,19 @@ public class MainActivity extends Activity {
                 l.addView(c);
 
                 new AlertDialog.Builder(this)
+                        .setTitle(
+                                "إضافة صف"
+                        )
                         .setView(l)
                         .setPositiveButton(
                                 "حفظ",
                                 (d, w) -> {
 
                                     db.addClass(
-                                            g.getText().toString(),
-                                            c.getText().toString()
+                                            g.getText()
+                                                    .toString(),
+                                            c.getText()
+                                                    .toString()
                                     );
 
                                     classes();
@@ -1187,11 +1589,12 @@ public class MainActivity extends Activity {
                 db.classes()) {
 
             addCard(
-                    "الصف " +
+                    "🏫 الصف " +
                     r[0] +
-                    " شعبة " +
+                    " - الشعبة " +
                     r[1],
-                    "طلاب: " + r[2]
+                    "عدد الطلاب: " +
+                    r[2]
             );
         }
     }
@@ -1206,31 +1609,60 @@ public class MainActivity extends Activity {
         ArrayList<String[]> cs =
                 db.classes();
 
-        String[] items =
-                new String[cs.size()];
+        if (cs.isEmpty()) {
 
-        for (int i = 0; i < cs.size(); i++) {
+            addCard(
+                    "لا توجد صفوف",
+                    "أضف صفًا أولًا من قسم الصفوف"
+            );
 
-            items[i] =
-                    "الصف " +
-                    cs.get(i)[0] +
-                    " - " +
-                    cs.get(i)[1];
+            return;
         }
 
-        new AlertDialog.Builder(this)
-                .setTitle("اختر الصف")
-                .setItems(
-                        items,
-                        (d, w) ->
-                                navigateTo(
-                                        () -> attendanceClass(
-                                                cs.get(w)[0],
-                                                cs.get(w)[1]
-                                        )
-                                )
+        Button choose =
+                btn("اختر الصف لتسجيل الحضور");
+
+        content.addView(
+                choose,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        64
                 )
-                .show();
+        );
+
+        choose.setOnClickListener(v -> {
+
+            String[] items =
+                    new String[cs.size()];
+
+            for (int i = 0;
+                 i < cs.size();
+                 i++) {
+
+                items[i] =
+                        "الصف " +
+                        cs.get(i)[0] +
+                        " - الشعبة " +
+                        cs.get(i)[1];
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle(
+                            "اختر الصف"
+                    )
+                    .setItems(
+                            items,
+                            (d, w) ->
+                                    navigateTo(
+                                            () ->
+                                                    attendanceClass(
+                                                            cs.get(w)[0],
+                                                            cs.get(w)[1]
+                                                    )
+                                    )
+                    )
+                    .show();
+        });
     }
 
     void attendanceClass(
@@ -1241,21 +1673,53 @@ public class MainActivity extends Activity {
         page(
                 "حضور " +
                 g +
-                "/" +
+                " / " +
                 c
         );
 
+        ArrayList<String[]> students =
+                db.studentsInClass(
+                        g,
+                        c
+                );
+
+        if (students.isEmpty()) {
+
+            addCard(
+                    "لا يوجد طلاب",
+                    "لا يوجد طلاب مسجلون في هذا الصف"
+            );
+
+            return;
+        }
+
         for (String[] r :
-                db.studentsInClass(g, c)) {
+                students) {
 
             LinearLayout row =
                     new LinearLayout(this);
 
+            row.setOrientation(
+                    LinearLayout.HORIZONTAL
+            );
+
+            row.setGravity(
+                    Gravity.CENTER_VERTICAL
+            );
+
+            TextView name =
+                    tv(r[0], 14, true);
+
+            name.setGravity(
+                    Gravity.CENTER_VERTICAL |
+                    Gravity.RIGHT
+            );
+
             row.addView(
-                    tv(r[0], 14, true),
+                    name,
                     new LinearLayout.LayoutParams(
                             0,
-                            -2,
+                            65,
                             1
                     )
             );
@@ -1274,15 +1738,20 @@ public class MainActivity extends Activity {
             sp.setAdapter(
                     new ArrayAdapter<>(
                             this,
-                            android.R.layout.simple_spinner_dropdown_item,
+                            android.R.layout
+                                    .simple_spinner_dropdown_item,
                             o
                     )
             );
 
             String old =
-                    db.attendanceStatus(r[1]);
+                    db.attendanceStatus(
+                            r[1]
+                    );
 
-            for (int i = 0; i < o.length; i++) {
+            for (int i = 0;
+                 i < o.length;
+                 i++) {
 
                 if (o[i].equals(old)) {
                     sp.setSelection(i);
@@ -1304,6 +1773,7 @@ public class MainActivity extends Activity {
                         ) {
 
                             if (pos > 0) {
+
                                 db.setAttendance(
                                         r[1],
                                         o[pos]
@@ -1316,12 +1786,25 @@ public class MainActivity extends Activity {
             row.addView(
                     sp,
                     new LinearLayout.LayoutParams(
-                            130,
-                            60
+                            145,
+                            65
                     )
             );
 
-            content.addView(row);
+            LinearLayout.LayoutParams rp =
+                    new LinearLayout.LayoutParams(
+                            -1,
+                            70
+                    );
+
+            rp.setMargins(
+                    0,
+                    2,
+                    0,
+                    2
+            );
+
+            content.addView(row, rp);
         }
     }
 
@@ -1333,9 +1816,15 @@ public class MainActivity extends Activity {
         page("📊 الدرجات");
 
         Button e =
-                btn("✏️ إدخال درجات");
+                btn("✏️ إدخال درجات الطلاب");
 
-        content.addView(e);
+        content.addView(
+                e,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        68
+                )
+        );
 
         e.setOnClickListener(
                 v -> chooseClassForGrades()
@@ -1347,27 +1836,43 @@ public class MainActivity extends Activity {
         ArrayList<String[]> cs =
                 db.classes();
 
+        if (cs.isEmpty()) {
+
+            addCard(
+                    "لا توجد صفوف",
+                    "أضف الصفوف أولًا"
+            );
+
+            return;
+        }
+
         String[] it =
                 new String[cs.size()];
 
-        for (int i = 0; i < cs.size(); i++) {
+        for (int i = 0;
+             i < cs.size();
+             i++) {
 
             it[i] =
+                    "الصف " +
                     cs.get(i)[0] +
-                    "-" +
+                    " - الشعبة " +
                     cs.get(i)[1];
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("اختر الصف")
+                .setTitle(
+                        "اختر الصف"
+                )
                 .setItems(
                         it,
                         (d, w) ->
                                 navigateTo(
-                                        () -> classGrades(
-                                                cs.get(w)[0],
-                                                cs.get(w)[1]
-                                        )
+                                        () ->
+                                                classGrades(
+                                                        cs.get(w)[0],
+                                                        cs.get(w)[1]
+                                                )
                                 )
                 )
                 .show();
@@ -1381,7 +1886,7 @@ public class MainActivity extends Activity {
         page(
                 "درجات " +
                 grade +
-                "/" +
+                " / " +
                 classroom
         );
 
@@ -1391,7 +1896,8 @@ public class MainActivity extends Activity {
         sem.setAdapter(
                 new ArrayAdapter<>(
                         this,
-                        android.R.layout.simple_spinner_dropdown_item,
+                        android.R.layout
+                                .simple_spinner_dropdown_item,
                         new String[]{
                                 "الفصل الأول",
                                 "الفصل الثاني"
@@ -1405,13 +1911,27 @@ public class MainActivity extends Activity {
         sub.setAdapter(
                 new ArrayAdapter<>(
                         this,
-                        android.R.layout.simple_spinner_dropdown_item,
+                        android.R.layout
+                                .simple_spinner_dropdown_item,
                         db.subjects()
                 )
         );
 
-        content.addView(sem);
-        content.addView(sub);
+        content.addView(
+                sem,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        60
+                )
+        );
+
+        content.addView(
+                sub,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        60
+                )
+        );
 
         LinearLayout list =
                 new LinearLayout(this);
@@ -1439,11 +1959,27 @@ public class MainActivity extends Activity {
                         LinearLayout.HORIZONTAL
                 );
 
+                row.setGravity(
+                        Gravity.CENTER_VERTICAL
+                );
+
+                TextView studentName =
+                        tv(
+                                st[0],
+                                12,
+                                true
+                        );
+
+                studentName.setGravity(
+                        Gravity.CENTER_VERTICAL |
+                        Gravity.RIGHT
+                );
+
                 row.addView(
-                        tv(st[0], 12, true),
+                        studentName,
                         new LinearLayout.LayoutParams(
-                                140,
-                                -2
+                                135,
+                                62
                         )
                 );
 
@@ -1460,76 +1996,61 @@ public class MainActivity extends Activity {
                         box("ت/40");
 
                 EditText ex =
-                        box("اختبار30");
+                        box("اختبار");
+
+                int semester =
+                        sem.getSelectedItemPosition()
+                        + 1;
+
+                String subject =
+                        sub.getSelectedItem()
+                                .toString();
 
                 double[] old =
                         db.monthlyValues(
                                 st[1],
-                                sub.getSelectedItem().toString(),
-                                sem.getSelectedItemPosition() + 1,
+                                subject,
+                                semester,
                                 1
                         );
 
                 if (old != null) {
 
-                    a.setText(fmt(old[0]));
-                    o.setText(fmt(old[1]));
-                    h.setText(fmt(old[2]));
-                    w.setText(fmt(old[3]));
+                    a.setText(
+                            fmt(old[0])
+                    );
+
+                    o.setText(
+                            fmt(old[1])
+                    );
+
+                    h.setText(
+                            fmt(old[2])
+                    );
+
+                    w.setText(
+                            fmt(old[3])
+                    );
                 }
 
                 double exam =
                         db.exam(
                                 st[1],
-                                sub.getSelectedItem().toString(),
-                                sem.getSelectedItemPosition() + 1
+                                subject,
+                                semester
                         );
 
-                ex.setText(
-                        exam == 0
-                                ? ""
-                                : fmt(exam)
-                );
+                if (exam != 0) {
+                    ex.setText(
+                            fmt(exam)
+                    );
+                }
 
-                row.addView(
-                        a,
-                        new LinearLayout.LayoutParams(
-                                60,
-                                50
-                        )
-                );
-
-                row.addView(
-                        o,
-                        new LinearLayout.LayoutParams(
-                                60,
-                                50
-                        )
-                );
-
-                row.addView(
-                        h,
-                        new LinearLayout.LayoutParams(
-                                60,
-                                50
-                        )
-                );
-
-                row.addView(
-                        w,
-                        new LinearLayout.LayoutParams(
-                                60,
-                                50
-                        )
-                );
-
-                row.addView(
-                        ex,
-                        new LinearLayout.LayoutParams(
-                                70,
-                                50
-                        )
-                );
+                addScoreBox(row, a, 58);
+                addScoreBox(row, o, 58);
+                addScoreBox(row, h, 58);
+                addScoreBox(row, w, 58);
+                addScoreBox(row, ex, 70);
 
                 row.setTag(
                         new EditText[]{
@@ -1541,7 +2062,20 @@ public class MainActivity extends Activity {
                         }
                 );
 
-                list.addView(row);
+                LinearLayout.LayoutParams rp =
+                        new LinearLayout.LayoutParams(
+                                -1,
+                                68
+                        );
+
+                rp.setMargins(
+                        0,
+                        2,
+                        0,
+                        2
+                );
+
+                list.addView(row, rp);
             }
         };
 
@@ -1584,9 +2118,15 @@ public class MainActivity extends Activity {
         render.run();
 
         Button save =
-                btn("💾 حفظ الكل");
+                btn("💾 حفظ الدرجات");
 
-        content.addView(save);
+        content.addView(
+                save,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        68
+                )
+        );
 
         save.setOnClickListener(v -> {
 
@@ -1603,10 +2143,12 @@ public class MainActivity extends Activity {
                                 classroom
                         );
 
-                for (int i = 0;
-                     i < list.getChildCount() &&
-                     i < students.size();
-                     i++) {
+                for (
+                        int i = 0;
+                        i < list.getChildCount()
+                                && i < students.size();
+                        i++
+                ) {
 
                     String sid =
                             students.get(i)[1];
@@ -1616,10 +2158,15 @@ public class MainActivity extends Activity {
                                     list.getChildAt(i)
                                             .getTag();
 
+                    if (z == null)
+                        continue;
+
                     db.setMonthlyScore(
                             sid,
-                            sub.getSelectedItem().toString(),
-                            sem.getSelectedItemPosition() + 1,
+                            sub.getSelectedItem()
+                                    .toString(),
+                            sem.getSelectedItemPosition()
+                                    + 1,
                             1,
                             par(z[0]),
                             par(z[1]),
@@ -1629,8 +2176,10 @@ public class MainActivity extends Activity {
 
                     db.setExam(
                             sid,
-                            sub.getSelectedItem().toString(),
-                            sem.getSelectedItemPosition() + 1,
+                            sub.getSelectedItem()
+                                    .toString(),
+                            sem.getSelectedItemPosition()
+                                    + 1,
                             par(z[4])
                     );
                 }
@@ -1639,7 +2188,7 @@ public class MainActivity extends Activity {
 
                 Toast.makeText(
                         this,
-                        "تم الحفظ",
+                        "تم حفظ الدرجات بنجاح",
                         Toast.LENGTH_SHORT
                 ).show();
 
@@ -1650,6 +2199,21 @@ public class MainActivity extends Activity {
         });
     }
 
+    void addScoreBox(
+            LinearLayout row,
+            EditText e,
+            int width
+    ) {
+
+        row.addView(
+                e,
+                new LinearLayout.LayoutParams(
+                        width,
+                        58
+                )
+        );
+    }
+
     EditText box(String h) {
 
         EditText e =
@@ -1657,6 +2221,8 @@ public class MainActivity extends Activity {
 
         e.setHint(h);
         e.setTextSize(10);
+
+        e.setSingleLine(true);
 
         e.setInputType(
                 InputType.TYPE_CLASS_NUMBER |
@@ -1667,6 +2233,13 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
+        e.setPadding(
+                2,
+                2,
+                2,
+                2
+        );
+
         return e;
     }
 
@@ -1674,9 +2247,15 @@ public class MainActivity extends Activity {
 
         try {
 
-            return Double.parseDouble(
-                    e.getText().toString()
-            );
+            String s =
+                    e.getText()
+                            .toString()
+                            .trim();
+
+            if (s.isEmpty())
+                return 0;
+
+            return Double.parseDouble(s);
 
         } catch (Exception ex) {
 
@@ -1703,12 +2282,22 @@ public class MainActivity extends Activity {
      */
     void timetable() {
 
-        page("📅 الجدول");
+        page("📅 الجدول المدرسي");
+
+        addCard(
+                "أيام الدوام",
+                "السبت - الأحد - الاثنين - الثلاثاء - الأربعاء"
+        );
+
+        addCard(
+                "العطلة الرسمية",
+                "الخميس والجمعة"
+        );
 
         for (String d : DAYS) {
 
             addCard(
-                    d,
+                    "📅 " + d,
                     db.daySchedule(d)
             );
         }
@@ -1719,23 +2308,34 @@ public class MainActivity extends Activity {
      */
     void reports() {
 
-        page("📈 التقارير");
+        page("📈 التقارير والإحصائيات");
 
         addCard(
-                "إجمالي الطلاب",
-                db.count("students") + ""
+                "👨‍🎓 إجمالي الطلاب",
+                String.valueOf(
+                        db.count("students")
+                )
         );
 
         addCard(
-                "إجمالي المعلمين",
-                db.count("teachers") + ""
+                "👨‍🏫 إجمالي المعلمين",
+                String.valueOf(
+                        db.count("teachers")
+                )
         );
 
         addCard(
-                "حضور اليوم",
+                "🏫 إجمالي الصفوف والشعب",
+                String.valueOf(
+                        db.count("classes")
+                )
+        );
+
+        addCard(
+                "📅 حضور اليوم",
                 "حاضر: " +
                 db.todayPresent() +
-                " - غائب: " +
+                "\nغائب: " +
                 db.todayAbsent()
         );
     }
@@ -1750,25 +2350,42 @@ public class MainActivity extends Activity {
         if (admin()) {
 
             Button a =
-                    btn("＋ إعلان");
+                    btn("＋ إضافة إعلان");
 
-            content.addView(a);
+            content.addView(
+                    a,
+                    new LinearLayout.LayoutParams(
+                            -1,
+                            64
+                    )
+            );
 
             a.setOnClickListener(v -> {
 
                 EditText e =
                         new EditText(this);
 
-                e.setHint("نص الإعلان");
+                e.setHint(
+                        "نص الإعلان"
+                );
+
+                e.setGravity(
+                        Gravity.TOP |
+                        Gravity.RIGHT
+                );
 
                 new AlertDialog.Builder(this)
+                        .setTitle(
+                                "إضافة إعلان"
+                        )
                         .setView(e)
                         .setPositiveButton(
                                 "نشر",
                                 (d, w) -> {
 
                                     db.addAnnouncement(
-                                            e.getText().toString()
+                                            e.getText()
+                                                    .toString()
                                     );
 
                                     announcements();
@@ -1786,8 +2403,8 @@ public class MainActivity extends Activity {
                 db.announcements()) {
 
             addCard(
-                    r[1],
-                    r[0]
+                    "📢 " + r[1],
+                    "التاريخ: " + r[0]
             );
         }
     }
@@ -1799,9 +2416,6 @@ public class MainActivity extends Activity {
 
         page("🔐 المستخدمون");
 
-        /*
-         * حماية الصفحة نفسها.
-         */
         if (!admin()) {
 
             addCard(
@@ -1816,17 +2430,27 @@ public class MainActivity extends Activity {
                 db.users()) {
 
             addCard(
+                    "👤 " +
                     u[3] +
                     " - " +
                     u[0],
-                    "الدور: " + u[1]
+                    "الدور: " +
+                    u[1] +
+                    "\nالصلاحيات: " +
+                    u[2]
             );
         }
 
         Button a =
-                btn("＋ مستخدم جديد");
+                btn("＋ إضافة مستخدم جديد");
 
-        content.addView(a);
+        content.addView(
+                a,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        64
+                )
+        );
 
         a.setOnClickListener(v -> {
 
@@ -1849,7 +2473,8 @@ public class MainActivity extends Activity {
             ro.setAdapter(
                     new ArrayAdapter<>(
                             this,
-                            android.R.layout.simple_spinner_dropdown_item,
+                            android.R.layout
+                                    .simple_spinner_dropdown_item,
                             new String[]{
                                     "معلم",
                                     "طالب",
@@ -1872,16 +2497,23 @@ public class MainActivity extends Activity {
             l.addView(ro);
 
             new AlertDialog.Builder(this)
+                    .setTitle(
+                            "مستخدم جديد"
+                    )
                     .setView(l)
                     .setPositiveButton(
                             "حفظ",
                             (d, w) -> {
 
                                 db.addUser(
-                                        name.getText().toString(),
-                                        ro.getSelectedItem().toString(),
-                                        user.getText().toString(),
-                                        pass.getText().toString()
+                                        name.getText()
+                                                .toString(),
+                                        ro.getSelectedItem()
+                                                .toString(),
+                                        user.getText()
+                                                .toString(),
+                                        pass.getText()
+                                                .toString()
                                 );
 
                                 users();
@@ -1902,10 +2534,21 @@ public class MainActivity extends Activity {
 
         page("📁 النسخ الاحتياطي");
 
-        Button b =
-                btn("💾 نسخ احتياطي");
+        addCard(
+                "النسخ الاحتياطي المحلي",
+                "يمكن حفظ نسخة من قاعدة بيانات المدرسة على الهاتف."
+        );
 
-        content.addView(b);
+        Button b =
+                btn("💾 إنشاء نسخة احتياطية");
+
+        content.addView(
+                b,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        68
+                )
+        );
 
         b.setOnClickListener(v -> {
 
@@ -1938,7 +2581,7 @@ public class MainActivity extends Activity {
     }
 
     /*
-     * إنشاء ملف PDF للطالب.
+     * PDF الطالب.
      */
     void generateStudentPdf(String id) {
 
@@ -1979,6 +2622,7 @@ public class MainActivity extends Activity {
                     new Paint();
 
             p.setTextSize(16);
+
             p.setTypeface(
                     Typeface.DEFAULT_BOLD
             );
@@ -2059,7 +2703,9 @@ public class MainActivity extends Activity {
                             Intent.ACTION_SEND
                     );
 
-            i.setType("application/pdf");
+            i.setType(
+                    "application/pdf"
+            );
 
             i.putExtra(
                     Intent.EXTRA_STREAM,
@@ -2149,7 +2795,7 @@ public class MainActivity extends Activity {
 
                 Toast.makeText(
                         this,
-                        "تم النسخ",
+                        "تم إنشاء النسخة الاحتياطية بنجاح",
                         Toast.LENGTH_SHORT
                 ).show();
 
@@ -2157,8 +2803,9 @@ public class MainActivity extends Activity {
 
                 Toast.makeText(
                         this,
+                        "خطأ: " +
                         e.getMessage(),
-                        Toast.LENGTH_SHORT
+                        Toast.LENGTH_LONG
                 ).show();
             }
         }
