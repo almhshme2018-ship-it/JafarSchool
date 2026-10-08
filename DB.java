@@ -139,27 +139,44 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
     // =========================================================
 
     void saveStudent(
-            String n,
-            String id,
-            String g,
-            String cl,
-            String p,
-            String ph) {
+        String n,
+        String id,
+        String g,
+        String cl,
+        String p,
+        String ph) {
 
-        getWritableDatabase().execSQL(
-                "INSERT OR REPLACE INTO students " +
-                "(name,id,grade,classroom,parent,phone) " +
-                "VALUES(?,?,?,?,?,?)",
+    android.database.sqlite.SQLiteDatabase d =
+            getWritableDatabase();
+
+    d.execSQL(
+            "INSERT OR REPLACE INTO students " +
+            "(name,id,grade,classroom,parent,phone) " +
+            "VALUES(?,?,?,?,?,?)",
+            new Object[]{
+                    n,
+                    id,
+                    g,
+                    cl,
+                    p,
+                    ph
+            }
+    );
+
+    // إضافة الصف والشعبة تلقائياً إلى جدول classes
+    if (g != null && !g.trim().isEmpty()
+            && cl != null && !cl.trim().isEmpty()) {
+
+        d.execSQL(
+                "INSERT OR IGNORE INTO classes " +
+                "(grade,classroom) VALUES(?,?)",
                 new Object[]{
-                        n,
-                        id,
-                        g,
-                        cl,
-                        p,
-                        ph
+                        g.trim(),
+                        cl.trim()
                 }
         );
     }
+}
 
     ArrayList<String[]> students(String q) {
 
