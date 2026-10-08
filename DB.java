@@ -178,27 +178,21 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
     }
 }
 
-    ArrayList<String[]> studentsInClass(
-        String g,
-        String cl) {
+   ArrayList<String[]> students(String q) {
 
     ArrayList<String[]> a = new ArrayList<>();
 
-    if (g == null) g = "";
-    if (cl == null) cl = "";
-
-    g = g.trim();
-    cl = cl.trim();
+    if (q == null) q = "";
+    q = q.trim();
 
     Cursor c = getReadableDatabase().rawQuery(
-            "SELECT name,id " +
+            "SELECT name,id,grade,classroom " +
             "FROM students " +
-            "WHERE TRIM(grade)=? " +
-            "AND TRIM(classroom)=? " +
+            "WHERE name LIKE ? OR id LIKE ? " +
             "ORDER BY name",
             new String[]{
-                    g,
-                    cl
+                    "%" + q + "%",
+                    "%" + q + "%"
             }
     );
 
@@ -206,70 +200,16 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
 
         a.add(new String[]{
                 c.getString(0),
-                c.getString(1)
+                c.getString(1),
+                c.getString(2),
+                c.getString(3)
         });
     }
 
     c.close();
 
     return a;
-}
-
-    String[] student(String id) {
-
-        Cursor c = getReadableDatabase().rawQuery(
-                "SELECT * FROM students WHERE id=?",
-                new String[]{id}
-        );
-
-        if (!c.moveToFirst()) {
-            c.close();
-            return null;
-        }
-
-        String[] r = {
-                c.getString(0),
-                c.getString(1),
-                c.getString(2),
-                c.getString(3),
-                c.getString(4),
-                c.getString(5)
-        };
-
-        c.close();
-
-        return r;
-    }
-
-    ArrayList<String[]> studentsInClass(
-            String g,
-            String cl) {
-
-        ArrayList<String[]> a = new ArrayList<>();
-
-        Cursor c = getReadableDatabase().rawQuery(
-                "SELECT name,id " +
-                "FROM students " +
-                "WHERE grade=? AND classroom=? " +
-                "ORDER BY name",
-                new String[]{
-                        g,
-                        cl
-                }
-        );
-
-        while (c.moveToNext()) {
-
-            a.add(new String[]{
-                    c.getString(0),
-                    c.getString(1)
-            });
-        }
-
-        c.close();
-
-        return a;
-    }
+} 
 
     // =========================================================
     // المعلمون
