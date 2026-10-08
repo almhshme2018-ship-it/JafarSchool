@@ -178,35 +178,42 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
     }
 }
 
-    ArrayList<String[]> students(String q) {
+    ArrayList<String[]> studentsInClass(
+        String g,
+        String cl) {
 
-        ArrayList<String[]> a = new ArrayList<>();
+    ArrayList<String[]> a = new ArrayList<>();
 
-        Cursor c = getReadableDatabase().rawQuery(
-                "SELECT name,id,grade,classroom " +
-                "FROM students " +
-                "WHERE name LIKE ? OR id LIKE ? " +
-                "ORDER BY name",
-                new String[]{
-                        "%" + q + "%",
-                        "%" + q + "%"
-                }
-        );
+    if (g == null) g = "";
+    if (cl == null) cl = "";
 
-        while (c.moveToNext()) {
+    g = g.trim();
+    cl = cl.trim();
 
-            a.add(new String[]{
-                    c.getString(0),
-                    c.getString(1),
-                    c.getString(2),
-                    c.getString(3)
-            });
-        }
+    Cursor c = getReadableDatabase().rawQuery(
+            "SELECT name,id " +
+            "FROM students " +
+            "WHERE TRIM(grade)=? " +
+            "AND TRIM(classroom)=? " +
+            "ORDER BY name",
+            new String[]{
+                    g,
+                    cl
+            }
+    );
 
-        c.close();
+    while (c.moveToNext()) {
 
-        return a;
+        a.add(new String[]{
+                c.getString(0),
+                c.getString(1)
+        });
     }
+
+    c.close();
+
+    return a;
+}
 
     String[] student(String id) {
 
