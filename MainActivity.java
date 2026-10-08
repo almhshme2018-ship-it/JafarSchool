@@ -1508,12 +1508,6 @@ public class MainActivity extends Activity {
                 )
         );
 
-        // =====================================================
-        // مهم جدًا:
-        // لا نستخدم weight=1 هنا.
-        // لأن HorizontalScrollView موجود داخل ScrollView.
-        // =====================================================
-
         HorizontalScrollView hsv =
                 new HorizontalScrollView(this);
 
@@ -1540,7 +1534,6 @@ public class MainActivity extends Activity {
                 )
         );
 
-        // ارتفاع Wrap Content بدل weight=1
         LinearLayout.LayoutParams hsvParams =
                 new LinearLayout.LayoutParams(
                         -1,
@@ -1803,13 +1796,31 @@ public class MainActivity extends Activity {
             final int monthValue =
                     month;
 
-            double total =
-                    db.monthlyTotal(
+            // =================================================
+            // الإصلاح:
+            // لا نعتمد على db.monthlyTotal().
+            // نحسب المجموع مباشرة من القيم المحفوظة.
+            // =================================================
+
+            double[] vals =
+                    db.monthlyValues(
                             sid,
                             subject,
                             semValue,
                             monthValue
                     );
+
+            double total = 0;
+
+            if (vals != null &&
+                    vals.length >= 4) {
+
+                total =
+                        vals[0] +
+                        vals[1] +
+                        vals[2] +
+                        vals[3];
+            }
 
             String label;
 
@@ -1927,7 +1938,8 @@ public class MainActivity extends Activity {
         EditText written =
                 scoreEdit("تحريري /40");
 
-        if (old != null) {
+        if (old != null &&
+                old.length >= 4) {
 
             regular.setText(
                     formatNumber(old[0])
@@ -2134,6 +2146,11 @@ public class MainActivity extends Activity {
                 InputType.TYPE_CLASS_NUMBER |
                 InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
+
+        e.setClickable(true);
+        e.setFocusable(true);
+        e.setFocusableInTouchMode(true);
+        e.setEnabled(true);
 
         return e;
     }
