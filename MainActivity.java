@@ -1176,7 +1176,7 @@ public class MainActivity extends Activity {
         EditText ph =
                 new EditText(this);
 
-        n.setHint("اسم الطالب الرباعي");
+        n.setHint("اسم الطالب الكامل");
         sid.setHint("رقم الطالب");
         g.setHint("الصف");
         cl.setHint("الشعبة");
