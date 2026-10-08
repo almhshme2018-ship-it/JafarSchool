@@ -210,7 +210,70 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
 
     return a;
 } 
+String[] student(String id) {
 
+    Cursor c = getReadableDatabase().rawQuery(
+            "SELECT name,id,grade,classroom,parent,phone " +
+            "FROM students WHERE id=?",
+            new String[]{id}
+    );
+
+    if (!c.moveToFirst()) {
+        c.close();
+        return null;
+    }
+
+    String[] r = {
+            c.getString(0),
+            c.getString(1),
+            c.getString(2),
+            c.getString(3),
+            c.getString(4),
+            c.getString(5)
+    };
+
+    c.close();
+
+    return r;
+}
+
+
+ArrayList<String[]> studentsInClass(
+        String g,
+        String cl) {
+
+    ArrayList<String[]> a = new ArrayList<>();
+
+    if (g == null) g = "";
+    if (cl == null) cl = "";
+
+    g = g.trim();
+    cl = cl.trim();
+
+    Cursor c = getReadableDatabase().rawQuery(
+            "SELECT name,id " +
+            "FROM students " +
+            "WHERE TRIM(grade)=? " +
+            "AND TRIM(classroom)=? " +
+            "ORDER BY name",
+            new String[]{
+                    g,
+                    cl
+            }
+    );
+
+    while (c.moveToNext()) {
+
+        a.add(new String[]{
+                c.getString(0),
+                c.getString(1)
+        });
+    }
+
+    c.close();
+
+    return a;
+}
     // =========================================================
     // المعلمون
     // =========================================================
@@ -269,35 +332,6 @@ public class DB extends android.database.sqlite.SQLiteOpenHelper {
                         c
                 }
         );
-    }
-
-    ArrayList<String[]> classes() {
-
-        ArrayList<String[]> a = new ArrayList<>();
-
-        Cursor c = getReadableDatabase().rawQuery(
-                "SELECT c.grade,c.classroom," +
-                "(SELECT COUNT(*) " +
-                "FROM students s " +
-                "WHERE s.grade=c.grade " +
-                "AND s.classroom=c.classroom) " +
-                "FROM classes c " +
-                "ORDER BY c.grade,c.classroom",
-                null
-        );
-
-        while (c.moveToNext()) {
-
-            a.add(new String[]{
-                    c.getString(0),
-                    c.getString(1),
-                    c.getString(2)
-            });
-        }
-
-        c.close();
-
-        return a;
     }
 
     // =========================================================
