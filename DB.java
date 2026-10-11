@@ -14,8 +14,20 @@ public class DB extends SQLiteOpenHelper {
         db.execSQL("INSERT INTO users VALUES('المدير','admin','1234','القائم بأعمال المدير','','')");
     }
     public void onUpgrade(SQLiteDatabase db,int o,int n){ db.execSQL("DROP TABLE IF EXISTS scores"); onCreate(db); }
-    public void setMahsala(String sid,String sub,int sem,double v){ SQLiteDatabase db=getWritableDatabase(); ContentValues cv=new ContentValues(); cv.put("student_id",sid); cv.put("subject",sub); cv.put("semester",sem); cv.put("mahsala",v); db.insertWithOnConflict("scores",null,cv,SQLiteDatabase.CONFLICT_REPLACE); }
-    public void setExam(String sid,String sub,int sem,double v){ SQLiteDatabase db=getWritableDatabase(); ContentValues cv=new ContentValues(); cv.put("student_id",sid); cv.put("subject",sub); cv.put("semester",sem); cv.put("exam",v); db.insertWithOnConflict("scores",null,cv,SQLiteDatabase.CONFLICT_REPLACE); }
+    public void setMahsala(String sid,String sub,int sem,double v){
+    SQLiteDatabase db=getWritableDatabase();
+    Cursor c=db.rawQuery("SELECT exam FROM scores WHERE student_id=? AND subject=? AND semester=?",new String[]{sid,sub,String.valueOf(sem)});
+    double oldExam=0; boolean exists=c.moveToFirst(); if(exists &&!c.isNull(0)) oldExam=c.getDouble(0); c.close();
+    ContentValues cv=new ContentValues(); cv.put("student_id",sid); cv.put("subject",sub); cv.put("semester",sem); cv.put("mahsala",v); cv.put("exam",oldExam);
+    db.insertWithOnConflict("scores",null,cv,SQLiteDatabase.CONFLICT_REPLACE);
+}
+public void setExam(String sid,String sub,int sem,double v){
+    SQLiteDatabase db=getWritableDatabase();
+    Cursor c=db.rawQuery("SELECT mahsala FROM scores WHERE student_id=? AND subject=? AND semester=?",new String[]{sid,sub,String.valueOf(sem)});
+    double oldMah=0; boolean exists=c.moveToFirst(); if(exists &&!c.isNull(0)) oldMah=c.getDouble(0); c.close();
+    ContentValues cv=new ContentValues(); cv.put("student_id",sid); cv.put("subject",sub); cv.put("semester",sem); cv.put("mahsala",oldMah); cv.put("exam",v);
+    db.insertWithOnConflict("scores",null,cv,SQLiteDatabase.CONFLICT_REPLACE);
+}
     public double getMahsala(String sid,String sub,int sem){ Cursor c=getReadableDatabase().rawQuery("SELECT mahsala FROM scores WHERE student_id=? AND subject=? AND semester=?",new String[]{sid,sub,String.valueOf(sem)}); double v=0; if(c.moveToFirst()) v=c.getDouble(0); c.close(); return v; }
     public double getExam(String sid,String sub,int sem){ Cursor c=getReadableDatabase().rawQuery("SELECT exam FROM scores WHERE student_id=? AND subject=? AND semester=?",new String[]{sid,sub,String.valueOf(sem)}); double v=0; if(c.moveToFirst()) v=c.getDouble(0); c.close(); return v; }
     public double annualTotal(String sid,String sub){ return getMahsala(sid,sub,1)+getExam(sid,sub,1)+getMahsala(sid,sub,2)+getExam(sid,sub,2); }
