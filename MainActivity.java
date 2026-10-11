@@ -96,7 +96,277 @@ double parse(EditText e){try{String s=e.getText().toString().trim();if(s.isEmpty
 double limit(double x,double min,double max){if(x<min)return min;if(x>max)return max;return x;}
 void scoreDialog(String sid,String sname,String subject,int sem,Button cell){EditText mah=scoreEdit("المحصلة /20");EditText ex=scoreEdit("الاختبار /30");double oldM=db.getMahsala(sid,subject,sem);double oldE=db.getExam(sid,subject,sem);if(oldM!=0)mah.setText(formatNumber(oldM));if(oldE!=0)ex.setText(formatNumber(oldE));LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.addView(mah,new LinearLayout.LayoutParams(-1,dp(52)));box.addView(ex,new LinearLayout.LayoutParams(-1,dp(52)));AlertDialog d=new AlertDialog.Builder(this).setTitle(sname+"\n"+subject+" - الفصل "+(sem==1?"الأول":"الثاني")).setView(box).setPositiveButton("حفظ",null).setNegativeButton("إلغاء",null).create();d.setOnShowListener(ev->{d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{double m=limit(parse(mah),0,20);double e=limit(parse(ex),0,30);db.setMahsala(sid,subject,sem,m);db.setExam(sid,subject,sem,e);double tot=m+e;cell.setText(formatNumber(tot)+" /50");cell.setBackground(background(GREEN));Toast.makeText(this,"تم حفظ "+subject+" = "+tot+" /50",Toast.LENGTH_SHORT).show();d.dismiss();});});d.show();}
 void generateCertificatePdf(String sid){String[] st=db.student(sid);if(st==null)return;PdfDocument doc=new PdfDocument();int W=595,H=842;PdfDocument.PageInfo pi=new PdfDocument.PageInfo.Builder(W,H,1).create();PdfDocument.Page page=doc.startPage(pi);Canvas c=page.getCanvas();Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setColor(Color.BLACK);p.setTextAlign(Paint.Align.CENTER);Paint line=new Paint();line.setColor(Color.BLACK);line.setStyle(Paint.Style.STROKE);p.setTextSize(12);p.setFakeBoldText(true);c.drawText("الجمهورية اليمنية - وزارة التربية والتعليم",W/2,32,p);c.drawText("مدرسة جعفر بن أبي طالب - مذيخرة - إب",W/2,52,p);c.drawRect(15,15,W-15,H-15,line);p.setTextSize(16);c.drawText("شهادة نتيجة الطالب 2026-2027",W/2,90,p);p.setTextSize(11);p.setFakeBoldText(false);c.drawText("اسم الطالب: "+st[0]+" الصف: "+st[2]+"/"+st[3]+" الرقم: "+st[1],W/2,115,p);int top=135;c.drawRect(20,top,W-20,top+20,line);p.setTextSize(9);p.setFakeBoldText(true);c.drawText("المادة",520,top+14,p);c.drawText("محصلة1 20",420,top+14,p);c.drawText("اختبار نصف 30",320,top+14,p);c.drawText("محصلة2 20",220,top+14,p);c.drawText("اختبار نهائي 30",120,top+14,p);c.drawText("المجموع 100",60,top+14,p);p.setFakeBoldText(false);double totalAll=0;int y=top+20;boolean allPass=true;for(String sub:SUBJECTS_7){y+=22;c.drawRect(20,y-16,W-20,y,line);double m1=db.getMahsala(sid,sub,1),e1=db.getExam(sid,sub,1),m2=db.getMahsala(sid,sub,2),e2=db.getExam(sid,sub,2);double tot=m1+e1+m2+e2;totalAll+=tot;if(tot<50)allPass=false;c.drawText(sub,520,y-5,p);c.drawText(String.valueOf((int)m1),420,y-5,p);c.drawText(String.valueOf((int)e1),320,y-5,p);c.drawText(String.valueOf((int)m2),220,y-5,p);c.drawText(String.valueOf((int)e2),120,y-5,p);c.drawText((int)tot+" "+DB.gradeFor(tot),60,y-5,p);}y+=22;c.drawRect(20,y-16,W-20,y,line);c.drawText("السلوك",520,y-5,p);c.drawText(String.valueOf((int)db.annualBehavior(sid)),60,y-5,p);double pct=totalAll/(SUBJECTS_7.length*100.0)*100;boolean pass=allPass&&pct>=50;y+=38;p.setTextSize(12);p.setFakeBoldText(true);c.drawText("المجموع: "+(int)totalAll+" / "+(SUBJECTS_7.length*100),W/2,y,p);c.drawText("النسبة: "+String.format("%.1f",pct)+" % التقدير: "+DB.gradeFor(pct),W/2,y+22,p);p.setColor(pass?Color.rgb(0,120,0):Color.RED);p.setTextSize(18);c.drawText(pass?"ناجح ✓":"راسب ✗",W/2,y+55,p);doc.finishPage(page);try{File f=new File(getExternalFilesDir(null),"cert_"+sid+".pdf");FileOutputStream o=new FileOutputStream(f);doc.writeTo(o);doc.close();o.close();Uri uri=FileProvider.getUriForFile(this,getPackageName()+".provider",f);Intent it=new Intent(Intent.ACTION_VIEW);it.setDataAndType(uri,"application/pdf");it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(it);}catch(Exception e){Toast.makeText(this,e.getMessage(),1).show();}}
-void generateClassSheetPdf(String grade,String classroom){ArrayList<String[]> students=db.studentsInClass(grade,classroom);ArrayList<Double> totals=new ArrayList<>();for(String[] s:students){double t=0;for(String sub:SUBJECTS_7)t+=db.annualTotal(s[1],sub);totals.add(t);}for(int i=0;i<students.size();i++)for(int j=i+1;j<students.size();j++)if(totals.get(j)>totals.get(i)){Collections.swap(students,i,j);Collections.swap(totals,i,j);}PdfDocument doc=new PdfDocument();int W=842,H=595,perPage=20,pageNum=0;for(int start=0;start<students.size();start+=perPage){pageNum++;PdfDocument.PageInfo pi=new PdfDocument.PageInfo.Builder(W,H,pageNum).create();PdfDocument.Page page=doc.startPage(pi);Canvas c=page.getCanvas();Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setColor(Color.BLACK);p.setTextAlign(Paint.Align.CENTER);Paint line=new Paint();line.setColor(Color.BLACK);line.setStyle(Paint.Style.STROKE);p.setTextSize(11);p.setFakeBoldText(true);c.drawText("كشف نتائج "+grade+" / "+classroom+" - مدرسة جعفر - صفحة "+pageNum,W/2,30,p);p.setFakeBoldText(false);int top=45;c.drawRect(15,top,W-15,top+18,line);p.setTextSize(8);c.drawText("المركز",30,top+12,p);c.drawText("اسم الطالب",150,top+12,p);int x=250;for(String sub:SUBJECTS_7){c.drawText(sub.substring(0,4),x,top+12,p);x+=70;}c.drawText("السلوك",x,top+12,p);c.drawText("المجموع",x+70,top+12,p);c.drawText("النسبة",x+130,top+12,p);c.drawText("النتيجة",x+185,top+12,p);int y=top+18;for(int i=start;i<Math.min(start+perPage,students.size());i++){y+=20;c.drawRect(15,y-14,W-15,y,line);String[] s=students.get(i);double tot=totals.get(i);double pct=tot/(SUBJECTS_7.length*100.0)*100;c.drawText(String.valueOf(i+1),30,y-4,p);c.drawText(s[0],150,y-4,p);int xx=250;for(String sub:SUBJECTS_7){c.drawText(String.valueOf((int)db.annualTotal(s[1],sub)),xx,y-4,p);xx+=70;}c.drawText(String.valueOf((int)db.annualBehavior(s[1])),xx,y-4,p);c.drawText(String.valueOf((int)tot),xx+70,y-4,p);c.drawText(String.format("%.1f%%",pct),xx+130,y-4,p);c.drawText(pct>=50?"ناجح":"راسب",xx+185,y-4,p);}doc.finishPage(page);}try{File f=new File(getExternalFilesDir(null),"sheet_"+grade+"_"+classroom+".pdf");FileOutputStream o=new FileOutputStream(f);doc.writeTo(o);doc.close();o.close();Uri uri=FileProvider.getUriForFile(this,getPackageName()+".provider",f);Intent it=new Intent(Intent.ACTION_VIEW);it.setDataAndType(uri,"application/pdf");it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(it);}catch(Exception e){Toast.makeText(this,e.getMessage(),1).show();}}
+void generateClassSheetPdf(String grade, String classroom) {
+
+    ArrayList<String[]> students =
+            db.studentsInClass(grade, classroom);
+
+    if (students.isEmpty()) {
+        Toast.makeText(this, "لا يوجد طلاب في هذا الصف",
+                Toast.LENGTH_SHORT).show();
+        return;
+    }
+
+    // ترتيب الطلاب حسب المجموع السنوي تنازلياً
+    ArrayList<Double> totals = new ArrayList<>();
+
+    for (String[] st : students) {
+        double total = 0;
+
+        for (String sub : SUBJECTS_7) {
+            total += db.annualTotal(st[1], sub);
+        }
+
+        totals.add(total);
+    }
+
+    for (int i = 0; i < students.size(); i++) {
+        for (int j = i + 1; j < students.size(); j++) {
+
+            if (totals.get(j) > totals.get(i)) {
+                Collections.swap(students, i, j);
+                Collections.swap(totals, i, j);
+            }
+        }
+    }
+
+    PdfDocument doc = new PdfDocument();
+
+    int W = 842;
+    int H = 595;
+    int perPage = 18;
+    int pageNum = 0;
+
+    Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    p.setColor(Color.BLACK);
+    p.setTextAlign(Paint.Align.CENTER);
+
+    Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
+    line.setColor(Color.BLACK);
+    line.setStyle(Paint.Style.STROKE);
+    line.setStrokeWidth(1);
+
+    for (int start = 0;
+         start < students.size();
+         start += perPage) {
+
+        pageNum++;
+
+        PdfDocument.PageInfo info =
+                new PdfDocument.PageInfo.Builder(
+                        W, H, pageNum).create();
+
+        PdfDocument.Page page = doc.startPage(info);
+        Canvas c = page.getCanvas();
+
+        // الإطار الخارجي
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(2);
+        c.drawRect(12, 12, W - 12, H - 12, p);
+
+        p.setStyle(Paint.Style.FILL);
+        p.setTextSize(12);
+        p.setFakeBoldText(true);
+
+        c.drawText(
+                "الجمهورية اليمنية - وزارة التربية والتعليم",
+                W / 2, 32, p);
+
+        c.drawText(
+                "مدرسة جعفر بن أبي طالب الأساسية",
+                W / 2, 49, p);
+
+        p.setTextSize(13);
+
+        c.drawText(
+                "كشف النتائج السنوية - الصف "
+                        + grade + " / " + classroom,
+                W / 2, 68, p);
+
+        p.setTextSize(8);
+        p.setFakeBoldText(false);
+
+        int top = 82;
+        int rowH = 22;
+
+        // عرض الأعمدة ضمن الصفحة الأفقية
+        int[] widths = {
+                35, 125, 48, 48, 48, 48,
+                48, 48, 48, 45, 58, 48, 55
+        };
+
+        String[] headers = {
+                "م",
+                "اسم الطالب",
+                "قرآن",
+                "إسلامية",
+                "عربي",
+                "رياضيات",
+                "علوم",
+                "اجتماعيات",
+                "إنجليزي",
+                "السلوك",
+                "المجموع",
+                "النسبة",
+                "النتيجة"
+        };
+
+        int totalWidth = 0;
+
+        for (int width : widths) {
+            totalWidth += width;
+        }
+
+        int xStart = (W - totalWidth) / 2;
+
+        // رأس الجدول
+        int x = xStart;
+
+        for (int col = 0; col < headers.length; col++) {
+
+            int nextX = x + widths[col];
+
+            c.drawRect(x, top, nextX, top + rowH, line);
+
+            p.setFakeBoldText(true);
+            c.drawText(
+                    headers[col],
+                    (x + nextX) / 2f,
+                    top + 14,
+                    p);
+
+            x = nextX;
+        }
+
+        p.setFakeBoldText(false);
+
+        int y = top + rowH;
+
+        for (int i = start;
+             i < Math.min(start + perPage, students.size());
+             i++) {
+
+            String[] st = students.get(i);
+
+            double total = totals.get(i);
+
+            double maxTotal = SUBJECTS_7.length * 100.0;
+
+            double percentage =
+                    maxTotal > 0
+                            ? total / maxTotal * 100
+                            : 0;
+
+            double behavior = db.annualBehavior(st[1]);
+
+            // الحالة تعتمد على جميع المواد
+            boolean pass = true;
+
+            for (String sub : SUBJECTS_7) {
+                if (db.annualTotal(st[1], sub) < 50) {
+                    pass = false;
+                    break;
+                }
+            }
+
+            pass = pass && percentage >= 50;
+
+            String[] values = new String[13];
+
+            values[0] = String.valueOf(i + 1);
+            values[1] = st[0];
+
+            for (int k = 0; k < SUBJECTS_7.length; k++) {
+                values[k + 2] = formatNumber(
+                        db.annualTotal(st[1], SUBJECTS_7[k]));
+            }
+
+            values[9] = formatNumber(behavior);
+            values[10] = formatNumber(total);
+            values[11] = String.format(
+                    Locale.US, "%.1f%%", percentage);
+            values[12] = pass ? "ناجح" : "راسب";
+
+            x = xStart;
+
+            for (int col = 0; col < values.length; col++) {
+
+                int nextX = x + widths[col];
+
+                c.drawRect(
+                        x, y, nextX, y + rowH, line);
+
+                p.setTextSize(col == 1 ? 8 : 7);
+
+                if (col == 1) {
+                    p.setTextAlign(Paint.Align.RIGHT);
+
+                    c.drawText(
+                            values[col],
+                            nextX - 4,
+                            y + 14,
+                            p);
+
+                    p.setTextAlign(Paint.Align.CENTER);
+                } else {
+                    c.drawText(
+                            values[col],
+                            (x + nextX) / 2f,
+                            y + 14,
+                            p);
+                }
+
+                x = nextX;
+            }
+
+            y += rowH;
+        }
+
+        p.setTextSize(8);
+
+        c.drawText(
+                "عدد الطلاب: " + students.size()
+                        + "     الصفحة: " + pageNum,
+                W / 2, H - 20, p);
+
+        doc.finishPage(page);
+    }
+
+    try {
+
+        File f = new File(
+                getExternalFilesDir(null),
+                "sheet_" + grade + "_" + classroom + ".pdf");
+
+        FileOutputStream out = new FileOutputStream(f);
+
+        doc.writeTo(out);
+        out.close();
+        doc.close();
+
+        Uri uri = FileProvider.getUriForFile(
+                this,
+                getPackageName() + ".provider",
+                f);
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "application/pdf");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        startActivity(intent);
+
+    } catch (Exception e) {
+
+        try {
+            doc.close();
+        } catch (Exception ignored) {}
+
+        Toast.makeText(
+                this,
+                "تعذر إنشاء الكشف: " + e.getMessage(),
+                Toast.LENGTH_LONG).show();
+    }
+}
 void generateExamCardsPdf(String grade,String classroom,int semester){ArrayList<String[]> students=db.studentsInClass(grade,classroom);if(students.isEmpty()){Toast.makeText(this,"لا يوجد طلاب",Toast.LENGTH_SHORT).show();return;}PdfDocument doc=new PdfDocument();int pageW=595,pageH=842,cardH=258;for(int idx=0;idx<students.size();idx+=3){PdfDocument.PageInfo pi=new PdfDocument.PageInfo.Builder(pageW,pageH,idx/3+1).create();PdfDocument.Page page=doc.startPage(pi);Canvas c=page.getCanvas();Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);Paint line=new Paint();line.setColor(Color.BLACK);line.setStyle(Paint.Style.STROKE);Paint fill=new Paint(Paint.ANTI_ALIAS_FLAG);fill.setColor(Color.BLACK);fill.setTextAlign(Paint.Align.RIGHT);for(int k=0;k<3&&idx+k<students.size();k++){String[] st=students.get(idx+k);int top=12+k*(cardH+10);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.5f);p.setColor(Color.BLACK);c.drawRect(10,top,pageW-10,top+cardH,p);fill.setTextSize(7.5f);fill.setFakeBoldText(true);c.drawText("الجمهورية اليمنية",pageW-15,top+14,fill);fill.setFakeBoldText(false);c.drawText("وزارة التربية والتعليم",pageW-15,top+26,fill);c.drawText("مدرسة جعفر بن أبي طالب",15,top+14,fill);c.drawText("مديرية مذيخرة",15,top+26,fill);c.drawRect(15,top+32,pageW-15,top+48,line);fill.setTextSize(9);fill.setFakeBoldText(true);fill.setTextAlign(Paint.Align.CENTER);c.drawText("نتيجة امتحان نهاية الفصل الأول 2026-2027",pageW/2,top+43,fill);fill.setTextAlign(Paint.Align.RIGHT);fill.setFakeBoldText(false);c.drawRect(15,top+50,pageW-15,top+66,line);fill.setTextSize(8.5f);fill.setFakeBoldText(true);c.drawText("اسم الطالب: "+st[0]+" الصف: "+grade+" / "+classroom,pageW-15,top+61,fill);fill.setFakeBoldText(false);int tableTop=top+70;c.drawRect(15,tableTop,pageW-15,tableTop+16,line);fill.setTextSize(7.5f);fill.setFakeBoldText(true);c.drawText("المادة",pageW-20,tableTop+11,fill);c.drawText("المحصلة 20",390,tableTop+11,fill);c.drawText("الاختبار 30",290,tableTop+11,fill);c.drawText("المجموع 50",190,tableTop+11,fill);fill.setFakeBoldText(false);int y=tableTop+16;double totalAll=0;for(String sub:SUBJECTS_7){y+=16;c.drawRect(15,y-12,pageW-15,y,line);double m=db.getMahsala(st[1],sub,semester);double e=db.getExam(st[1],sub,semester);double tot=m+e;totalAll+=tot;c.drawText(sub,pageW-20,y-3,fill);c.drawText(String.valueOf((int)m),390,y-3,fill);c.drawText(String.valueOf((int)e),290,y-3,fill);c.drawText(String.valueOf((int)tot),190,y-3,fill);}y+=8;fill.setTextSize(7.5f);c.drawText("المجموع 350: "+(int)totalAll,pageW-15,y+8,fill);c.drawText("مدير المدرسة:.........",pageW-15,y+22,fill);}doc.finishPage(page);}try{File f=new File(getExternalFilesDir(null),"cards_"+grade+"_"+classroom+".pdf");FileOutputStream o=new FileOutputStream(f);doc.writeTo(o);doc.close();o.close();Uri uri=FileProvider.getUriForFile(this,getPackageName()+".provider",f);Intent it=new Intent(Intent.ACTION_VIEW);it.setDataAndType(uri,"application/pdf");it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(it);}catch(Exception e){Toast.makeText(this,e.getMessage(),1).show();}}
 void generateStudentPdf(String id){generateCertificatePdf(id);}
 void attendance(){page("✅ الحضور");addCard("الحضور","اختر الصف");Button b=btn("اختر الصف");content.addView(b,new LinearLayout.LayoutParams(-1,dp(56)));b.setOnClickListener(v->chooseAttendanceClass());}
