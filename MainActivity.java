@@ -23,8 +23,70 @@ void showHome(){base();LinearLayout head=new LinearLayout(this);head.setPadding(
 void open(String k){if(k.equals("students"))navigateTo(this::students);else if(k.equals("grades"))navigateTo(this::grades);else if(k.equals("attendance"))navigateTo(this::attendance);else if(k.equals("timetable"))navigateTo(this::timetable);else if(k.equals("teachers"))navigateTo(this::teachers);else if(k.equals("classes"))navigateTo(this::classes);else if(k.equals("reports"))navigateTo(this::reports);else if(k.equals("announcements"))navigateTo(this::announcements);else if(k.equals("users"))navigateTo(this::users);else if(k.equals("files"))navigateTo(this::files);}
 void students(){page("👨‍🎓 الطلاب");EditText search=new EditText(this);search.setHint("بحث...");content.addView(search,new LinearLayout.LayoutParams(-1,dp(52)));if(admin()){Button add=btn("＋ إضافة طالب");content.addView(add,new LinearLayout.LayoutParams(-1,dp(54)));add.setOnClickListener(v->studentDialog(null));}LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);content.addView(list);Runnable refresh=()->{list.removeAllViews();String q=search.getText().toString().trim();for(String[] r:db.students(q)){Button b=btn("👨‍🎓 "+r[0]+"\nالرقم: "+r[1]+" الصف: "+r[2]+" / "+r[3]);b.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);list.addView(b,new LinearLayout.LayoutParams(-1,dp(70)));String id=r[1];b.setOnClickListener(v->navigateTo(()->studentDetails(id)));}};search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int b,int c){}public void onTextChanged(CharSequence s,int a,int b,int c){refresh.run();}public void afterTextChanged(Editable e){}});refresh.run();}
 void studentDialog(String id){boolean edit=id!=null;String[] old=edit?db.student(id):null;EditText n=new EditText(this),sid=new EditText(this),g=new EditText(this),cl=new EditText(this),pa=new EditText(this),ph=new EditText(this);n.setHint("اسم الطالب");sid.setHint("رقم الطالب");g.setHint("الصف");cl.setHint("الشعبة");pa.setHint("ولي الأمر");ph.setHint("الهاتف");if(old!=null){n.setText(old[0]);sid.setText(old[1]);sid.setEnabled(false);g.setText(old[2]);cl.setText(old[3]);pa.setText(old[4]);ph.setText(old[5]);}LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);for(EditText e:new EditText[]{n,sid,g,cl,pa,ph})l.addView(e,new LinearLayout.LayoutParams(-1,dp(52)));new AlertDialog.Builder(this).setTitle(edit?"تعديل الطالب":"إضافة طالب").setView(l).setPositiveButton("حفظ",(d,w)->{db.saveStudent(n.getText().toString().trim(),sid.getText().toString().trim(),g.getText().toString().trim(),cl.getText().toString().trim(),pa.getText().toString().trim(),ph.getText().toString().trim());students();}).setNegativeButton("إلغاء",null).show();}
-void studentDetails(String id){page("👨‍🎓 ملف الطالب");String[] r=db.student(id);if(r==null){addCard("خطأ","لم يتم العثور");return;}addCard("👨‍🎓 "+r[0],"الرقم: "+r[1]+"\nالصف: "+r[2]+" - "+r[3]+"\nولي الأمر: "+r[4]+"\nالهاتف: "+r[5]);StringBuilder sb=new StringBuilder();double totalAll=0;for(String sub:SUBJECTS_7){double tot=db.annualTotal(id,sub);totalAll+=tot;sb.append(sub).append(": ").append((int)tot).append(" /100 - ").append(DB.gradeFor(tot)).append("\n");}double pct=totalAll/(SUBJECTS_7.length*100.0)*100;sb.append("\nالمجموع: ").append((int)totalAll).append(" النسبة: ").append(String.format("%.1f",pct)).append("% الحالة: ").append(pct>=50?"ناجح":"راسب");addCard("📊 النتيجة السنوية",sb.toString());Button pdf=btn("🎓 شهادة هذا الطالب PDF");content.addView(pdf,new LinearLayout.LayoutParams(-1,dp(56)));pdf.setOnClickListener(v->generateCertificatePdf(id));}
-void grades(){page("📊 الدرجات");addCard("طريقة الإدخال","محصلة /20 + اختبار /30 لكل فصل. المجموع السنوي /100");Button e=btn("✏️ إدخال درجات الطلاب");content.addView(e,new LinearLayout.LayoutParams(-1,dp(60)));e.setOnClickListener(v->chooseClassForGrades());}
+void studentDetails(String id) {
+    page("👨‍🎓 ملف الطالب");
+
+    String[] st = db.student(id);
+
+    if (st == null) {
+        addCard("خطأ", "لم يتم العثور على بيانات الطالب");
+        return;
+    }
+
+    addCard(
+        "👨‍🎓 " + st[0],
+        "رقم الطالب: " + st[1]
+        + "\nالصف: " + st[2] + " - " + st[3]
+        + "\nولي الأمر: " + st[4]
+        + "\nالهاتف: " + st[5]
+    );
+
+    double totalAll = 0;
+    boolean allPass = true;
+
+    StringBuilder result = new StringBuilder();
+
+    result.append("المادة")
+          .append(" | الفصل الأول /50")
+          .append(" | الفصل الثاني /50")
+          .append(" | السنوي /100\n");
+
+    result.append("--------------------------------\n");
+
+    for (String sub : SUBJECTS_7) {
+
+        double m1 = db.getMahsala(id, sub, 1);
+        double e1 = db.getExam(id, sub, 1);
+
+        double m2 = db.getMahsala(id, sub, 2);
+        double e2 = db.getExam(id, sub, 2);
+
+        double first = m1 + e1;
+        double second = m2 + e2;
+        double annual = first + second;
+
+        totalAll += annual;
+
+        if (annual < 50) {
+            allPass = false;
+        }
+
+        result.append(sub)
+              .append("\nالفصل الأول: ")
+              .append(formatNumber(first))
+              .append(" /50")
+              .append("\nالفصل الثاني: ")
+              .append(formatNumber(second))
+              .append(" /50")
+              .append("\nالمجموع السنوي: ")
+              .append(formatNumber(annual))
+              .append(" /100")
+              .append("\nالتقدير: ")
+              .append(DB.gradeFor(annual))
+              .append("\n\n");
+    }
+
+    double maxTotal
 ArrayList<String[]> allowedClasses(){ArrayList<String[]> all=db.classes();if(admin())return all;ArrayList<String[]> res=new ArrayList<>();if(role.equals("معلم"))for(String[] c:all)if(c[0].equals(assignedGrade)&&c[1].equals(assignedClass))res.add(c);return res;}
 void chooseClassForGrades(){ArrayList<String[]> cs=allowedClasses();if(cs.isEmpty()){addCard("لا توجد صفوف","لا يوجد صف مسموح");return;}String[] it=new String[cs.size()];for(int i=0;i<cs.size();i++)it[i]="الصف "+cs.get(i)[0]+" - "+cs.get(i)[1];new AlertDialog.Builder(this).setTitle("اختر الصف").setItems(it,(d,w)->navigateTo(()->classGrades(cs.get(w)[0],cs.get(w)[1]))).show();}
 void classGrades(String grade,String classroom){page("📊 درجات "+grade+" / "+classroom);Spinner sem=new Spinner(this);sem.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"الفصل الأول","الفصل الثاني"}));content.addView(sem,new LinearLayout.LayoutParams(-1,dp(52)));HorizontalScrollView hsv=new HorizontalScrollView(this);LinearLayout table=new LinearLayout(this);table.setOrientation(LinearLayout.VERTICAL);hsv.addView(table);content.addView(hsv,new LinearLayout.LayoutParams(-1,-2));final Runnable[] renderHolder=new Runnable[1];Runnable render=()->{table.removeAllViews();LinearLayout hr=new LinearLayout(this);hr.setOrientation(LinearLayout.HORIZONTAL);TextView hn=tv("الطالب",13,true);hr.addView(hn,new LinearLayout.LayoutParams(180,dp(54)));for(String sub:SUBJECTS_7){TextView s=tv(sub,10,true);s.setGravity(Gravity.CENTER);hr.addView(s,new LinearLayout.LayoutParams(125,dp(54)));}TextView hb=tv("السلوك",11,true);hb.setGravity(Gravity.CENTER);hr.addView(hb,new LinearLayout.LayoutParams(100,dp(54)));table.addView(hr);int semester=sem.getSelectedItemPosition()+1;for(String[] st:db.studentsInClass(grade,classroom)){LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);TextView name=tv(st[0]+"\n"+st[1],11,true);row.addView(name,new LinearLayout.LayoutParams(180,dp(64)));for(String sub:SUBJECTS_7){double m=db.getMahsala(st[1],sub,semester);double e=db.getExam(st[1],sub,semester);double tot=m+e;Button cell=smallBtn(tot==0?"✏ إدخال":formatNumber(tot)+" /50",tot==0?ORANGE:GREEN);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(125,dp(60));cp.setMargins(dp(3),dp(3),dp(3),dp(3));row.addView(cell,cp);cell.setOnClickListener(v->scoreDialog(st[1],st[0],sub,semester,cell));}double beh=db.getBehavior(st[1],semester);Button bc=smallBtn(beh==0?"سلوك":formatNumber(beh)+" /100",beh==0?ORANGE:BLUE);row.addView(bc,new LinearLayout.LayoutParams(100,dp(60)));bc.setOnClickListener(v->{EditText e=scoreEdit("السلوك /100");if(beh!=0)e.setText(formatNumber(beh));new AlertDialog.Builder(this).setTitle(st[0]+" - السلوك").setView(e).setPositiveButton("حفظ",(d,w)->{db.setBehavior(st[1],semester,limit(parse(e),0,100));Toast.makeText(this,"تم حفظ السلوك",Toast.LENGTH_SHORT).show();if(renderHolder[0]!=null)renderHolder[0].run();}).setNegativeButton("إلغاء",null).show();});table.addView(row);}};renderHolder[0]=render;sem.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> p,View v,int po,long id){renderHolder[0].run();}public void onNothingSelected(AdapterView<?> p){}});renderHolder[0].run();Button cards=btn("🖨️ بطاقات النتائج - 3 في صفحة");content.addView(cards,new LinearLayout.LayoutParams(-1,dp(56)));cards.setOnClickListener(v->generateExamCardsPdf(grade,classroom,sem.getSelectedItemPosition()+1));Button sheet=btn("📋 كشف الصف الجماعي PDF");content.addView(sheet,new LinearLayout.LayoutParams(-1,dp(56)));sheet.setOnClickListener(v->generateClassSheetPdf(grade,classroom));}
