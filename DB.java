@@ -1,52 +1,676 @@
 package com.jafar.school;
-import android.content.*;
-import android.database.sqlite.*;
+
+import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
-import java.util.*;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 public class DB extends SQLiteOpenHelper {
-    public DB(Context c){ super(c,"school.db",null,3); }
-    public void onCreate(SQLiteDatabase db){
-        db.execSQL("CREATE TABLE students(id TEXT PRIMARY KEY, name TEXT, grade TEXT, class TEXT, parent TEXT, phone TEXT)");
-        db.execSQL("CREATE TABLE scores(student_id TEXT, subject TEXT, semester INTEGER, mahsala REAL, exam REAL, PRIMARY KEY(student_id,subject,semester))");
-        db.execSQL("CREATE TABLE behavior(student_id TEXT, semester INTEGER, score REAL, PRIMARY KEY(student_id,semester))");
-        db.execSQL("CREATE TABLE users(name TEXT, username TEXT PRIMARY KEY, pass TEXT, role TEXT, grade TEXT, class TEXT)");
-        db.execSQL("INSERT INTO users VALUES('المدير','admin','1234','القائم بأعمال المدير','','')");
+
+    private static final String DB_NAME = "school.db";
+    private static final int DB_VERSION = 4;
+
+    public DB(Context context) {
+        super(context, DB_NAME, null, DB_VERSION);
     }
-    public void onUpgrade(SQLiteDatabase db,int o,int n){ db.execSQL("DROP TABLE IF EXISTS scores"); onCreate(db); }
-    public void setMahsala(String sid,String sub,int sem,double v){
-    SQLiteDatabase db=getWritableDatabase();
-    Cursor c=db.rawQuery("SELECT exam FROM scores WHERE student_id=? AND subject=? AND semester=?",new String[]{sid,sub,String.valueOf(sem)});
-    double oldExam=0; boolean exists=c.moveToFirst(); if(exists &&!c.isNull(0)) oldExam=c.getDouble(0); c.close();
-    ContentValues cv=new ContentValues(); cv.put("student_id",sid); cv.put("subject",sub); cv.put("semester",sem); cv.put("mahsala",v); cv.put("exam",oldExam);
-    db.insertWithOnConflict("scores",null,cv,SQLiteDatabase.CONFLICT_REPLACE);
-}
-public void setExam(String sid,String sub,int sem,double v){
-    SQLiteDatabase db=getWritableDatabase();
-    Cursor c=db.rawQuery("SELECT mahsala FROM scores WHERE student_id=? AND subject=? AND semester=?",new String[]{sid,sub,String.valueOf(sem)});
-    double oldMah=0; boolean exists=c.moveToFirst(); if(exists &&!c.isNull(0)) oldMah=c.getDouble(0); c.close();
-    ContentValues cv=new ContentValues(); cv.put("student_id",sid); cv.put("subject",sub); cv.put("semester",sem); cv.put("mahsala",oldMah); cv.put("exam",v);
-    db.insertWithOnConflict("scores",null,cv,SQLiteDatabase.CONFLICT_REPLACE);
-}
-    public double getMahsala(String sid,String sub,int sem){ Cursor c=getReadableDatabase().rawQuery("SELECT mahsala FROM scores WHERE student_id=? AND subject=? AND semester=?",new String[]{sid,sub,String.valueOf(sem)}); double v=0; if(c.moveToFirst()) v=c.getDouble(0); c.close(); return v; }
-    public double getExam(String sid,String sub,int sem){ Cursor c=getReadableDatabase().rawQuery("SELECT exam FROM scores WHERE student_id=? AND subject=? AND semester=?",new String[]{sid,sub,String.valueOf(sem)}); double v=0; if(c.moveToFirst()) v=c.getDouble(0); c.close(); return v; }
-    public double annualTotal(String sid,String sub){ return getMahsala(sid,sub,1)+getExam(sid,sub,1)+getMahsala(sid,sub,2)+getExam(sid,sub,2); }
-    public void setBehavior(String sid,int sem,double v){ SQLiteDatabase db=getWritableDatabase(); ContentValues cv=new ContentValues(); cv.put("student_id",sid); cv.put("semester",sem); cv.put("score",v); db.insertWithOnConflict("behavior",null,cv,SQLiteDatabase.CONFLICT_REPLACE); }
-    public double getBehavior(String sid,int sem){ Cursor c=getReadableDatabase().rawQuery("SELECT score FROM behavior WHERE student_id=? AND semester=?",new String[]{sid,String.valueOf(sem)}); double v=0; if(c.moveToFirst()) v=c.getDouble(0); c.close(); return v; }
-    public double annualBehavior(String sid){ return (getBehavior(sid,1)+getBehavior(sid,2))/2; }
-    public static String gradeFor(double total){ if(total>=90) return "ممتاز"; if(total>=80) return "جيد جداً"; if(total>=70) return "جيد"; if(total>=60) return "مقبول"; if(total>=50) return "ضعيف"; return "راسب"; }
-    public String[] authenticate(String u,String p){ Cursor c=getReadableDatabase().rawQuery("SELECT name,role,grade,class,username FROM users WHERE username=? AND pass=?",new String[]{u,p}); if(!c.moveToFirst()){c.close();return null;} String[] a={c.getString(0),c.getString(1),c.getString(2),c.getString(3),c.getString(4)}; c.close(); return a; }
-    public int count(String t){ Cursor c=getReadableDatabase().rawQuery("SELECT COUNT(*) FROM "+t,null); c.moveToFirst(); int n=c.getInt(0); c.close(); return n; }
-    public int todayPresent(){return 0;} public int todayAbsent(){return 0;} public String latestAnnouncements(){return "لا توجد إعلانات"; }
-    public String[] student(String id){ Cursor c=getReadableDatabase().rawQuery("SELECT name,id,grade,class,parent,phone FROM students WHERE id=?",new String[]{id}); if(!c.moveToFirst()){c.close();return null;} String[] a=new String[6]; for(int i=0;i<6;i++) a[i]=c.getString(i); c.close(); return a; }
-    public ArrayList<String[]> students(String q){ ArrayList<String[]> r=new ArrayList<>(); Cursor c=getReadableDatabase().rawQuery("SELECT name,id,grade,class FROM students WHERE name LIKE? OR id LIKE?",new String[]{"%"+q+"%","%"+q+"%"}); while(c.moveToNext()) r.add(new String[]{c.getString(0),c.getString(1),c.getString(2),c.getString(3)}); c.close(); return r; }
-    public ArrayList<String[]> studentsInClass(String g,String cl){ ArrayList<String[]> r=new ArrayList<>(); Cursor c=getReadableDatabase().rawQuery("SELECT name,id FROM students WHERE grade=? AND class=? ORDER BY name",new String[]{g,cl}); while(c.moveToNext()) r.add(new String[]{c.getString(0),c.getString(1)}); c.close(); return r; }
-    public ArrayList<String[]> classes(){ ArrayList<String[]> r=new ArrayList<>(); Cursor c=getReadableDatabase().rawQuery("SELECT DISTINCT grade,class FROM students",null); while(c.moveToNext()) r.add(new String[]{c.getString(0),c.getString(1)}); c.close(); if(r.isEmpty()){r.add(new String[]{"1","أ"});} return r; }
-    public void saveStudent(String n,String id,String g,String cl,String pa,String ph){ SQLiteDatabase db=getWritableDatabase(); ContentValues cv=new ContentValues(); cv.put("id",id); cv.put("name",n); cv.put("grade",g); cv.put("class",cl); cv.put("parent",pa); cv.put("phone",ph); db.insertWithOnConflict("students",null,cv,SQLiteDatabase.CONFLICT_REPLACE); }
-    public String resultLine(String id,int sem){ return ""; } public String studentAttendanceSummary(String id){ return ""; }
-    public String[] subjects(){ return new String[]{"القرآن الكريم","التربية الإسلامية","اللغة العربية","الرياضيات","العلوم","الاجتماعيات","اللغة الإنجليزية"}; }
-    // توافق قديم
-    public double[] monthlyValues(String sid,String sub,int sem,int mon){ return new double[]{getMahsala(sid,sub,sem),0,0,0}; }
-    public double exam(String sid,String sub,int sem){ return getExam(sid,sub,sem); }
-    public void setMonthlyScore(String sid,String sub,int sem,int mon,double a,double o,double h,double w){ setMahsala(sid,sub,sem,a+o+h+w); }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        createTables(db);
+        createDefaultUser(db);
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        // تحديث آمن: إنشاء الجداول الناقصة دون حذف البيانات الموجودة.
+        createTables(db);
+        createDefaultUser(db);
+    }
+
+    private void createTables(SQLiteDatabase db) {
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS students (" +
+            "id TEXT PRIMARY KEY NOT NULL," +
+            "name TEXT NOT NULL," +
+            "grade TEXT," +
+            "class TEXT," +
+            "parent TEXT," +
+            "phone TEXT)"
+        );
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS scores (" +
+            "student_id TEXT NOT NULL," +
+            "subject TEXT NOT NULL," +
+            "semester INTEGER NOT NULL," +
+            "mahsala REAL NOT NULL DEFAULT 0," +
+            "exam REAL NOT NULL DEFAULT 0," +
+            "PRIMARY KEY(student_id, subject, semester))"
+        );
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS behavior (" +
+            "student_id TEXT NOT NULL," +
+            "semester INTEGER NOT NULL," +
+            "score REAL NOT NULL DEFAULT 0," +
+            "PRIMARY KEY(student_id, semester))"
+        );
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS users (" +
+            "name TEXT," +
+            "username TEXT PRIMARY KEY," +
+            "pass TEXT," +
+            "role TEXT," +
+            "grade TEXT," +
+            "class TEXT)"
+        );
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS teachers (" +
+            "id TEXT PRIMARY KEY," +
+            "name TEXT NOT NULL," +
+            "phone TEXT," +
+            "subject TEXT," +
+            "grade TEXT," +
+            "class TEXT)"
+        );
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS attendance (" +
+            "student_id TEXT NOT NULL," +
+            "date TEXT NOT NULL," +
+            "status TEXT NOT NULL," +
+            "PRIMARY KEY(student_id, date))"
+        );
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS announcements (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "title TEXT," +
+            "body TEXT," +
+            "date TEXT)"
+        );
+
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS timetable (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "grade TEXT," +
+            "class TEXT," +
+            "day TEXT," +
+            "period INTEGER," +
+            "subject TEXT," +
+            "teacher TEXT)"
+        );
+    }
+
+    private void createDefaultUser(SQLiteDatabase db) {
+        Cursor c = db.rawQuery(
+            "SELECT username FROM users WHERE username=?",
+            new String[]{"admin"}
+        );
+
+        boolean exists = c.moveToFirst();
+        c.close();
+
+        if (!exists) {
+            ContentValues v = new ContentValues();
+            v.put("name", "المدير");
+            v.put("username", "admin");
+            v.put("pass", "1234");
+            v.put("role", "القائم بأعمال المدير");
+            v.put("grade", "");
+            v.put("class", "");
+
+            db.insert("users", null, v);
+        }
+    }
+
+    private String today() {
+        return new SimpleDateFormat(
+            "yyyy-MM-dd",
+            Locale.US
+        ).format(new Date());
+    }
+
+    public String[] authenticate(String username, String password) {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT name, role, grade, class, username " +
+            "FROM users WHERE username=? AND pass=?",
+            new String[]{username, password}
+        );
+
+        if (!c.moveToFirst()) {
+            c.close();
+            return null;
+        }
+
+        String[] result = new String[5];
+
+        for (int i = 0; i < 5; i++) {
+            result[i] = c.isNull(i) ? "" : c.getString(i);
+        }
+
+        c.close();
+        return result;
+    }
+
+    public int count(String table) {
+        String safeTable;
+
+        switch (table) {
+            case "students":
+            case "teachers":
+            case "users":
+            case "scores":
+            case "attendance":
+            case "announcements":
+            case "timetable":
+            case "behavior":
+                safeTable = table;
+                break;
+            default:
+                return 0;
+        }
+
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT COUNT(*) FROM " + safeTable,
+            null
+        );
+
+        int result = 0;
+
+        if (c.moveToFirst()) {
+            result = c.getInt(0);
+        }
+
+        c.close();
+        return result;
+    }
+
+    public int todayPresent() {
+        return countAttendance("حاضر");
+    }
+
+    public int todayAbsent() {
+        return countAttendance("غائب");
+    }
+
+    private int countAttendance(String status) {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT COUNT(*) FROM attendance WHERE date=? AND status=?",
+            new String[]{today(), status}
+        );
+
+        int result = 0;
+
+        if (c.moveToFirst()) {
+            result = c.getInt(0);
+        }
+
+        c.close();
+        return result;
+    }
+
+    public boolean setAttendance(String studentId, String status) {
+        if (studentId == null || studentId.trim().isEmpty()) {
+            return false;
+        }
+
+        if (!"حاضر".equals(status)
+                && !"غائب".equals(status)
+                && !"متأخر".equals(status)
+                && !"غائب بعذر".equals(status)) {
+            return false;
+        }
+
+        ContentValues v = new ContentValues();
+        v.put("student_id", studentId);
+        v.put("date", today());
+        v.put("status", status);
+
+        long result = getWritableDatabase().insertWithOnConflict(
+            "attendance",
+            null,
+            v,
+            SQLiteDatabase.CONFLICT_REPLACE
+        );
+
+        return result != -1;
+    }
+
+    public String studentAttendanceSummary(String studentId) {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT status, COUNT(*) FROM attendance " +
+            "WHERE student_id=? GROUP BY status",
+            new String[]{studentId}
+        );
+
+        int present = 0;
+        int absent = 0;
+        int late = 0;
+        int excused = 0;
+
+        while (c.moveToNext()) {
+            String status = c.getString(0);
+            int number = c.getInt(1);
+
+            if ("حاضر".equals(status)) present = number;
+            else if ("غائب".equals(status)) absent = number;
+            else if ("متأخر".equals(status)) late = number;
+            else if ("غائب بعذر".equals(status)) excused = number;
+        }
+
+        c.close();
+
+        return "حاضر: " + present
+            + "\nغائب: " + absent
+            + "\nمتأخر: " + late
+            + "\nغائب بعذر: " + excused;
+    }
+
+    public String latestAnnouncements() {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT title, body FROM announcements ORDER BY id DESC LIMIT 1",
+            null
+        );
+
+        if (!c.moveToFirst()) {
+            c.close();
+            return "لا توجد إعلانات";
+        }
+
+        String title = c.isNull(0) ? "" : c.getString(0);
+        String body = c.isNull(1) ? "" : c.getString(1);
+
+        c.close();
+
+        if (body.isEmpty()) return title;
+        if (title.isEmpty()) return body;
+
+        return title + "\n" + body;
+    }
+
+    public boolean saveAnnouncement(String title, String body) {
+        ContentValues v = new ContentValues();
+        v.put("title", title);
+        v.put("body", body);
+        v.put("date", today());
+
+        return getWritableDatabase().insert(
+            "announcements", null, v
+        ) != -1;
+    }
+
+    public String[] student(String id) {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT name, id, grade, class, parent, phone " +
+            "FROM students WHERE id=?",
+            new String[]{id}
+        );
+
+        if (!c.moveToFirst()) {
+            c.close();
+            return null;
+        }
+
+        String[] result = new String[6];
+
+        for (int i = 0; i < 6; i++) {
+            result[i] = c.isNull(i) ? "" : c.getString(i);
+        }
+
+        c.close();
+        return result;
+    }
+
+    public ArrayList<String[]> students(String query) {
+        ArrayList<String[]> result = new ArrayList<>();
+
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT name, id, grade, class FROM students " +
+            "WHERE name LIKE ? OR id LIKE ? ORDER BY name",
+            new String[]{"%" + query + "%", "%" + query + "%"}
+        );
+
+        while (c.moveToNext()) {
+            result.add(new String[]{
+                c.getString(0),
+                c.getString(1),
+                c.getString(2) == null ? "" : c.getString(2),
+                c.getString(3) == null ? "" : c.getString(3)
+            });
+        }
+
+        c.close();
+        return result;
+    }
+
+    public ArrayList<String[]> studentsInClass(
+            String grade, String classroom) {
+
+        ArrayList<String[]> result = new ArrayList<>();
+
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT name, id FROM students " +
+            "WHERE grade=? AND class=? ORDER BY name",
+            new String[]{grade, classroom}
+        );
+
+        while (c.moveToNext()) {
+            result.add(new String[]{
+                c.getString(0),
+                c.getString(1)
+            });
+        }
+
+        c.close();
+        return result;
+    }
+
+    public ArrayList<String[]> classes() {
+        ArrayList<String[]> result = new ArrayList<>();
+
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT DISTINCT grade, class FROM students " +
+            "WHERE grade IS NOT NULL AND class IS NOT NULL " +
+            "ORDER BY grade, class",
+            null
+        );
+
+        while (c.moveToNext()) {
+            result.add(new String[]{
+                c.getString(0),
+                c.getString(1)
+            });
+        }
+
+        c.close();
+        return result;
+    }
+
+    public boolean saveStudent(
+            String name,
+            String id,
+            String grade,
+            String classroom,
+            String parent,
+            String phone) {
+
+        if (name == null || name.trim().isEmpty()
+                || id == null || id.trim().isEmpty()) {
+            return false;
+        }
+
+        ContentValues v = new ContentValues();
+        v.put("id", id.trim());
+        v.put("name", name.trim());
+        v.put("grade", grade);
+        v.put("class", classroom);
+        v.put("parent", parent);
+        v.put("phone", phone);
+
+        return getWritableDatabase().insertWithOnConflict(
+            "students",
+            null,
+            v,
+            SQLiteDatabase.CONFLICT_REPLACE
+        ) != -1;
+    }
+
+    public boolean deleteStudent(String id) {
+        if (id == null || id.trim().isEmpty()) return false;
+
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+
+        try {
+            db.delete("scores", "student_id=?", new String[]{id});
+            db.delete("behavior", "student_id=?", new String[]{id});
+            db.delete("attendance", "student_id=?", new String[]{id});
+            db.delete("students", "id=?", new String[]{id});
+
+            db.setTransactionSuccessful();
+            return true;
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    public void setMahsala(
+            String studentId, String subject, int semester, double value) {
+
+        saveScorePart(studentId, subject, semester, value, null);
+    }
+
+    public void setExam(
+            String studentId, String subject, int semester, double value) {
+
+        saveScorePart(studentId, subject, semester, null, value);
+    }
+
+    private void saveScorePart(
+            String studentId,
+            String subject,
+            int semester,
+            Double mahsala,
+            Double exam) {
+
+        if (studentId == null || subject == null
+                || semester < 1 || semester > 2) {
+            return;
+        }
+
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+
+        try {
+            double oldMahsala = 0;
+            double oldExam = 0;
+
+            Cursor c = db.rawQuery(
+                "SELECT mahsala, exam FROM scores " +
+                "WHERE student_id=? AND subject=? AND semester=?",
+                new String[]{
+                    studentId,
+                    subject,
+                    String.valueOf(semester)
+                }
+            );
+
+            if (c.moveToFirst()) {
+                oldMahsala = c.getDouble(0);
+                oldExam = c.getDouble(1);
+            }
+
+            c.close();
+
+            ContentValues v = new ContentValues();
+            v.put("student_id", studentId);
+            v.put("subject", subject);
+            v.put("semester", semester);
+            v.put("mahsala",
+                mahsala == null ? oldMahsala : clamp(mahsala, 0, 20));
+            v.put("exam",
+                exam == null ? oldExam : clamp(exam, 0, 30));
+
+            db.insertWithOnConflict(
+                "scores", null, v, SQLiteDatabase.CONFLICT_REPLACE
+            );
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    public double getMahsala(
+            String studentId, String subject, int semester) {
+        return getScorePart(studentId, subject, semester, "mahsala");
+    }
+
+    public double getExam(
+            String studentId, String subject, int semester) {
+        return getScorePart(studentId, subject, semester, "exam");
+    }
+
+    private double getScorePart(
+            String studentId,
+            String subject,
+            int semester,
+            String column) {
+
+        if (!"mahsala".equals(column) && !"exam".equals(column)) {
+            return 0;
+        }
+
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT " + column + " FROM scores " +
+            "WHERE student_id=? AND subject=? AND semester=?",
+            new String[]{
+                studentId,
+                subject,
+                String.valueOf(semester)
+            }
+        );
+
+        double value = 0;
+
+        if (c.moveToFirst() && !c.isNull(0)) {
+            value = c.getDouble(0);
+        }
+
+        c.close();
+        return value;
+    }
+
+    public double annualTotal(String studentId, String subject) {
+        return getMahsala(studentId, subject, 1)
+            + getExam(studentId, subject, 1)
+            + getMahsala(studentId, subject, 2)
+            + getExam(studentId, subject, 2);
+    }
+
+    public void setBehavior(
+            String studentId, int semester, double score) {
+
+        if (studentId == null || semester < 1 || semester > 2) return;
+
+        ContentValues v = new ContentValues();
+        v.put("student_id", studentId);
+        v.put("semester", semester);
+        v.put("score", clamp(score, 0, 100));
+
+        getWritableDatabase().insertWithOnConflict(
+            "behavior", null, v, SQLiteDatabase.CONFLICT_REPLACE
+        );
+    }
+
+    public double getBehavior(String studentId, int semester) {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT score FROM behavior WHERE student_id=? AND semester=?",
+            new String[]{studentId, String.valueOf(semester)}
+        );
+
+        double value = 0;
+
+        if (c.moveToFirst()) value = c.getDouble(0);
+
+        c.close();
+        return value;
+    }
+
+    public double annualBehavior(String studentId) {
+        return (getBehavior(studentId, 1)
+            + getBehavior(studentId, 2)) / 2.0;
+    }
+
+    public static String gradeFor(double total) {
+        if (total >= 90) return "ممتاز";
+        if (total >= 80) return "جيد جداً";
+        if (total >= 70) return "جيد";
+        if (total >= 60) return "مقبول";
+        if (total >= 50) return "ضعيف";
+        return "راسب";
+    }
+
+    public String resultLine(String studentId, int semester) {
+        StringBuilder result = new StringBuilder();
+
+        for (String subject : subjects()) {
+            double total = getMahsala(studentId, subject, semester)
+                + getExam(studentId, subject, semester);
+
+            if (result.length() > 0) result.append("\n");
+
+            result.append(subject)
+                .append(": ")
+                .append(total)
+                .append(" /50");
+        }
+
+        return result.toString();
+    }
+
+    public String[] subjects() {
+        return new String[]{
+            "القرآن الكريم",
+            "التربية الإسلامية",
+            "اللغة العربية",
+            "الرياضيات",
+            "العلوم",
+            "الاجتماعيات",
+            "اللغة الإنجليزية"
+        };
+    }
+
+    // توافق مع النسخ السابقة من التطبيق.
+    public double[] monthlyValues(
+            String studentId,
+            String subject,
+            int semester,
+            int month) {
+
+        return new double[]{
+            getMahsala(studentId, subject, semester),
+            0,
+            0,
+            0
+        };
+    }
+
+    public double exam(
+            String studentId, String subject, int semester) {
+
+        return getExam(studentId, subject, semester);
+    }
+
+    public void setMonthlyScore(
+            String studentId,
+            String subject,
+            int semester,
+            int month,
+            double attendance,
+            double oral,
+            double homework,
+            double written) {
+
+        setMahsala(
+            studentId,
+            subject,
+            semester,
+            attendance + oral + homework + written
+        );
+    }
 }
