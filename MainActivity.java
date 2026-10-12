@@ -2228,14 +2228,19 @@ public class MainActivity extends Activity {
             studentsForClass(grade, classroom);
 
         if (students.isEmpty()) {
-            Toast.makeText(
-                this,
-                "لا يوجد طلاب",
-                Toast.LENGTH_SHORT
-            ).show();
-            return;
-        }
+    Toast.makeText(
+        this,
+        "لا يوجد طلاب في الصف " + grade + " - " + classroom,
+        Toast.LENGTH_LONG
+    ).show();
+    return;
+}
 
+Toast.makeText(
+    this,
+    "عدد الطلاب في كشف النتائج: " + students.size(),
+    Toast.LENGTH_LONG
+).show();
         PdfDocument document = new PdfDocument();
 
         int width = 595;
