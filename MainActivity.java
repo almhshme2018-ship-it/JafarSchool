@@ -17,7 +17,114 @@ void base(){root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICA
 void navigateTo(Runnable s){if(s==null)return;navHistory.push(s);s.run();}
 void page(String name){base();LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);top.setPadding(dp(8),dp(6),dp(8),dp(6));top.setBackgroundColor(WHITE);Button back=smallBtn("‹ رجوع",BLUE);top.addView(back,new LinearLayout.LayoutParams(dp(80),dp(48)));back.setOnClickListener(v->goBack());TextView title=tv(name,17,true);title.setGravity(Gravity.CENTER);top.addView(title,new LinearLayout.LayoutParams(0,dp(48),1));root.addView(top,new LinearLayout.LayoutParams(-1,dp(60)));content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(10),dp(8),dp(10),dp(30));ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.addView(content);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));}
 void addCard(String title,String body){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable g=new GradientDrawable();g.setColor(WHITE);g.setCornerRadius(dp(12));g.setStroke(1,Color.rgb(220,225,230));c.setBackground(g);c.addView(tv(title,16,true));c.addView(tv(body,14,false));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(dp(3),dp(7),dp(3),dp(7));content.addView(c,p);}
-void showLogin(){navHistory.clear();base();ScrollView sc=new ScrollView(this);sc.setFillViewport(true);LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setGravity(Gravity.CENTER);box.setPadding(dp(24),dp(24),dp(24),dp(24));sc.addView(box);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));TextView logo=tv("🏫",55,true);logo.setGravity(Gravity.CENTER);box.addView(logo);TextView h=tv("مدرسة جعفر بن أبي طالب",22,true);h.setGravity(Gravity.CENTER);box.addView(h);TextView sub=tv("الجمهورية اليمنية - إب - مذيخرة - الأشعوب\nنظام الإدارة الذكي - بدون إنترنت",13,false);sub.setGravity(Gravity.CENTER);box.addView(sub);EditText user=new EditText(this);user.setHint("اسم المستخدم");EditText pass=new EditText(this);pass.setHint("كلمة المرور");pass.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);Button go=btn("دخول");box.addView(user,new LinearLayout.LayoutParams(-1,dp(54)));box.addView(pass,new LinearLayout.LayoutParams(-1,dp(54)));box.addView(go,new LinearLayout.LayoutParams(-1,dp(52)));TextView demo=tv("الافتراضي: admin / 1234",12,false);demo.setGravity(Gravity.CENTER);box.addView(demo);go.setOnClickListener(v->{String[] a=db.authenticate(user.getText().toString().trim(),pass.getText().toString());if(a==null){Toast.makeText(this,"بيانات خاطئة",Toast.LENGTH_SHORT).show();return;}currentUser=a[0];role=a[1];assignedGrade=a[2];assignedClass=a[3];currentUsername=a[4];navigateTo(this::showHome);});}
+void showLogin() {
+    navHistory.clear();
+    base();
+
+    ScrollView sc = new ScrollView(this);
+    sc.setFillViewport(true);
+
+    LinearLayout box = new LinearLayout(this);
+    box.setOrientation(LinearLayout.VERTICAL);
+    box.setGravity(Gravity.CENTER);
+    box.setPadding(dp(24), dp(24), dp(24), dp(24));
+
+    sc.addView(box);
+    root.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
+
+    TextView logo = tv("🏫", 55, true);
+    logo.setGravity(Gravity.CENTER);
+    box.addView(logo);
+
+    TextView h = tv("مدرسة جعفر بن أبي طالب", 22, true);
+    h.setGravity(Gravity.CENTER);
+    box.addView(h);
+
+    TextView sub = tv(
+        "الجمهورية اليمنية - إب - مذيخرة - الأشعوب\n" +
+        "نظام الإدارة الذكي - بدون إنترنت",
+        13, false
+    );
+    sub.setGravity(Gravity.CENTER);
+    box.addView(sub);
+
+    EditText user = new EditText(this);
+    user.setHint("اسم المستخدم");
+    user.setSingleLine(true);
+    user.setInputType(InputType.TYPE_CLASS_TEXT);
+
+    EditText pass = new EditText(this);
+    pass.setHint("كلمة المرور");
+    pass.setSingleLine(true);
+    pass.setInputType(
+        InputType.TYPE_CLASS_TEXT |
+        InputType.TYPE_TEXT_VARIATION_PASSWORD
+    );
+
+    Button go = btn("دخول");
+
+    box.addView(user, new LinearLayout.LayoutParams(-1, dp(54)));
+    box.addView(pass, new LinearLayout.LayoutParams(-1, dp(54)));
+    box.addView(go, new LinearLayout.LayoutParams(-1, dp(52)));
+
+    TextView demo = tv("الافتراضي: admin / 1234", 12, false);
+    demo.setGravity(Gravity.CENTER);
+    box.addView(demo);
+
+    go.setOnClickListener(v -> {
+        String username = user.getText().toString().trim();
+        String password = pass.getText().toString();
+
+        if (username.isEmpty() || password.isEmpty()) {
+            Toast.makeText(
+                this,
+                "أدخل اسم المستخدم وكلمة المرور",
+                Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        go.setEnabled(false);
+
+        try {
+            String[] a = db.authenticate(username, password);
+
+            if (a == null || a.length < 5 ||
+                a[0] == null || a[1] == null) {
+                Toast.makeText(
+                    this,
+                    "بيانات الدخول غير صحيحة أو بيانات الحساب غير مكتملة",
+                    Toast.LENGTH_LONG
+                ).show();
+                return;
+            }
+
+            currentUser = a[0];
+            role = a[1];
+            assignedGrade = a[2];
+            assignedClass = a[3];
+            currentUsername = a[4];
+
+            navigateTo(this::showHome);
+
+        } catch (Exception e) {
+            android.util.Log.e(
+                "JafarSchool",
+                "Login failed",
+                e
+            );
+
+            Toast.makeText(
+                this,
+                "تعذر تسجيل الدخول. تحقق من بيانات الحساب وسجل الأخطاء.",
+                Toast.LENGTH_LONG
+            ).show();
+
+        } finally {
+            go.setEnabled(true);
+        }
+    });
+}
 boolean admin(){return role.equals("القائم بأعمال المدير")||role.equals("مدير المدرسة")||role.equals("مدير النظام");}
 void showHome(){base();LinearLayout head=new LinearLayout(this);head.setPadding(dp(10),dp(10),dp(10),dp(5));head.addView(tv("🏫 "+role+" : "+currentUser,15,true),new LinearLayout.LayoutParams(0,-2,1));Button out=btn("خروج");head.addView(out,new LinearLayout.LayoutParams(dp(80),dp(44)));out.setOnClickListener(v->showLogin());root.addView(head);ScrollView sv=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(10),dp(8),dp(10),dp(20));sv.addView(content);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);String[] a={"👨‍🎓\nالطلاب\n"+db.count("students"),"👨‍🏫\nالمعلمون\n"+db.count("teachers"),"🟢\nحاضر\n"+db.todayPresent(),"🔴\nغائب\n"+db.todayAbsent()};for(String x:a){TextView t=tv(x,12,true);t.setGravity(Gravity.CENTER);t.setBackgroundColor(WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(70),1);p.setMargins(dp(3),dp(3),dp(3),dp(8));r.addView(t,p);}content.addView(r);ArrayList<String[]> list=new ArrayList<>();list.add(new String[]{"👨‍🎓 الطلاب","students"});list.add(new String[]{"📊 الدرجات","grades"});list.add(new String[]{"✅ الحضور","attendance"});list.add(new String[]{"📅 الجدول","timetable"});if(admin()){list.add(new String[]{"👨‍🏫 المعلمون","teachers"});list.add(new String[]{"🏫 الصفوف","classes"});list.add(new String[]{"📈 التقارير","reports"});list.add(new String[]{"🔔 الإعلانات","announcements"});list.add(new String[]{"🔐 المستخدمون","users"});list.add(new String[]{"📁 نسخ احتياطي","files"});}LinearLayout row=null;int i=0;for(String[] item:list){if(i%2==0){row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);content.addView(row,new LinearLayout.LayoutParams(-1,dp(72)));}Button b=btn(item[0]);LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(0,dp(62),1);bp.setMargins(dp(4),dp(4),dp(4),dp(4));row.addView(b,bp);String k=item[1];b.setOnClickListener(v->open(k));i++;}addCard("📢 آخر الإعلانات",db.latestAnnouncements());}
 void open(String k){if(k.equals("students"))navigateTo(this::students);else if(k.equals("grades"))navigateTo(this::grades);else if(k.equals("attendance"))navigateTo(this::attendance);else if(k.equals("timetable"))navigateTo(this::timetable);else if(k.equals("teachers"))navigateTo(this::teachers);else if(k.equals("classes"))navigateTo(this::classes);else if(k.equals("reports"))navigateTo(this::reports);else if(k.equals("announcements"))navigateTo(this::announcements);else if(k.equals("users"))navigateTo(this::users);else if(k.equals("files"))navigateTo(this::files);}
