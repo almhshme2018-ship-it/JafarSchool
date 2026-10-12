@@ -96,7 +96,36 @@ jobs:
 
           echo "DB:"
           wc -l "$TARGET/DB.java"
+      - name: Configure PDF FileProvider
+        shell: bash
+        run: |
+          set -e
 
+          MANIFEST="$PROJECT_DIR/app/src/main/AndroidManifest.xml"
+          RES="$PROJECT_DIR/app/src/main/res"
+          XML_DIR="$RES/xml"
+
+          if [ ! -f "$MANIFEST" ]; then
+            echo "ERROR: AndroidManifest.xml not found"
+            exit 1
+          fi
+
+          mkdir -p "$XML_DIR"
+
+          cat > "$XML_DIR/file_paths.xml" <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <cache-path name="cache" path="." />
+              <files-path name="files" path="." />
+              <external-files-path name="external_files" path="." />
+          </paths>
+          EOF
+
+          if ! grep -q 'com.jafar.school.provider' "$MANIFEST"; then
+            sed -i 's#</application>#<provider android:name="androidx.core.content.FileProvider" android:authorities="com.jafar.school.provider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/></provider></application>#' "$MANIFEST"
+          fi
+
+          echo "PDF FileProvider configured."
       - name: Verify Java files
         shell: bash
         run: |
