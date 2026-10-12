@@ -1,592 +1,2399 @@
 package com.jafar.school;
-import android.app.*;import android.os.*;import android.content.*;import android.graphics.*;import android.graphics.pdf.PdfDocument;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.view.*;import android.widget.*;import android.text.*;import android.text.InputType;import androidx.core.content.FileProvider;import java.io.*;import java.util.*;
-public class MainActivity extends Activity{
-LinearLayout root,content;DB db;String role="القائم بأعمال المدير",currentUser="",currentUsername="",assignedGrade="",assignedClass="";
-final int BLUE=Color.rgb(17,96,177),BG=Color.rgb(244,247,251),WHITE=Color.WHITE,TEXT=Color.rgb(25,45,68),GREEN=Color.rgb(30,130,76),RED=Color.rgb(190,50,50),ORANGE=Color.rgb(220,130,30);
-final String[] SUBJECTS_7={"القرآن الكريم","التربية الإسلامية","اللغة العربية","الرياضيات","العلوم","الاجتماعيات","اللغة الإنجليزية"};
-final Stack<Runnable> navHistory=new Stack<>();
-@Override protected void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(BLUE);getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);db=new DB(this);showLogin();}
-@Override public void onBackPressed(){if(navHistory.size()>1){navHistory.pop();navHistory.peek().run();return;}if(navHistory.size()==1){Toast.makeText(this,"أنت في الرئيسية",Toast.LENGTH_SHORT).show();return;}super.onBackPressed();}
-void goBack(){onBackPressed();}
-int dp(int v){return (int)(v*getResources().getDisplayMetrics().density);}
-android.graphics.drawable.Drawable background(int c){GradientDrawable g=new GradientDrawable();g.setColor(c);g.setCornerRadius(dp(10));return g;}
-TextView tv(String s,int sp,boolean bold){TextView t=new TextView(this);t.setText(s==null?"":s);t.setTextSize(sp);t.setTextColor(TEXT);t.setTypeface(null,bold?Typeface.BOLD:Typeface.NORMAL);t.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);t.setPadding(dp(14),dp(10),dp(14),dp(10));return t;}
-Button btn(String s){Button b=new Button(this);b.setText(s);b.setTextSize(14);b.setTextColor(WHITE);b.setAllCaps(false);b.setGravity(Gravity.CENTER);b.setPadding(dp(12),dp(8),dp(12),dp(8));GradientDrawable g=new GradientDrawable();g.setColor(BLUE);g.setCornerRadius(dp(14));b.setBackground(g);return b;}
-Button smallBtn(String text,int color){Button b=new Button(this);b.setText(text);b.setTextSize(12);b.setTextColor(WHITE);b.setAllCaps(false);b.setGravity(Gravity.CENTER);b.setPadding(dp(4),dp(2),dp(4),dp(2));GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(dp(10));b.setBackground(g);return b;}
-void base(){root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);setContentView(root);}
-void navigateTo(Runnable s){if(s==null)return;navHistory.push(s);s.run();}
-void page(String name){base();LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);top.setPadding(dp(8),dp(6),dp(8),dp(6));top.setBackgroundColor(WHITE);Button back=smallBtn("‹ رجوع",BLUE);top.addView(back,new LinearLayout.LayoutParams(dp(80),dp(48)));back.setOnClickListener(v->goBack());TextView title=tv(name,17,true);title.setGravity(Gravity.CENTER);top.addView(title,new LinearLayout.LayoutParams(0,dp(48),1));root.addView(top,new LinearLayout.LayoutParams(-1,dp(60)));content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(10),dp(8),dp(10),dp(30));ScrollView sc=new ScrollView(this);sc.setFillViewport(true);sc.addView(content);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));}
-void addCard(String title,String body){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable g=new GradientDrawable();g.setColor(WHITE);g.setCornerRadius(dp(12));g.setStroke(1,Color.rgb(220,225,230));c.setBackground(g);c.addView(tv(title,16,true));c.addView(tv(body,14,false));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(dp(3),dp(7),dp(3),dp(7));content.addView(c,p);}
-void showLogin() {
-    navHistory.clear();
-    base();
 
-    ScrollView sc = new ScrollView(this);
-    sc.setFillViewport(true);
+import android.app.*;
+import android.os.*;
+import android.content.*;
+import android.graphics.*;
+import android.graphics.pdf.PdfDocument;
+import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
+import android.view.*;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.*;
+import android.text.*;
+import android.text.InputType;
 
-    LinearLayout box = new LinearLayout(this);
-    box.setOrientation(LinearLayout.VERTICAL);
-    box.setGravity(Gravity.CENTER);
-    box.setPadding(dp(24), dp(24), dp(24), dp(24));
+import androidx.core.content.FileProvider;
 
-    sc.addView(box);
-    root.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1));
+import java.io.*;
+import java.util.*;
 
-    TextView logo = tv("🏫", 55, true);
-    logo.setGravity(Gravity.CENTER);
-    box.addView(logo);
+public class MainActivity extends Activity {
 
-    TextView h = tv("مدرسة جعفر بن أبي طالب", 22, true);
-    h.setGravity(Gravity.CENTER);
-    box.addView(h);
+    LinearLayout root, content;
+    DB db;
 
-    TextView sub = tv(
-        "الجمهورية اليمنية - إب - مذيخرة - الأشعوب\n" +
-        "نظام الإدارة الذكي - بدون إنترنت",
-        13, false
-    );
-    sub.setGravity(Gravity.CENTER);
-    box.addView(sub);
+    String role = "القائم بأعمال المدير";
+    String currentUser = "";
+    String currentUsername = "";
+    String assignedGrade = "";
+    String assignedClass = "";
 
-    EditText user = new EditText(this);
-    user.setHint("اسم المستخدم");
-    user.setSingleLine(true);
-    user.setInputType(InputType.TYPE_CLASS_TEXT);
+    final int BLUE = Color.rgb(17, 96, 177);
+    final int BG = Color.rgb(244, 247, 251);
+    final int WHITE = Color.WHITE;
+    final int TEXT = Color.rgb(25, 45, 68);
+    final int GREEN = Color.rgb(30, 130, 76);
+    final int RED = Color.rgb(190, 50, 50);
+    final int ORANGE = Color.rgb(220, 130, 30);
 
-    EditText pass = new EditText(this);
-    pass.setHint("كلمة المرور");
-    pass.setSingleLine(true);
-    pass.setInputType(
-        InputType.TYPE_CLASS_TEXT |
-        InputType.TYPE_TEXT_VARIATION_PASSWORD
-    );
+    final String[] SUBJECTS_7 = {
+        "القرآن الكريم",
+        "التربية الإسلامية",
+        "اللغة العربية",
+        "الرياضيات",
+        "العلوم",
+        "الاجتماعيات",
+        "اللغة الإنجليزية"
+    };
 
-    Button go = btn("دخول");
+    final Stack<Runnable> navHistory = new Stack<>();
 
-    box.addView(user, new LinearLayout.LayoutParams(-1, dp(54)));
-    box.addView(pass, new LinearLayout.LayoutParams(-1, dp(54)));
-    box.addView(go, new LinearLayout.LayoutParams(-1, dp(52)));
+    @Override
+    protected void onCreate(Bundle state) {
+        super.onCreate(state);
 
-    TextView demo = tv("الافتراضي: admin / 1234", 12, false);
-    demo.setGravity(Gravity.CENTER);
-    box.addView(demo);
+        getWindow().setStatusBarColor(BLUE);
+        getWindow().getDecorView().setLayoutDirection(
+            View.LAYOUT_DIRECTION_RTL
+        );
 
-    go.setOnClickListener(v -> {
-        String username = user.getText().toString().trim();
-        String password = pass.getText().toString();
+        try {
+            db = new DB(this);
+            showLogin();
+        } catch (Exception e) {
+            showFatalError(e);
+        }
+    }
 
-        if (username.isEmpty() || password.isEmpty()) {
+    void showFatalError(Exception e) {
+        TextView t = new TextView(this);
+        t.setPadding(dp(20), dp(20), dp(20), dp(20));
+        t.setTextColor(RED);
+        t.setTextSize(16);
+        t.setText("تعذر تشغيل التطبيق:\n" + e.getMessage());
+        setContentView(t);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (navHistory.size() > 1) {
+            navHistory.pop();
+
+            try {
+                navHistory.peek().run();
+            } catch (Exception e) {
+                Toast.makeText(
+                    this,
+                    "تعذر الرجوع: " + e.getMessage(),
+                    Toast.LENGTH_LONG
+                ).show();
+            }
+
+            return;
+        }
+
+        if (navHistory.size() == 1) {
             Toast.makeText(
                 this,
-                "أدخل اسم المستخدم وكلمة المرور",
+                "أنت في الصفحة الرئيسية",
                 Toast.LENGTH_SHORT
             ).show();
             return;
         }
 
-        go.setEnabled(false);
+        super.onBackPressed();
+    }
+
+    void goBack() {
+        onBackPressed();
+    }
+
+    int dp(int value) {
+        return (int) (
+            value * getResources().getDisplayMetrics().density
+        );
+    }
+
+    GradientDrawable rounded(int color, int radius) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(color);
+        g.setCornerRadius(dp(radius));
+        return g;
+    }
+
+    TextView tv(String text, int size, boolean bold) {
+        TextView t = new TextView(this);
+
+        t.setText(text == null ? "" : text);
+        t.setTextSize(size);
+        t.setTextColor(TEXT);
+        t.setTypeface(
+            null,
+            bold ? Typeface.BOLD : Typeface.NORMAL
+        );
+        t.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+        t.setPadding(dp(12), dp(8), dp(12), dp(8));
+
+        return t;
+    }
+
+    Button btn(String text) {
+        Button b = new Button(this);
+
+        b.setText(text);
+        b.setTextSize(14);
+        b.setTextColor(WHITE);
+        b.setAllCaps(false);
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(dp(8), dp(5), dp(8), dp(5));
+        b.setBackground(rounded(BLUE, 14));
+
+        return b;
+    }
+
+    Button smallBtn(String text, int color) {
+        Button b = new Button(this);
+
+        b.setText(text);
+        b.setTextSize(12);
+        b.setTextColor(WHITE);
+        b.setAllCaps(false);
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(dp(3), dp(2), dp(3), dp(2));
+        b.setBackground(rounded(color, 10));
+
+        return b;
+    }
+
+    void base() {
+        root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(BG);
+        root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        setContentView(root);
+    }
+
+    void navigateTo(Runnable action) {
+        if (action == null) return;
+
+        navHistory.push(action);
 
         try {
-            String[] a = db.authenticate(username, password);
+            action.run();
+        } catch (Exception e) {
+            Toast.makeText(
+                this,
+                "حدث خطأ: " + e.getMessage(),
+                Toast.LENGTH_LONG
+            ).show();
+        }
+    }
 
-            if (a == null || a.length < 5 ||
-                a[0] == null || a[1] == null) {
+    void page(String title) {
+        base();
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setPadding(dp(5), dp(5), dp(5), dp(5));
+        top.setBackgroundColor(WHITE);
+
+        Button back = smallBtn("رجوع ‹", BLUE);
+        top.addView(
+            back,
+            new LinearLayout.LayoutParams(dp(82), dp(46))
+        );
+        back.setOnClickListener(v -> goBack());
+
+        TextView heading = tv(title, 17, true);
+        heading.setGravity(Gravity.CENTER);
+
+        top.addView(
+            heading,
+            new LinearLayout.LayoutParams(0, dp(48), 1)
+        );
+
+        root.addView(
+            top,
+            new LinearLayout.LayoutParams(-1, dp(58))
+        );
+
+        content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(10), dp(8), dp(10), dp(25));
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setDescendantFocusability(
+            ViewGroup.FOCUS_AFTER_DESCENDANTS
+        );
+        scroll.addView(content);
+
+        root.addView(
+            scroll,
+            new LinearLayout.LayoutParams(-1, 0, 1)
+        );
+    }
+
+    void addCard(String title, String body) {
+        if (content == null) return;
+
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(12), dp(10), dp(12), dp(10));
+        card.setBackground(rounded(WHITE, 12));
+
+        card.addView(tv(title, 16, true));
+        card.addView(tv(body, 14, false));
+
+        LinearLayout.LayoutParams p =
+            new LinearLayout.LayoutParams(-1, -2);
+
+        p.setMargins(dp(3), dp(5), dp(3), dp(5));
+        content.addView(card, p);
+    }
+
+    EditText edit(String hint) {
+        EditText e = new EditText(this);
+
+        e.setHint(hint);
+        e.setTextSize(15);
+        e.setSingleLine(true);
+        e.setPadding(dp(10), dp(5), dp(10), dp(5));
+        e.setFocusable(true);
+        e.setFocusableInTouchMode(true);
+        e.setClickable(true);
+
+        return e;
+    }
+
+    EditText scoreEdit(String hint) {
+        EditText e = edit(hint);
+
+        e.setGravity(Gravity.CENTER);
+        e.setInputType(
+            InputType.TYPE_CLASS_NUMBER
+                | InputType.TYPE_NUMBER_FLAG_DECIMAL
+        );
+
+        return e;
+    }
+
+    double parse(EditText e) {
+        try {
+            String value = e.getText().toString().trim();
+
+            if (value.isEmpty()) return 0;
+
+            value = value.replace(',', '.')
+                         .replace('٫', '.');
+
+            return Double.parseDouble(value);
+        } catch (Exception ex) {
+            return 0;
+        }
+    }
+
+    double limit(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    String formatNumber(double value) {
+        if (value == Math.round(value)) {
+            return String.valueOf((int) value);
+        }
+
+        return String.format(Locale.US, "%.1f", value);
+    }
+
+    boolean admin() {
+        if (role == null) return false;
+
+        String r = role.trim();
+
+        return r.equals("القائم بأعمال المدير")
+            || r.equals("مدير المدرسة")
+            || r.equals("مدير النظام");
+    }
+
+    boolean isTeacher() {
+        return role != null && role.trim().equals("معلم");
+    }
+
+    int safeCount(String table) {
+        try {
+            return db.count(table);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    // ---------------- تسجيل الدخول ----------------
+
+    void showLogin() {
+        navHistory.clear();
+
+        base();
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER);
+        box.setPadding(dp(22), dp(22), dp(22), dp(22));
+
+        scroll.addView(box);
+
+        root.addView(
+            scroll,
+            new LinearLayout.LayoutParams(-1, 0, 1)
+        );
+
+        TextView logo = tv("🏫", 48, true);
+        logo.setGravity(Gravity.CENTER);
+        box.addView(logo);
+
+        TextView title = tv(
+            "مدرسة جعفر بن أبي طالب الأساسية",
+            21,
+            true
+        );
+        title.setGravity(Gravity.CENTER);
+        box.addView(title);
+
+        TextView address = tv(
+            "الجمهورية اليمنية - إب - مذيخرة - الأشعوب\n"
+                + "نظام إدارة المدرسة",
+            13,
+            false
+        );
+        address.setGravity(Gravity.CENTER);
+        box.addView(address);
+
+        EditText username = edit("اسم المستخدم");
+        EditText password = edit("كلمة المرور");
+
+        password.setInputType(
+            InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_VARIATION_PASSWORD
+        );
+
+        box.addView(
+            username,
+            new LinearLayout.LayoutParams(-1, dp(55))
+        );
+
+        box.addView(
+            password,
+            new LinearLayout.LayoutParams(-1, dp(55))
+        );
+
+        Button login = btn("دخول");
+
+        box.addView(
+            login,
+            new LinearLayout.LayoutParams(-1, dp(52))
+        );
+
+        TextView hint = tv("الحساب الافتراضي: admin / 1234", 12, false);
+        hint.setGravity(Gravity.CENTER);
+        box.addView(hint);
+
+        login.setOnClickListener(v -> {
+            String u = username.getText().toString().trim();
+            String p = password.getText().toString();
+
+            if (u.isEmpty() || p.isEmpty()) {
                 Toast.makeText(
                     this,
-                    "بيانات الدخول غير صحيحة أو بيانات الحساب غير مكتملة",
-                    Toast.LENGTH_LONG
+                    "أدخل اسم المستخدم وكلمة المرور",
+                    Toast.LENGTH_SHORT
                 ).show();
                 return;
             }
 
-            currentUser = a[0];
-            role = a[1];
-            assignedGrade = a[2];
-            assignedClass = a[3];
-            currentUsername = a[4];
+            login.setEnabled(false);
 
-            navigateTo(this::showHome);
+            try {
+                String[] a = db.authenticate(u, p);
 
-        } catch (Exception e) {
-            android.util.Log.e(
-                "JafarSchool",
-                "Login failed",
-                e
-            );
+                if (a == null || a.length < 5) {
+                    Toast.makeText(
+                        this,
+                        "اسم المستخدم أو كلمة المرور غير صحيحة",
+                        Toast.LENGTH_LONG
+                    ).show();
+                    return;
+                }
 
-            Toast.makeText(
-                this,
-                "تعذر تسجيل الدخول. تحقق من بيانات الحساب وسجل الأخطاء.",
-                Toast.LENGTH_LONG
-            ).show();
+                currentUser = a[0] == null ? "" : a[0];
+                role = a[1] == null ? "" : a[1];
+                assignedGrade = a[2] == null ? "" : a[2];
+                assignedClass = a[3] == null ? "" : a[3];
+                currentUsername = a[4] == null ? "" : a[4];
 
-        } finally {
-            go.setEnabled(true);
-        }
-    });
-}
-boolean admin(){return role.equals("القائم بأعمال المدير")||role.equals("مدير المدرسة")||role.equals("مدير النظام");}
-void showHome() {
-    base();
+                navHistory.clear();
+                navigateTo(this::showHome);
 
-    LinearLayout head = new LinearLayout(this);
-    head.setOrientation(LinearLayout.HORIZONTAL);
-    head.setGravity(Gravity.CENTER_VERTICAL);
-    head.setPadding(dp(10), dp(10), dp(10), dp(5));
-
-    TextView userInfo = tv("🏫 " + role + " : " + currentUser, 15, true);
-    head.addView(userInfo, new LinearLayout.LayoutParams(0, -2, 1));
-
-    Button out = btn("خروج");
-    head.addView(out, new LinearLayout.LayoutParams(dp(80), dp(44)));
-    out.setOnClickListener(v -> showLogin());
-
-    root.addView(head, new LinearLayout.LayoutParams(-1, -2));
-
-    ScrollView sv = new ScrollView(this);
-    sv.setFillViewport(true);
-
-    content = new LinearLayout(this);
-    content.setOrientation(LinearLayout.VERTICAL);
-    content.setPadding(dp(10), dp(8), dp(10), dp(20));
-
-    sv.addView(content, new ScrollView.LayoutParams(-1, -2));
-    root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
-
-    LinearLayout stats = new LinearLayout(this);
-    stats.setOrientation(LinearLayout.HORIZONTAL);
-
-    String[] values = {
-        "👨‍🎓\nالطلاب\n" + db.count("students"),
-        "👨‍🏫\nالمعلمون\n" + db.count("teachers"),
-        "🟢\nحاضر\n" + db.todayPresent(),
-        "🔴\nغائب\n" + db.todayAbsent()
-    };
-
-    for (String value : values) {
-        TextView item = tv(value, 12, true);
-        item.setGravity(Gravity.CENTER);
-        item.setBackgroundColor(WHITE);
-
-        LinearLayout.LayoutParams p =
-            new LinearLayout.LayoutParams(0, dp(70), 1);
-
-        p.setMargins(dp(3), dp(3), dp(3), dp(8));
-        stats.addView(item, p);
+            } catch (Exception ex) {
+                Toast.makeText(
+                    this,
+                    "تعذر تسجيل الدخول: " + ex.getMessage(),
+                    Toast.LENGTH_LONG
+                ).show();
+            } finally {
+                login.setEnabled(true);
+            }
+        });
     }
 
-    content.addView(stats);
+    // ---------------- الرئيسية ----------------
 
-    ArrayList<String[]> list = new ArrayList<>();
+    void showHome() {
+        base();
 
-    list.add(new String[]{"👨‍🎓 الطلاب", "students"});
-    list.add(new String[]{"📊 الدرجات", "grades"});
-    list.add(new String[]{"✅ الحضور", "attendance"});
-    list.add(new String[]{"📅 الجدول", "timetable"});
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(8), dp(6), dp(8), dp(6));
+        header.setBackgroundColor(WHITE);
 
-    if (admin()) {
-        list.add(new String[]{"👨‍🏫 المعلمون", "teachers"});
-        list.add(new String[]{"🏫 الصفوف", "classes"});
-        list.add(new String[]{"📈 التقارير", "reports"});
-        list.add(new String[]{"🔔 الإعلانات", "announcements"});
-        list.add(new String[]{"🔐 المستخدمون", "users"});
-        list.add(new String[]{"📁 نسخ احتياطي", "files"});
-    }
-
-    for (int i = 0; i < list.size(); i += 2) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-
-        content.addView(
-            row,
-            new LinearLayout.LayoutParams(-1, dp(72))
+        header.addView(
+            tv(role + "\n" + currentUser, 13, true),
+            new LinearLayout.LayoutParams(0, -2, 1)
         );
 
-        for (int j = i; j < Math.min(i + 2, list.size()); j++) {
-            String[] entry = list.get(j);
+        Button logout = btn("خروج");
+        header.addView(
+            logout,
+            new LinearLayout.LayoutParams(dp(82), dp(44))
+        );
 
-            Button b = btn(entry[0]);
+        logout.setOnClickListener(v -> showLogin());
 
-            LinearLayout.LayoutParams bp =
-                new LinearLayout.LayoutParams(0, dp(62), 1);
+        root.addView(
+            header,
+            new LinearLayout.LayoutParams(-1, -2)
+        );
 
-            bp.setMargins(dp(4), dp(4), dp(4), dp(4));
-            row.addView(b, bp);
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
 
-            String key = entry[1];
-            b.setOnClickListener(v -> open(key));
+        content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(8), dp(8), dp(8), dp(20));
+
+        scroll.addView(content);
+
+        root.addView(
+            scroll,
+            new LinearLayout.LayoutParams(-1, 0, 1)
+        );
+
+        LinearLayout stats = new LinearLayout(this);
+        stats.setOrientation(LinearLayout.HORIZONTAL);
+
+        String[] values = {
+            "الطلاب\n" + safeCount("students"),
+            "المعلمون\n" + safeCount("teachers"),
+            "حاضر اليوم\n" + db.todayPresent(),
+            "غائب اليوم\n" + db.todayAbsent()
+        };
+
+        for (String value : values) {
+            TextView item = tv(value, 12, true);
+            item.setGravity(Gravity.CENTER);
+            item.setBackground(rounded(WHITE, 10));
+
+            LinearLayout.LayoutParams p =
+                new LinearLayout.LayoutParams(0, dp(70), 1);
+
+            p.setMargins(dp(2), dp(3), dp(2), dp(6));
+            stats.addView(item, p);
         }
-    }
 
-    addCard("📢 آخر الإعلانات", db.latestAnnouncements());
-}
-void open(String k){if(k.equals("students"))navigateTo(this::students);else if(k.equals("grades"))navigateTo(this::grades);else if(k.equals("attendance"))navigateTo(this::attendance);else if(k.equals("timetable"))navigateTo(this::timetable);else if(k.equals("teachers"))navigateTo(this::teachers);else if(k.equals("classes"))navigateTo(this::classes);else if(k.equals("reports"))navigateTo(this::reports);else if(k.equals("announcements"))navigateTo(this::announcements);else if(k.equals("users"))navigateTo(this::users);else if(k.equals("files"))navigateTo(this::files);}
-void students(){page("👨‍🎓 الطلاب");EditText search=new EditText(this);search.setHint("بحث...");content.addView(search,new LinearLayout.LayoutParams(-1,dp(52)));if(admin()){Button add=btn("＋ إضافة طالب");content.addView(add,new LinearLayout.LayoutParams(-1,dp(54)));add.setOnClickListener(v->studentDialog(null));}LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);content.addView(list);Runnable refresh=()->{list.removeAllViews();String q=search.getText().toString().trim();for(String[] r:db.students(q)){Button b=btn("👨‍🎓 "+r[0]+"\nالرقم: "+r[1]+" الصف: "+r[2]+" / "+r[3]);b.setGravity(Gravity.CENTER_VERTICAL|Gravity.RIGHT);list.addView(b,new LinearLayout.LayoutParams(-1,dp(70)));String id=r[1];b.setOnClickListener(v->navigateTo(()->studentDetails(id)));}};search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int b,int c){}public void onTextChanged(CharSequence s,int a,int b,int c){refresh.run();}public void afterTextChanged(Editable e){}});refresh.run();}
-void studentDialog(String id){boolean edit=id!=null;String[] old=edit?db.student(id):null;EditText n=new EditText(this),sid=new EditText(this),g=new EditText(this),cl=new EditText(this),pa=new EditText(this),ph=new EditText(this);n.setHint("اسم الطالب");sid.setHint("رقم الطالب");g.setHint("الصف");cl.setHint("الشعبة");pa.setHint("ولي الأمر");ph.setHint("الهاتف");if(old!=null){n.setText(old[0]);sid.setText(old[1]);sid.setEnabled(false);g.setText(old[2]);cl.setText(old[3]);pa.setText(old[4]);ph.setText(old[5]);}LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);for(EditText e:new EditText[]{n,sid,g,cl,pa,ph})l.addView(e,new LinearLayout.LayoutParams(-1,dp(52)));new AlertDialog.Builder(this).setTitle(edit?"تعديل الطالب":"إضافة طالب").setView(l).setPositiveButton("حفظ",(d,w)->{db.saveStudent(n.getText().toString().trim(),sid.getText().toString().trim(),g.getText().toString().trim(),cl.getText().toString().trim(),pa.getText().toString().trim(),ph.getText().toString().trim());students();}).setNegativeButton("إلغاء",null).show();}
-void studentDetails(String id) {
-    page("👨‍🎓 ملف الطالب");
-    String[] st = db.student(id);
-    if (st == null) { addCard("خطأ", "لم يتم العثور على بيانات الطالب"); return; }
-    addCard("👨‍🎓 " + st[0], "رقم الطالب: " + st[1] + "\nالصف: " + st[2] + " - " + st[3] + "\nولي الأمر: " + st[4] + "\nالهاتف: " + st[5]);
-    double totalAll = 0; boolean allPass = true;
-    for (String sub : SUBJECTS_7) {
-        double first = db.getMahsala(id, sub, 1) + db.getExam(id, sub, 1);
-        double second = db.getMahsala(id, sub, 2) + db.getExam(id, sub, 2);
-        double annual = first + second; totalAll += annual;
-        if (annual < 50) allPass = false;
-        addCard(sub, "الفصل الأول: " + formatNumber(first) + " /50\nالفصل الثاني: " + formatNumber(second) + " /50\nالمجموع السنوي: " + formatNumber(annual) + " /100\nالتقدير: " + DB.gradeFor(annual) + "\nالحالة: " + (annual >= 50 ? "ناجح" : "راسب"));
-    }
-    double maxTotal = SUBJECTS_7.length * 100.0;
-    double pct = maxTotal == 0 ? 0 : totalAll / maxTotal * 100.0;
-    boolean pass = allPass && pct >= 50;
-    addCard("📊 المحصلة النهائية", "المجموع: " + formatNumber(totalAll) + " / " + (int)maxTotal + "\nالنسبة: " + formatNumber(pct) + "%\nالتقدير: " + DB.gradeFor(pct) + "\nالنتيجة: " + (pass ? "ناجح" : "راسب"));
-    Button pdf = btn("🖨️ طباعة شهادة النتيجة PDF"); content.addView(pdf, new LinearLayout.LayoutParams(-1, dp(54))); pdf.setOnClickListener(v -> generateCertificatePdf(id));
-    if (admin()) { Button edit = btn("✏️ تعديل بيانات الطالب"); content.addView(edit, new LinearLayout.LayoutParams(-1, dp(54))); edit.setOnClickListener(v -> studentDialog(id)); }
-}
+        content.addView(stats);
 
-ArrayList<String[]> studentsForClass(String grade, String classroom) {
-    ArrayList<String[]> out = new ArrayList<>();
-    try { out.addAll(db.studentsInClass(grade, classroom)); } catch (Exception ignored) {}
-    if (!out.isEmpty()) return out;
-    try {
-        for (String[] s : db.students("")) {
-            if (s != null && s.length > 3 && grade.equals(s[2]) && classroom.equals(s[3])) out.add(s);
+        ArrayList<String[]> items = new ArrayList<>();
+
+        items.add(new String[]{"👨‍🎓 الطلاب", "students"});
+        items.add(new String[]{"📊 الدرجات", "grades"});
+        items.add(new String[]{"✅ الحضور", "attendance"});
+        items.add(new String[]{"📅 الجدول", "timetable"});
+        items.add(new String[]{"👨‍🏫 المعلمون", "teachers"});
+        items.add(new String[]{"🏫 الصفوف", "classes"});
+        items.add(new String[]{"📈 التقارير", "reports"});
+        items.add(new String[]{"🔔 الإعلانات", "announcements"});
+
+        if (admin()) {
+            items.add(new String[]{"🔐 المستخدمون", "users"});
+            items.add(new String[]{"📁 النسخ الاحتياطي", "files"});
         }
-    } catch (Exception ignored) {}
-    return out;
-}
 
-ArrayList<String[]> allowedClasses() {
-    ArrayList<String[]> all = new ArrayList<>();
-    try { all.addAll(db.classes()); } catch (Exception ignored) {}
-    if (all.isEmpty()) {
-        try {
-            for (String[] s : db.students("")) {
-                if (s == null || s.length < 4) continue;
-                boolean found = false;
-                for (String[] c : all) if (c[0].equals(s[2]) && c[1].equals(s[3])) { found = true; break; }
-                if (!found) all.add(new String[]{s[2], s[3]});
+        for (int i = 0; i < items.size(); i += 2) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+
+            content.addView(
+                row,
+                new LinearLayout.LayoutParams(-1, dp(72))
+            );
+
+            for (int j = i; j < Math.min(i + 2, items.size()); j++) {
+                String[] item = items.get(j);
+
+                Button b = btn(item[0]);
+
+                LinearLayout.LayoutParams p =
+                    new LinearLayout.LayoutParams(0, dp(62), 1);
+
+                p.setMargins(dp(3), dp(3), dp(3), dp(3));
+                row.addView(b, p);
+
+                b.setOnClickListener(v -> open(item[1]));
             }
-        } catch (Exception ignored) {}
-    }
-    if (admin()) return all;
-    ArrayList<String[]> res = new ArrayList<>();
-    if (role.equals("معلم")) for (String[] c : all) if (c.length > 1 && c[0].equals(assignedGrade) && c[1].equals(assignedClass)) res.add(c);
-    return res;
-}
+        }
 
-void grades() {
-    page("📊 الدرجات");
-    addCard("إدخال الدرجات", "اختر الصف والشعبة لعرض الطلاب المسجلين وإدخال درجات المواد السبع.");
-    ArrayList<String[]> cs = allowedClasses();
-    if (cs.isEmpty()) {
-        addCard("لا توجد صفوف", "أضف الصفوف والطلاب أولاً، أو تحقق من الصف المسند للمعلم.");
-        return;
-    }
-    for (String[] c : cs) {
-        if (c == null || c.length < 2) continue;
-        Button b = btn("📚 الصف " + c[0] + " - الشعبة " + c[1]);
-        content.addView(b, new LinearLayout.LayoutParams(-1, dp(56)));
-        String grade = c[0], classroom = c[1];
-        b.setOnClickListener(v -> navigateTo(() -> classGrades(grade, classroom)));
-    }
-}
+        String announcements;
 
-void chooseClassForGrades() {
-    ArrayList<String[]> cs = allowedClasses();
-    if (cs.isEmpty()) { addCard("لا توجد صفوف", "لا يوجد صف مسموح"); return; }
-    String[] it = new String[cs.size()];
-    for (int i = 0; i < cs.size(); i++) it[i] = "الصف " + cs.get(i)[0] + " - " + cs.get(i)[1];
-    new AlertDialog.Builder(this).setTitle("اختر الصف").setItems(it, (d, w) -> navigateTo(() -> classGrades(cs.get(w)[0], cs.get(w)[1]))).show();
-}
-void classGrades(String grade,String classroom){page("📊 درجات "+grade+" / "+classroom);Spinner sem=new Spinner(this);sem.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"الفصل الأول","الفصل الثاني"}));content.addView(sem,new LinearLayout.LayoutParams(-1,dp(52)));HorizontalScrollView hsv=new HorizontalScrollView(this);LinearLayout table=new LinearLayout(this);table.setOrientation(LinearLayout.VERTICAL);hsv.addView(table);content.addView(hsv,new LinearLayout.LayoutParams(-1,-2));final Runnable[] renderHolder=new Runnable[1];Runnable render=()->{table.removeAllViews();LinearLayout hr=new LinearLayout(this);hr.setOrientation(LinearLayout.HORIZONTAL);TextView hn=tv("الطالب",13,true);hr.addView(hn,new LinearLayout.LayoutParams(dp(180),dp(54)));for(String sub:SUBJECTS_7){TextView s=tv(sub,10,true);s.setGravity(Gravity.CENTER);hr.addView(s,new LinearLayout.LayoutParams(dp(125),dp(54)));}TextView hb=tv("السلوك",11,true);hb.setGravity(Gravity.CENTER);hr.addView(hb,new LinearLayout.LayoutParams(dp(100),dp(54)));table.addView(hr);int semester=sem.getSelectedItemPosition()+1;for(String[] st:studentsForClass(grade,classroom)){LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);TextView name=tv(st[0]+"\n"+st[1],11,true);row.addView(name,new LinearLayout.LayoutParams(dp(180),dp(64)));for(String sub:SUBJECTS_7){double m=db.getMahsala(st[1],sub,semester);double e=db.getExam(st[1],sub,semester);double tot=m+e;Button cell=smallBtn(tot==0?"✏ إدخال":formatNumber(tot)+" /50",tot==0?ORANGE:GREEN);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(125),dp(60));cp.setMargins(dp(3),dp(3),dp(3),dp(3));row.addView(cell,cp);cell.setOnClickListener(v->scoreDialog(st[1],st[0],sub,semester,cell));}double beh=db.getBehavior(st[1],semester);Button bc=smallBtn(beh==0?"سلوك":formatNumber(beh)+" /100",beh==0?ORANGE:BLUE);row.addView(bc,new LinearLayout.LayoutParams(dp(100),dp(60)));bc.setOnClickListener(v->{EditText e=scoreEdit("السلوك /100");if(beh!=0)e.setText(formatNumber(beh));new AlertDialog.Builder(this).setTitle(st[0]+" - السلوك").setView(e).setPositiveButton("حفظ",(d,w)->{db.setBehavior(st[1],semester,limit(parse(e),0,100));Toast.makeText(this,"تم حفظ السلوك",Toast.LENGTH_SHORT).show();if(renderHolder[0]!=null)renderHolder[0].run();}).setNegativeButton("إلغاء",null).show();});table.addView(row);}};renderHolder[0]=render;sem.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> p,View v,int po,long id){renderHolder[0].run();}public void onNothingSelected(AdapterView<?> p){}});renderHolder[0].run();Button cards=btn("🖨️ بطاقات النتائج - 3 في صفحة");content.addView(cards,new LinearLayout.LayoutParams(-1,dp(56)));cards.setOnClickListener(v->generateExamCardsPdf(grade,classroom,sem.getSelectedItemPosition()+1));Button sheet=btn("📋 كشف الصف الجماعي PDF");content.addView(sheet,new LinearLayout.LayoutParams(-1,dp(56)));sheet.setOnClickListener(v->generateClassSheetPdf(grade,classroom));}
-String formatNumber(double x){if(x==Math.round(x))return String.valueOf((int)x);return String.format(Locale.US,"%.1f",x);}
-EditText scoreEdit(String hint){EditText e=new EditText(this);e.setHint(hint);e.setTextSize(15);e.setSingleLine(true);e.setGravity(Gravity.CENTER);e.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);e.setFocusable(true);e.setFocusableInTouchMode(true);e.setClickable(true);return e;}
-double parse(EditText e){try{String s=e.getText().toString().trim();if(s.isEmpty())return 0;return Double.parseDouble(s);}catch(Exception ex){return 0;}}
-double limit(double x,double min,double max){if(x<min)return min;if(x>max)return max;return x;}
-void scoreDialog(String sid,String sname,String subject,int sem,Button cell){EditText mah=scoreEdit("المحصلة /20");EditText ex=scoreEdit("الاختبار /30");double oldM=db.getMahsala(sid,subject,sem);double oldE=db.getExam(sid,subject,sem);if(oldM!=0)mah.setText(formatNumber(oldM));if(oldE!=0)ex.setText(formatNumber(oldE));LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.addView(mah,new LinearLayout.LayoutParams(-1,dp(52)));box.addView(ex,new LinearLayout.LayoutParams(-1,dp(52)));AlertDialog d=new AlertDialog.Builder(this).setTitle(sname+"\n"+subject+" - الفصل "+(sem==1?"الأول":"الثاني")).setView(box).setPositiveButton("حفظ",null).setNegativeButton("إلغاء",null).create();d.setOnShowListener(ev->{d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{double m=limit(parse(mah),0,20);double e=limit(parse(ex),0,30);db.setMahsala(sid,subject,sem,m);db.setExam(sid,subject,sem,e);double tot=m+e;cell.setText(formatNumber(tot)+" /50");cell.setBackground(background(GREEN));Toast.makeText(this,"تم حفظ "+subject+" = "+tot+" /50",Toast.LENGTH_SHORT).show();d.dismiss();});});d.show();}
-void generateCertificatePdf(String sid){String[] st=db.student(sid);if(st==null)return;PdfDocument doc=new PdfDocument();int W=595,H=842;PdfDocument.PageInfo pi=new PdfDocument.PageInfo.Builder(W,H,1).create();PdfDocument.Page page=doc.startPage(pi);Canvas c=page.getCanvas();Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setColor(Color.BLACK);p.setTextAlign(Paint.Align.CENTER);Paint line=new Paint();line.setColor(Color.BLACK);line.setStyle(Paint.Style.STROKE);p.setTextSize(12);p.setFakeBoldText(true);c.drawText("الجمهورية اليمنية - وزارة التربية والتعليم",W/2,32,p);c.drawText("مدرسة جعفر بن أبي طالب - مذيخرة - إب",W/2,52,p);c.drawRect(15,15,W-15,H-15,line);p.setTextSize(16);c.drawText("شهادة نتيجة الطالب 2026-2027",W/2,90,p);p.setTextSize(11);p.setFakeBoldText(false);c.drawText("اسم الطالب: "+st[0]+" الصف: "+st[2]+"/"+st[3]+" الرقم: "+st[1],W/2,115,p);int top=135;c.drawRect(20,top,W-20,top+20,line);p.setTextSize(9);p.setFakeBoldText(true);c.drawText("المادة",520,top+14,p);c.drawText("محصلة1 20",420,top+14,p);c.drawText("اختبار نصف 30",320,top+14,p);c.drawText("محصلة2 20",220,top+14,p);c.drawText("اختبار نهائي 30",120,top+14,p);c.drawText("المجموع 100",60,top+14,p);p.setFakeBoldText(false);double totalAll=0;int y=top+20;boolean allPass=true;for(String sub:SUBJECTS_7){y+=22;c.drawRect(20,y-16,W-20,y,line);double m1=db.getMahsala(sid,sub,1),e1=db.getExam(sid,sub,1),m2=db.getMahsala(sid,sub,2),e2=db.getExam(sid,sub,2);double tot=m1+e1+m2+e2;totalAll+=tot;if(tot<50)allPass=false;c.drawText(sub,520,y-5,p);c.drawText(String.valueOf((int)m1),420,y-5,p);c.drawText(String.valueOf((int)e1),320,y-5,p);c.drawText(String.valueOf((int)m2),220,y-5,p);c.drawText(String.valueOf((int)e2),120,y-5,p);c.drawText((int)tot+" "+DB.gradeFor(tot),60,y-5,p);}y+=22;c.drawRect(20,y-16,W-20,y,line);c.drawText("السلوك",520,y-5,p);c.drawText(String.valueOf((int)db.annualBehavior(sid)),60,y-5,p);double pct=totalAll/(SUBJECTS_7.length*100.0)*100;boolean pass=allPass&&pct>=50;y+=38;p.setTextSize(12);p.setFakeBoldText(true);c.drawText("المجموع: "+(int)totalAll+" / "+(SUBJECTS_7.length*100),W/2,y,p);c.drawText("النسبة: "+String.format("%.1f",pct)+" % التقدير: "+DB.gradeFor(pct),W/2,y+22,p);p.setColor(pass?Color.rgb(0,120,0):Color.RED);p.setTextSize(18);c.drawText(pass?"ناجح ✓":"راسب ✗",W/2,y+55,p);doc.finishPage(page);try{File f=new File(getExternalFilesDir(null),"cert_"+sid+".pdf");FileOutputStream o=new FileOutputStream(f);doc.writeTo(o);doc.close();o.close();Uri uri=FileProvider.getUriForFile(this,getPackageName()+".provider",f);Intent it=new Intent(Intent.ACTION_VIEW);it.setDataAndType(uri,"application/pdf");it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(it);}catch(Exception e){Toast.makeText(this,e.getMessage(),1).show();}}
-void generateClassSheetPdf(String grade, String classroom) {
+        try {
+            announcements = db.latestAnnouncements();
+        } catch (Exception e) {
+            announcements = "لا توجد إعلانات";
+        }
 
-    ArrayList<String[]> students =
+        addCard("📢 آخر الإعلانات", announcements);
+    }
+
+    void open(String key) {
+        switch (key) {
+            case "students":
+                navigateTo(this::students);
+                break;
+            case "grades":
+                navigateTo(this::grades);
+                break;
+            case "attendance":
+                navigateTo(this::attendance);
+                break;
+            case "timetable":
+                navigateTo(this::timetable);
+                break;
+            case "teachers":
+                navigateTo(this::teachers);
+                break;
+            case "classes":
+                navigateTo(this::classes);
+                break;
+            case "reports":
+                navigateTo(this::reports);
+                break;
+            case "announcements":
+                navigateTo(this::announcements);
+                break;
+            case "users":
+                if (admin()) navigateTo(this::users);
+                break;
+            case "files":
+                if (admin()) navigateTo(this::files);
+                break;
+        }
+    }
+
+    // ---------------- الطلاب ----------------
+
+    void students() {
+        page("👨‍🎓 الطلاب");
+
+        EditText search = edit("ابحث باسم الطالب أو رقمه");
+        content.addView(
+            search,
+            new LinearLayout.LayoutParams(-1, dp(52))
+        );
+
+        if (admin()) {
+            Button add = btn("＋ إضافة طالب");
+
+            content.addView(
+                add,
+                new LinearLayout.LayoutParams(-1, dp(52))
+            );
+
+            add.setOnClickListener(v -> studentDialog(null));
+        }
+
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        content.addView(list);
+
+        Runnable refresh = () -> {
+            list.removeAllViews();
+
+            for (String[] s : db.students(
+                search.getText().toString().trim()
+            )) {
+                if (s.length < 4) continue;
+
+                Button b = btn(
+                    s[0]
+                        + "\nالرقم: " + s[1]
+                        + " | الصف: " + s[2]
+                        + " / " + s[3]
+                );
+
+                b.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+
+                list.addView(
+                    b,
+                    new LinearLayout.LayoutParams(-1, dp(68))
+                );
+
+                String id = s[1];
+
+                b.setOnClickListener(
+                    v -> navigateTo(() -> studentDetails(id))
+                );
+            }
+        };
+
+        search.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(
+                CharSequence s, int start, int count, int after) {}
+
+            public void onTextChanged(
+                CharSequence s, int start, int before, int count) {
+                refresh.run();
+            }
+
+            public void afterTextChanged(Editable e) {}
+        });
+
+        refresh.run();
+    }
+
+    void studentDialog(String id) {
+        boolean editing = id != null;
+        String[] old = editing ? db.student(id) : null;
+
+        EditText name = edit("اسم الطالب");
+        EditText number = edit("رقم الطالب");
+        EditText grade = edit("الصف");
+        EditText classroom = edit("الشعبة");
+        EditText parent = edit("اسم ولي الأمر");
+        EditText phone = edit("رقم الهاتف");
+
+        if (old != null) {
+            name.setText(old[0]);
+            number.setText(old[1]);
+            number.setEnabled(false);
+            grade.setText(old[2]);
+            classroom.setText(old[3]);
+            parent.setText(old[4]);
+            phone.setText(old[5]);
+        }
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(8), dp(4), dp(8), dp(4));
+
+        for (EditText e : new EditText[]{
+            name, number, grade, classroom, parent, phone
+        }) {
+            box.addView(
+                e,
+                new LinearLayout.LayoutParams(-1, dp(50))
+            );
+        }
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(box);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle(editing ? "تعديل بيانات الطالب" : "إضافة طالب")
+            .setView(scroll)
+            .setPositiveButton("حفظ", null)
+            .setNegativeButton("إلغاء", null)
+            .create();
+
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
+                    String n = name.getText().toString().trim();
+                    String sid = number.getText().toString().trim();
+
+                    if (n.isEmpty() || sid.isEmpty()) {
+                        Toast.makeText(
+                            this,
+                            "اسم الطالب ورقمه مطلوبان",
+                            Toast.LENGTH_SHORT
+                        ).show();
+                        return;
+                    }
+
+                    boolean saved = db.saveStudent(
+                        n,
+                        sid,
+                        grade.getText().toString().trim(),
+                        classroom.getText().toString().trim(),
+                        parent.getText().toString().trim(),
+                        phone.getText().toString().trim()
+                    );
+
+                    if (saved) {
+                        dialog.dismiss();
+                        students();
+                        Toast.makeText(
+                            this,
+                            "تم حفظ بيانات الطالب",
+                            Toast.LENGTH_SHORT
+                        ).show();
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "تعذر حفظ بيانات الطالب",
+                            Toast.LENGTH_LONG
+                        ).show();
+                    }
+                });
+        });
+
+        dialog.show();
+        dialog.getWindow().setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        );
+    }
+
+    ArrayList<String[]> studentsForClass(
+        String grade, String classroom) {
+
+        ArrayList<String[]> result =
+            db.studentsInClass(grade, classroom);
+
+        if (!result.isEmpty()) return result;
+
+        for (String[] s : db.students("")) {
+            if (s.length >= 4
+                && grade.equals(s[2])
+                && classroom.equals(s[3])) {
+                result.add(new String[]{s[0], s[1]});
+            }
+        }
+
+        return result;
+    }
+
+    void studentDetails(String id) {
+        page("👨‍🎓 ملف الطالب");
+
+        String[] s = db.student(id);
+
+        if (s == null) {
+            addCard("تنبيه", "لم يتم العثور على بيانات الطالب.");
+            return;
+        }
+
+        addCard(
+            "بيانات الطالب",
+            "الاسم: " + s[0]
+                + "\nالرقم: " + s[1]
+                + "\nالصف: " + s[2] + " / " + s[3]
+                + "\nولي الأمر: " + s[4]
+                + "\nالهاتف: " + s[5]
+        );
+
+        double grandTotal = 0;
+        boolean allPass = true;
+
+        for (String subject : SUBJECTS_7) {
+            double first =
+                db.getMahsala(id, subject, 1)
+                    + db.getExam(id, subject, 1);
+
+            double second =
+                db.getMahsala(id, subject, 2)
+                    + db.getExam(id, subject, 2);
+
+            double annual = first + second;
+            grandTotal += annual;
+
+            if (annual < 50) allPass = false;
+
+            addCard(
+                subject,
+                "الفصل الأول: " + formatNumber(first) + " /50"
+                    + "\nالفصل الثاني: " + formatNumber(second) + " /50"
+                    + "\nالمجموع السنوي: " + formatNumber(annual) + " /100"
+                    + "\nالتقدير: " + DB.gradeFor(annual)
+                    + "\nالنتيجة: " + (annual >= 50 ? "ناجح" : "راسب")
+            );
+        }
+
+        double max = SUBJECTS_7.length * 100.0;
+        double percent = grandTotal / max * 100.0;
+        boolean passed = allPass && percent >= 50;
+
+        addCard(
+            "المحصلة النهائية",
+            "المجموع: " + formatNumber(grandTotal) + " / " + (int) max
+                + "\nالنسبة: " + formatNumber(percent) + "%"
+                + "\nالتقدير: " + DB.gradeFor(percent)
+                + "\nالنتيجة: " + (passed ? "ناجح" : "راسب")
+        );
+
+        Button certificate = btn("🖨️ شهادة النتيجة PDF");
+        content.addView(
+            certificate,
+            new LinearLayout.LayoutParams(-1, dp(52))
+        );
+        certificate.setOnClickListener(v -> generateCertificatePdf(id));
+
+        if (admin()) {
+            Button edit = btn("✏️ تعديل بيانات الطالب");
+
+            content.addView(
+                edit,
+                new LinearLayout.LayoutParams(-1, dp(52))
+            );
+
+            edit.setOnClickListener(v -> studentDialog(id));
+        }
+
+        addCard(
+            "ملخص الحضور",
+            db.studentAttendanceSummary(id)
+        );
+    }
+
+    // ---------------- الصفوف ----------------
+
+    ArrayList<String[]> allowedClasses() {
+        ArrayList<String[]> all = db.classes();
+
+        if (admin()) return all;
+
+        ArrayList<String[]> result = new ArrayList<>();
+
+        if (isTeacher()) {
+            for (String[] c : all) {
+                if (c.length >= 2
+                    && c[0].equals(assignedGrade)
+                    && c[1].equals(assignedClass)) {
+                    result.add(c);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    void classes() {
+        page("🏫 الصفوف");
+
+        ArrayList<String[]> list = allowedClasses();
+
+        if (list.isEmpty()) {
+            addCard("لا توجد صفوف", "أضف الطلاب وحدد الصف والشعبة.");
+            return;
+        }
+
+        for (String[] c : list) {
+            addCard(
+                "الصف " + c[0] + " - الشعبة " + c[1],
+                "عدد الطلاب: " + studentsForClass(c[0], c[1]).size()
+            );
+        }
+    }
+
+    // ---------------- الدرجات ----------------
+
+    void grades() {
+        page("📊 الدرجات");
+
+        addCard(
+            "إدخال الدرجات",
+            "اختر الصف والشعبة، ثم اضغط على خانة المادة لإدخال المحصلة والاختبار."
+                + "\nالمحصلة: 20 درجة"
+                + "\nالاختبار: 30 درجة"
+        );
+
+        ArrayList<String[]> classes = allowedClasses();
+
+        if (classes.isEmpty()) {
+            addCard(
+                "لا توجد صفوف متاحة",
+                "أضف الطلاب وحدد صفوفهم وشعبهم أولاً."
+            );
+            return;
+        }
+
+        for (String[] c : classes) {
+            if (c.length < 2) continue;
+
+            String g = c[0];
+            String cl = c[1];
+
+            Button b = btn("📚 الصف " + g + " - الشعبة " + cl);
+
+            content.addView(
+                b,
+                new LinearLayout.LayoutParams(-1, dp(54))
+            );
+
+            b.setOnClickListener(
+                v -> navigateTo(() -> classGrades(g, cl))
+            );
+        }
+    }
+
+    void classGrades(String grade, String classroom) {
+        page("📊 درجات " + grade + " / " + classroom);
+
+        Spinner semester = new Spinner(this);
+
+        semester.setAdapter(
+            new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                new String[]{"الفصل الأول", "الفصل الثاني"}
+            )
+        );
+
+        content.addView(
+            semester,
+            new LinearLayout.LayoutParams(-1, dp(50))
+        );
+
+        TextView instructions = tv(
+            "اضغط على زر المادة في صف الطالب لإدخال الدرجات.",
+            13,
+            false
+        );
+        content.addView(instructions);
+
+        HorizontalScrollView horizontal = new HorizontalScrollView(this);
+        horizontal.setFillViewport(false);
+
+        LinearLayout table = new LinearLayout(this);
+        table.setOrientation(LinearLayout.VERTICAL);
+        table.setPadding(0, dp(5), 0, dp(10));
+
+        horizontal.addView(table);
+
+        content.addView(
+            horizontal,
+            new LinearLayout.LayoutParams(-1, -2)
+        );
+
+        Runnable render = () -> {
+            table.removeAllViews();
+
+            LinearLayout header = new LinearLayout(this);
+            header.setOrientation(LinearLayout.HORIZONTAL);
+            header.setBackgroundColor(WHITE);
+
+            TextView studentHeading = tv("الطالب", 12, true);
+            studentHeading.setGravity(Gravity.CENTER);
+
+            header.addView(
+                studentHeading,
+                new LinearLayout.LayoutParams(dp(155), dp(55))
+            );
+
+            for (String subject : SUBJECTS_7) {
+                TextView h = tv(subject, 11, true);
+                h.setGravity(Gravity.CENTER);
+                header.addView(
+                    h,
+                    new LinearLayout.LayoutParams(dp(125), dp(55))
+                );
+            }
+
+            table.addView(header);
+
+            int sem = semester.getSelectedItemPosition() + 1;
+
+            ArrayList<String[]> students =
+                studentsForClass(grade, classroom);
+
+            if (students.isEmpty()) {
+                TextView empty = tv(
+                    "لا يوجد طلاب في هذا الصف والشعبة.",
+                    14,
+                    true
+                );
+                table.addView(empty);
+                return;
+            }
+
+            for (String[] st : students) {
+                if (st.length < 2) continue;
+
+                String sid = st[1];
+                String studentName = st[0];
+
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setBackground(rounded(WHITE, 8));
+
+                TextView name = tv(
+                    studentName + "\n" + sid,
+                    11,
+                    true
+                );
+
+                row.addView(
+                    name,
+                    new LinearLayout.LayoutParams(dp(155), dp(66))
+                );
+
+                for (String subject : SUBJECTS_7) {
+                    double m = db.getMahsala(sid, subject, sem);
+                    double e = db.getExam(sid, subject, sem);
+                    double total = m + e;
+
+                    String label = (m == 0 && e == 0)
+                        ? "إدخال"
+                        : formatNumber(total) + " /50";
+
+                    Button cell = smallBtn(
+                        label,
+                        (m == 0 && e == 0) ? ORANGE : GREEN
+                    );
+
+                    LinearLayout.LayoutParams p =
+                        new LinearLayout.LayoutParams(dp(125), dp(58));
+
+                    p.setMargins(dp(2), dp(3), dp(2), dp(3));
+                    row.addView(cell, p);
+
+                    cell.setOnClickListener(v -> {
+                        if (!admin() && !isTeacher()) {
+                            Toast.makeText(
+                                this,
+                                "ليست لديك صلاحية إدخال الدرجات",
+                                Toast.LENGTH_SHORT
+                            ).show();
+                            return;
+                        }
+
+                        scoreDialog(
+                            sid,
+                            studentName,
+                            subject,
+                            sem,
+                            cell
+                        );
+                    });
+                }
+
+                table.addView(row);
+            }
+        };
+
+        semester.setOnItemSelectedListener(
+            new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(
+                    AdapterView<?> parent,
+                    View view,
+                    int position,
+                    long id) {
+                    render.run();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {}
+            }
+        );
+
+        render.run();
+
+        Button sheet = btn("📋 كشف النتائج السنوي PDF");
+
+        content.addView(
+            sheet,
+            new LinearLayout.LayoutParams(-1, dp(52))
+        );
+
+        sheet.setOnClickListener(
+            v -> generateClassSheetPdf(grade, classroom)
+        );
+
+        Button cards = btn("🖨️ بطاقات نتائج الفصل PDF");
+
+        content.addView(
+            cards,
+            new LinearLayout.LayoutParams(-1, dp(52))
+        );
+
+        cards.setOnClickListener(
+            v -> generateExamCardsPdf(
+                grade,
+                classroom,
+                semester.getSelectedItemPosition() + 1
+            )
+        );
+    }
+
+    void scoreDialog(
+        String studentId,
+        String studentName,
+        String subject,
+        int sem,
+        Button cell) {
+
+        EditText mahsala = scoreEdit("المحصلة من 20");
+        EditText exam = scoreEdit("الاختبار من 30");
+
+        double oldM = db.getMahsala(studentId, subject, sem);
+        double oldE = db.getExam(studentId, subject, sem);
+
+        mahsala.setText(formatNumber(oldM));
+        exam.setText(formatNumber(oldE));
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(10), dp(5), dp(10), dp(5));
+
+        box.addView(
+            mahsala,
+            new LinearLayout.LayoutParams(-1, dp(55))
+        );
+
+        box.addView(
+            exam,
+            new LinearLayout.LayoutParams(-1, dp(55))
+        );
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle(studentName + "\n" + subject)
+            .setView(box)
+            .setPositiveButton("حفظ", null)
+            .setNegativeButton("إلغاء", null)
+            .create();
+
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
+                    String mText = mahsala.getText().toString().trim();
+                    String eText = exam.getText().toString().trim();
+
+                    if (mText.isEmpty() || eText.isEmpty()) {
+                        Toast.makeText(
+                            this,
+                            "أدخل المحصلة والاختبار",
+                            Toast.LENGTH_SHORT
+                        ).show();
+                        return;
+                    }
+
+                    double m = parse(mahsala);
+                    double e = parse(exam);
+
+                    if (m < 0 || m > 20 || e < 0 || e > 30) {
+                        Toast.makeText(
+                            this,
+                            "المحصلة من 0 إلى 20 والاختبار من 0 إلى 30",
+                            Toast.LENGTH_LONG
+                        ).show();
+                        return;
+                    }
+
+                    try {
+                        db.setMahsala(studentId, subject, sem, m);
+                        db.setExam(studentId, subject, sem, e);
+
+                        cell.setText(formatNumber(m + e) + " /50");
+                        cell.setBackground(rounded(GREEN, 10));
+
+                        Toast.makeText(
+                            this,
+                            "تم حفظ درجات " + studentName,
+                            Toast.LENGTH_SHORT
+                        ).show();
+
+                        dialog.dismiss();
+
+                    } catch (Exception ex) {
+                        Toast.makeText(
+                            this,
+                            "تعذر حفظ الدرجات: " + ex.getMessage(),
+                            Toast.LENGTH_LONG
+                        ).show();
+                    }
+                });
+        });
+
+        dialog.show();
+
+        dialog.getWindow().setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+                | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        );
+
+        mahsala.setOnClickListener(v -> {
+            mahsala.requestFocus();
+            showKeyboard(mahsala);
+        });
+
+        exam.setOnClickListener(v -> {
+            exam.requestFocus();
+            showKeyboard(exam);
+        });
+    }
+
+    void showKeyboard(EditText field) {
+        field.requestFocus();
+
+        InputMethodManager imm =
+            (InputMethodManager) getSystemService(
+                INPUT_METHOD_SERVICE
+            );
+
+        if (imm != null) {
+            imm.showSoftInput(
+                field,
+                InputMethodManager.SHOW_IMPLICIT
+            );
+        }
+    }
+
+    // ---------------- الحضور ----------------
+
+    void attendance() {
+        page("✅ الحضور والغياب");
+
+        addCard(
+            "تسجيل الحضور",
+            "اختر الصف والشعبة، ثم حدد حالة كل طالب."
+        );
+
+        ArrayList<String[]> classes = allowedClasses();
+
+        if (classes.isEmpty()) {
+            addCard("لا توجد صفوف", "أضف الطلاب أولاً.");
+            return;
+        }
+
+        for (String[] c : classes) {
+            if (c.length < 2) continue;
+
+            String grade = c[0];
+            String classroom = c[1];
+
+            Button b = btn(
+                "الصف " + grade + " - الشعبة " + classroom
+            );
+
+            content.addView(
+                b,
+                new LinearLayout.LayoutParams(-1, dp(52))
+            );
+
+            b.setOnClickListener(
+                v -> navigateTo(
+                    () -> attendanceClass(grade, classroom)
+                )
+            );
+        }
+    }
+
+    void attendanceClass(String grade, String classroom) {
+        page("الحضور: " + grade + " / " + classroom);
+
+        ArrayList<String[]> students =
             studentsForClass(grade, classroom);
 
-    if (students.isEmpty()) {
-        Toast.makeText(this, "لا يوجد طلاب في هذا الصف",
-                Toast.LENGTH_SHORT).show();
-        return;
-    }
-
-    // ترتيب الطلاب حسب المجموع السنوي تنازلياً
-    ArrayList<Double> totals = new ArrayList<>();
-
-    for (String[] st : students) {
-        double total = 0;
-
-        for (String sub : SUBJECTS_7) {
-            total += db.annualTotal(st[1], sub);
+        if (students.isEmpty()) {
+            addCard("لا يوجد طلاب", "أضف الطلاب إلى هذا الصف أولاً.");
+            return;
         }
 
-        totals.add(total);
+        addCard(
+            "عدد الطلاب",
+            String.valueOf(students.size())
+        );
+
+        for (String[] s : students) {
+            if (s.length < 2) continue;
+
+            String studentId = s[1];
+            String studentName = s[0];
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPadding(dp(8), dp(6), dp(8), dp(6));
+            row.setBackground(rounded(WHITE, 10));
+
+            row.addView(tv(studentName, 14, true));
+
+            LinearLayout actions = new LinearLayout(this);
+            actions.setOrientation(LinearLayout.HORIZONTAL);
+
+            String[] statuses = {
+                "حاضر", "غائب", "متأخر", "غائب بعذر"
+            };
+
+            int[] colors = {GREEN, RED, ORANGE, BLUE};
+
+            for (int i = 0; i < statuses.length; i++) {
+                String status = statuses[i];
+
+                Button b = smallBtn(status, colors[i]);
+
+                LinearLayout.LayoutParams p =
+                    new LinearLayout.LayoutParams(0, dp(44), 1);
+
+                p.setMargins(dp(2), dp(3), dp(2), dp(3));
+                actions.addView(b, p);
+
+                b.setOnClickListener(v -> {
+                    if (!admin() && !isTeacher()) {
+                        Toast.makeText(
+                            this,
+                            "ليست لديك صلاحية تسجيل الحضور",
+                            Toast.LENGTH_SHORT
+                        ).show();
+                        return;
+                    }
+
+                    boolean saved = db.setAttendance(studentId, status);
+
+                    Toast.makeText(
+                        this,
+                        saved
+                            ? "تم تسجيل " + status + " للطالب " + studentName
+                            : "تعذر حفظ الحضور",
+                        Toast.LENGTH_SHORT
+                    ).show();
+                });
+            }
+
+            row.addView(actions);
+
+            LinearLayout.LayoutParams p =
+                new LinearLayout.LayoutParams(-1, -2);
+
+            p.setMargins(0, dp(4), 0, dp(4));
+            content.addView(row, p);
+        }
     }
 
-    for (int i = 0; i < students.size(); i++) {
-        for (int j = i + 1; j < students.size(); j++) {
+    // ---------------- المعلمون ----------------
 
-            if (totals.get(j) > totals.get(i)) {
-                Collections.swap(students, i, j);
-                Collections.swap(totals, i, j);
+    void teachers() {
+        page("👨‍🏫 المعلمون");
+
+        if (admin()) {
+            Button add = btn("＋ إضافة معلم");
+
+            content.addView(
+                add,
+                new LinearLayout.LayoutParams(-1, dp(52))
+            );
+
+            add.setOnClickListener(v -> teacherDialog());
+        }
+
+        CursorHelper:
+        {
+            android.database.Cursor c = null;
+
+            try {
+                c = getReadableTeachersCursor();
+
+                if (c == null || !c.moveToFirst()) {
+                    addCard("المعلمون", "لا توجد بيانات معلمين.");
+                    break CursorHelper;
+                }
+
+                do {
+                    String name = c.getString(1);
+                    String phone = c.isNull(2) ? "" : c.getString(2);
+                    String subject = c.isNull(3) ? "" : c.getString(3);
+                    String grade = c.isNull(4) ? "" : c.getString(4);
+                    String classroom = c.isNull(5) ? "" : c.getString(5);
+
+                    addCard(
+                        name,
+                        "الهاتف: " + phone
+                            + "\nالمادة: " + subject
+                            + "\nالصف: " + grade + " / " + classroom
+                    );
+
+                } while (c.moveToNext());
+
+            } catch (Exception e) {
+                addCard("المعلمون", "تعذر تحميل بيانات المعلمين.");
+            } finally {
+                if (c != null) c.close();
             }
         }
     }
 
-    PdfDocument doc = new PdfDocument();
+    android.database.Cursor getReadableTeachersCursor() {
+        return db.getReadableDatabase().rawQuery(
+            "SELECT id,name,phone,subject,grade,class FROM teachers ORDER BY name",
+            null
+        );
+    }
 
-    int W = 842;
-    int H = 595;
-    int perPage = 18;
-    int pageNum = 0;
+    void teacherDialog() {
+        EditText id = edit("رقم المعلم");
+        EditText name = edit("اسم المعلم");
+        EditText phone = edit("رقم الهاتف");
+        EditText subject = edit("المادة");
+        EditText grade = edit("الصف المسند");
+        EditText classroom = edit("الشعبة المسندة");
 
-    Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-    p.setColor(Color.BLACK);
-    p.setTextAlign(Paint.Align.CENTER);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
 
-    Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
-    line.setColor(Color.BLACK);
-    line.setStyle(Paint.Style.STROKE);
-    line.setStrokeWidth(1);
+        for (EditText e : new EditText[]{
+            id, name, phone, subject, grade, classroom
+        }) {
+            box.addView(
+                e,
+                new LinearLayout.LayoutParams(-1, dp(48))
+            );
+        }
 
-    for (int start = 0;
-         start < students.size();
-         start += perPage) {
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(box);
 
-        pageNum++;
+        new AlertDialog.Builder(this)
+            .setTitle("إضافة معلم")
+            .setView(scroll)
+            .setPositiveButton("حفظ", (d, w) -> {
+                if (id.getText().toString().trim().isEmpty()
+                    || name.getText().toString().trim().isEmpty()) {
+                    Toast.makeText(
+                        this,
+                        "رقم المعلم واسمه مطلوبان",
+                        Toast.LENGTH_SHORT
+                    ).show();
+                    return;
+                }
+
+                android.content.ContentValues cv =
+                    new android.content.ContentValues();
+
+                cv.put("id", id.getText().toString().trim());
+                cv.put("name", name.getText().toString().trim());
+                cv.put("phone", phone.getText().toString().trim());
+                cv.put("subject", subject.getText().toString().trim());
+                cv.put("grade", grade.getText().toString().trim());
+                cv.put("class", classroom.getText().toString().trim());
+
+                long result = db.getWritableDatabase().insertWithOnConflict(
+                    "teachers",
+                    null,
+                    cv,
+                    android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE
+                );
+
+                Toast.makeText(
+                    this,
+                    result == -1 ? "تعذر الحفظ" : "تم حفظ المعلم",
+                    Toast.LENGTH_SHORT
+                ).show();
+
+                teachers();
+            })
+            .setNegativeButton("إلغاء", null)
+            .show();
+    }
+
+    // ---------------- الجدول ----------------
+
+    void timetable() {
+        page("📅 الجدول المدرسي");
+
+        addCard(
+            "أيام الدراسة",
+            "السبت، الأحد، الاثنين، الثلاثاء، الأربعاء"
+                + "\nالخميس والجمعة: إجازة"
+        );
+
+        android.database.Cursor c = null;
+
+        try {
+            c = db.getReadableDatabase().rawQuery(
+                "SELECT grade,class,day,period,subject,teacher " +
+                "FROM timetable ORDER BY grade,class,day,period",
+                null
+            );
+
+            if (!c.moveToFirst()) {
+                addCard("الجدول", "لم تتم إضافة حصص إلى الجدول بعد.");
+                return;
+            }
+
+            do {
+                addCard(
+                    "الصف " + c.getString(0) + " / " + c.getString(1),
+                    "اليوم: " + c.getString(2)
+                        + "\nالحصة: " + c.getInt(3)
+                        + "\nالمادة: " + c.getString(4)
+                        + "\nالمعلم: " + c.getString(5)
+                );
+            } while (c.moveToNext());
+
+        } catch (Exception e) {
+            addCard("الجدول", "تعذر تحميل الجدول.");
+        } finally {
+            if (c != null) c.close();
+        }
+    }
+
+    // ---------------- الإعلانات ----------------
+
+    void announcements() {
+        page("🔔 الإعلانات");
+
+        if (admin()) {
+            Button add = btn("＋ إضافة إعلان");
+
+            content.addView(
+                add,
+                new LinearLayout.LayoutParams(-1, dp(52))
+            );
+
+            add.setOnClickListener(v -> announcementDialog());
+        }
+
+        android.database.Cursor c = null;
+
+        try {
+            c = db.getReadableDatabase().rawQuery(
+                "SELECT title,body,date FROM announcements ORDER BY id DESC",
+                null
+            );
+
+            if (!c.moveToFirst()) {
+                addCard("الإعلانات", "لا توجد إعلانات.");
+                return;
+            }
+
+            do {
+                addCard(
+                    c.isNull(0) ? "" : c.getString(0),
+                    (c.isNull(1) ? "" : c.getString(1))
+                        + "\nالتاريخ: "
+                        + (c.isNull(2) ? "" : c.getString(2))
+                );
+            } while (c.moveToNext());
+
+        } catch (Exception e) {
+            addCard("الإعلانات", "تعذر تحميل الإعلانات.");
+        } finally {
+            if (c != null) c.close();
+        }
+    }
+
+    void announcementDialog() {
+        EditText title = edit("عنوان الإعلان");
+        EditText body = edit("نص الإعلان");
+
+        body.setSingleLine(false);
+        body.setMinLines(3);
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.addView(title);
+        box.addView(body);
+
+        new AlertDialog.Builder(this)
+            .setTitle("إضافة إعلان")
+            .setView(box)
+            .setPositiveButton("حفظ", (d, w) -> {
+                boolean saved = db.saveAnnouncement(
+                    title.getText().toString().trim(),
+                    body.getText().toString().trim()
+                );
+
+                Toast.makeText(
+                    this,
+                    saved ? "تم حفظ الإعلان" : "تعذر حفظ الإعلان",
+                    Toast.LENGTH_SHORT
+                ).show();
+
+                announcements();
+            })
+            .setNegativeButton("إلغاء", null)
+            .show();
+    }
+
+    // ---------------- المستخدمون ----------------
+
+    void users() {
+        page("🔐 المستخدمون");
+
+        if (!admin()) {
+            addCard("تنبيه", "ليست لديك صلاحية إدارة المستخدمين.");
+            return;
+        }
+
+        Button add = btn("＋ إضافة مستخدم");
+
+        content.addView(
+            add,
+            new LinearLayout.LayoutParams(-1, dp(52))
+        );
+
+        add.setOnClickListener(v -> userDialog());
+
+        android.database.Cursor c = null;
+
+        try {
+            c = db.getReadableDatabase().rawQuery(
+                "SELECT name,username,role,grade,class FROM users ORDER BY name",
+                null
+            );
+
+            while (c.moveToNext()) {
+                addCard(
+                    c.getString(0) + " (" + c.getString(1) + ")",
+                    "الصلاحية: " + c.getString(2)
+                        + "\nالصف: " + c.getString(3)
+                        + "\nالشعبة: " + c.getString(4)
+                );
+            }
+        } catch (Exception e) {
+            addCard("المستخدمون", "تعذر تحميل المستخدمين.");
+        } finally {
+            if (c != null) c.close();
+        }
+    }
+
+    void userDialog() {
+        EditText name = edit("اسم المستخدم الظاهر");
+        EditText username = edit("اسم الدخول");
+        EditText password = edit("كلمة المرور");
+        EditText grade = edit("الصف للمعلم");
+        EditText classroom = edit("الشعبة للمعلم");
+
+        Spinner roles = new Spinner(this);
+
+        roles.setAdapter(
+            new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                new String[]{
+                    "معلم",
+                    "مدير المدرسة",
+                    "القائم بأعمال المدير",
+                    "مدير النظام"
+                }
+            )
+        );
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+
+        for (EditText e : new EditText[]{
+            name, username, password, grade, classroom
+        }) {
+            box.addView(
+                e,
+                new LinearLayout.LayoutParams(-1, dp(48))
+            );
+        }
+
+        box.addView(roles);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(box);
+
+        new AlertDialog.Builder(this)
+            .setTitle("إضافة مستخدم")
+            .setView(scroll)
+            .setPositiveButton("حفظ", (d, w) -> {
+                String u = username.getText().toString().trim();
+                String p = password.getText().toString();
+
+                if (u.isEmpty() || p.isEmpty()) {
+                    Toast.makeText(
+                        this,
+                        "اسم الدخول وكلمة المرور مطلوبان",
+                        Toast.LENGTH_SHORT
+                    ).show();
+                    return;
+                }
+
+                android.content.ContentValues cv =
+                    new android.content.ContentValues();
+
+                cv.put("name", name.getText().toString().trim());
+                cv.put("username", u);
+                cv.put("pass", p);
+                cv.put("role", roles.getSelectedItem().toString());
+                cv.put("grade", grade.getText().toString().trim());
+                cv.put("class", classroom.getText().toString().trim());
+
+                long result = db.getWritableDatabase().insertWithOnConflict(
+                    "users",
+                    null,
+                    cv,
+                    android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE
+                );
+
+                Toast.makeText(
+                    this,
+                    result == -1 ? "تعذر حفظ المستخدم" : "تم حفظ المستخدم",
+                    Toast.LENGTH_SHORT
+                ).show();
+
+                users();
+            })
+            .setNegativeButton("إلغاء", null)
+            .show();
+    }
+
+    // ---------------- التقارير ----------------
+
+    void reports() {
+        page("📈 التقارير");
+
+        addCard(
+            "إحصاءات المدرسة",
+            "عدد الطلاب: " + safeCount("students")
+                + "\nعدد المعلمين: " + safeCount("teachers")
+                + "\nحاضر اليوم: " + db.todayPresent()
+                + "\nغائب اليوم: " + db.todayAbsent()
+        );
+
+        Button report = btn("📋 كشف نتائج الصف PDF");
+
+        content.addView(
+            report,
+            new LinearLayout.LayoutParams(-1, dp(52))
+        );
+
+        report.setOnClickListener(v -> {
+            ArrayList<String[]> classes = allowedClasses();
+
+            if (classes.isEmpty()) {
+                Toast.makeText(
+                    this,
+                    "لا توجد صفوف",
+                    Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
+
+            String[] options = new String[classes.size()];
+
+            for (int i = 0; i < classes.size(); i++) {
+                options[i] =
+                    "الصف " + classes.get(i)[0]
+                        + " / " + classes.get(i)[1];
+            }
+
+            new AlertDialog.Builder(this)
+                .setTitle("اختر الصف")
+                .setItems(options, (dialog, which) -> {
+                    generateClassSheetPdf(
+                        classes.get(which)[0],
+                        classes.get(which)[1]
+                    );
+                })
+                .setNegativeButton("إلغاء", null)
+                .show();
+        });
+    }
+
+    // ---------------- النسخ الاحتياطي ----------------
+
+    void files() {
+        page("📁 النسخ الاحتياطي");
+
+        addCard(
+            "البيانات",
+            "يتم حفظ البيانات محليًا داخل قاعدة بيانات التطبيق."
+        );
+
+        Button backup = btn("إنشاء نسخة من قاعدة البيانات");
+
+        content.addView(
+            backup,
+            new LinearLayout.LayoutParams(-1, dp(52))
+        );
+
+        backup.setOnClickListener(v -> {
+            try {
+                File source = getDatabasePath("school.db");
+                File folder = new File(getExternalFilesDir(null), "backup");
+
+                if (!folder.exists() && !folder.mkdirs()) {
+                    throw new IOException("تعذر إنشاء مجلد النسخ الاحتياطي");
+                }
+
+                File destination = new File(
+                    folder,
+                    "school_backup_" + System.currentTimeMillis() + ".db"
+                );
+
+                try (
+                    InputStream in = new FileInputStream(source);
+                    OutputStream out = new FileOutputStream(destination)
+                ) {
+                    byte[] buffer = new byte[8192];
+                    int length;
+
+                    while ((length = in.read(buffer)) > 0) {
+                        out.write(buffer, 0, length);
+                    }
+                }
+
+                Toast.makeText(
+                    this,
+                    "تم إنشاء النسخة الاحتياطية",
+                    Toast.LENGTH_LONG
+                ).show();
+
+            } catch (Exception e) {
+                Toast.makeText(
+                    this,
+                    "تعذر إنشاء النسخة: " + e.getMessage(),
+                    Toast.LENGTH_LONG
+                ).show();
+            }
+        });
+    }
+
+    // ---------------- PDF: شهادة الطالب ----------------
+
+    void generateCertificatePdf(String id) {
+        String[] student = db.student(id);
+
+        if (student == null) {
+            Toast.makeText(
+                this,
+                "لم يتم العثور على الطالب",
+                Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        PdfDocument document = new PdfDocument();
+
+        int width = 595;
+        int height = 842;
 
         PdfDocument.PageInfo info =
-                new PdfDocument.PageInfo.Builder(
-                        W, H, pageNum).create();
+            new PdfDocument.PageInfo.Builder(width, height, 1).create();
 
-        PdfDocument.Page page = doc.startPage(info);
-        Canvas c = page.getCanvas();
+        PdfDocument.Page page = document.startPage(info);
+        Canvas canvas = page.getCanvas();
 
-        // الإطار الخارجي
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(2);
-        c.drawRect(12, 12, W - 12, H - 12, p);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        p.setStyle(Paint.Style.FILL);
-        p.setTextSize(12);
+        line.setColor(Color.BLACK);
+        line.setStyle(Paint.Style.STROKE);
+
+        p.setColor(Color.BLACK);
+        p.setTextAlign(Paint.Align.CENTER);
         p.setFakeBoldText(true);
-
-        c.drawText(
-                "الجمهورية اليمنية - وزارة التربية والتعليم",
-                W / 2, 32, p);
-
-        c.drawText(
-                "مدرسة جعفر بن أبي طالب الأساسية",
-                W / 2, 49, p);
-
         p.setTextSize(13);
 
-        c.drawText(
-                "كشف النتائج السنوية - الصف "
-                        + grade + " / " + classroom,
-                W / 2, 68, p);
+        canvas.drawRect(15, 15, width - 15, height - 15, line);
 
-        p.setTextSize(8);
+        canvas.drawText(
+            "الجمهورية اليمنية - وزارة التربية والتعليم",
+            width / 2f, 35, p
+        );
+
+        canvas.drawText(
+            "مدرسة جعفر بن أبي طالب الأساسية",
+            width / 2f, 55, p
+        );
+
+        p.setTextSize(17);
+
+        canvas.drawText(
+            "شهادة النتيجة السنوية",
+            width / 2f, 88, p
+        );
+
+        p.setFakeBoldText(false);
+        p.setTextSize(10);
+
+        canvas.drawText(
+            "الطالب: " + student[0]
+                + "    الرقم: " + student[1],
+            width / 2f, 112, p
+        );
+
+        canvas.drawText(
+            "الصف: " + student[2] + " / " + student[3],
+            width / 2f, 130, p
+        );
+
+        int top = 150;
+        int rowHeight = 25;
+
+        canvas.drawRect(25, top, width - 25, top + rowHeight, line);
+
+        p.setFakeBoldText(true);
+        p.setTextSize(9);
+
+        canvas.drawText("المادة", 510, top + 17, p);
+        canvas.drawText("فصل 1", 425, top + 17, p);
+        canvas.drawText("فصل 2", 335, top + 17, p);
+        canvas.drawText("المجموع", 245, top + 17, p);
+        canvas.drawText("التقدير", 130, top + 17, p);
+
         p.setFakeBoldText(false);
 
-        int top = 82;
-        int rowH = 22;
+        double grandTotal = 0;
+        boolean allPass = true;
 
-        // عرض الأعمدة ضمن الصفحة الأفقية
+        int y = top + rowHeight;
+
+        for (String subject : SUBJECTS_7) {
+            double first =
+                db.getMahsala(id, subject, 1)
+                    + db.getExam(id, subject, 1);
+
+            double second =
+                db.getMahsala(id, subject, 2)
+                    + db.getExam(id, subject, 2);
+
+            double annual = first + second;
+            grandTotal += annual;
+
+            if (annual < 50) allPass = false;
+
+            y += rowHeight;
+
+            canvas.drawRect(25, y - rowHeight, width - 25, y, line);
+
+            canvas.drawText(subject, 510, y - 8, p);
+            canvas.drawText(formatNumber(first), 425, y - 8, p);
+            canvas.drawText(formatNumber(second), 335, y - 8, p);
+            canvas.drawText(formatNumber(annual), 245, y - 8, p);
+            canvas.drawText(DB.gradeFor(annual), 130, y - 8, p);
+        }
+
+        double max = SUBJECTS_7.length * 100.0;
+        double percent = grandTotal / max * 100.0;
+
+        y += 35;
+
+        p.setFakeBoldText(true);
+        p.setTextSize(12);
+
+        canvas.drawText(
+            "المجموع: " + formatNumber(grandTotal) + " / " + (int) max,
+            width / 2f, y, p
+        );
+
+        canvas.drawText(
+            "النسبة: " + formatNumber(percent) + "%",
+            width / 2f, y + 22, p
+        );
+
+        p.setColor(
+            allPass && percent >= 50 ? GREEN : RED
+        );
+
+        p.setTextSize(18);
+
+        canvas.drawText(
+            allPass && percent >= 50 ? "ناجح" : "راسب",
+            width / 2f, y + 55, p
+        );
+
+        document.finishPage(page);
+
+        savePdf(document, "certificate_" + id + ".pdf");
+    }
+
+    // ---------------- PDF: كشف الصف ----------------
+
+    void generateClassSheetPdf(String grade, String classroom) {
+        ArrayList<String[]> students =
+            studentsForClass(grade, classroom);
+
+        if (students.isEmpty()) {
+            Toast.makeText(
+                this,
+                "لا يوجد طلاب في هذا الصف",
+                Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        Collections.sort(students, (a, b) -> {
+            double totalA = annualStudentTotal(a[1]);
+            double totalB = annualStudentTotal(b[1]);
+            return Double.compare(totalB, totalA);
+        });
+
+        PdfDocument document = new PdfDocument();
+
+        int width = 842;
+        int height = 595;
+        int perPage = 18;
+
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        p.setColor(Color.BLACK);
+        p.setTextAlign(Paint.Align.CENTER);
+        line.setColor(Color.BLACK);
+        line.setStyle(Paint.Style.STROKE);
+
+        int pageNumber = 0;
+
         int[] widths = {
-                35, 125, 48, 48, 48, 48,
-                48, 48, 48, 45, 58, 48, 55
+            32, 140, 52, 52, 52, 52,
+            52, 60, 60, 50, 58, 60
         };
 
         String[] headers = {
-                "م",
-                "اسم الطالب",
-                "قرآن",
-                "إسلامية",
-                "عربي",
-                "رياضيات",
-                "علوم",
-                "اجتماعيات",
-                "إنجليزي",
-                "السلوك",
-                "المجموع",
-                "النسبة",
-                "النتيجة"
+            "م", "اسم الطالب", "قرآن", "إسلامية",
+            "عربي", "رياضيات", "علوم", "اجتماعيات",
+            "إنجليزي", "السلوك", "المجموع", "النتيجة"
         };
 
         int totalWidth = 0;
 
-        for (int width : widths) {
-            totalWidth += width;
-        }
+        for (int w : widths) totalWidth += w;
 
-        int xStart = (W - totalWidth) / 2;
+        int startX = (width - totalWidth) / 2;
 
-        // رأس الجدول
-        int x = xStart;
+        for (int start = 0; start < students.size(); start += perPage) {
+            pageNumber++;
 
-        for (int col = 0; col < headers.length; col++) {
+            PdfDocument.PageInfo info =
+                new PdfDocument.PageInfo.Builder(
+                    width, height, pageNumber
+                ).create();
 
-            int nextX = x + widths[col];
+            PdfDocument.Page page = document.startPage(info);
+            Canvas canvas = page.getCanvas();
 
-            c.drawRect(x, top, nextX, top + rowH, line);
-
+            p.setTextSize(12);
             p.setFakeBoldText(true);
-            c.drawText(
+
+            canvas.drawRect(12, 12, width - 12, height - 12, line);
+
+            canvas.drawText(
+                "الجمهورية اليمنية - وزارة التربية والتعليم",
+                width / 2f, 32, p
+            );
+
+            canvas.drawText(
+                "مدرسة جعفر بن أبي طالب الأساسية",
+                width / 2f, 49, p
+            );
+
+            p.setTextSize(13);
+
+            canvas.drawText(
+                "كشف النتائج السنوية - الصف " + grade + " / " + classroom,
+                width / 2f, 68, p
+            );
+
+            p.setFakeBoldText(false);
+            p.setTextSize(8);
+
+            int top = 82;
+            int rowHeight = 22;
+
+            int x = startX;
+
+            for (int col = 0; col < headers.length; col++) {
+                int next = x + widths[col];
+
+                canvas.drawRect(x, top, next, top + rowHeight, line);
+                canvas.drawText(
                     headers[col],
-                    (x + nextX) / 2f,
+                    (x + next) / 2f,
                     top + 14,
-                    p);
+                    p
+                );
 
-            x = nextX;
-        }
-
-        p.setFakeBoldText(false);
-
-        int y = top + rowH;
-
-        for (int i = start;
-             i < Math.min(start + perPage, students.size());
-             i++) {
-
-            String[] st = students.get(i);
-
-            double total = totals.get(i);
-
-            double maxTotal = SUBJECTS_7.length * 100.0;
-
-            double percentage =
-                    maxTotal > 0
-                            ? total / maxTotal * 100
-                            : 0;
-
-            double behavior = db.annualBehavior(st[1]);
-
-            // الحالة تعتمد على جميع المواد
-            boolean pass = true;
-
-            for (String sub : SUBJECTS_7) {
-                if (db.annualTotal(st[1], sub) < 50) {
-                    pass = false;
-                    break;
-                }
+                x = next;
             }
 
-            pass = pass && percentage >= 50;
+            int y = top + rowHeight;
 
-            String[] values = new String[13];
+            for (int i = start;
+                 i < Math.min(start + perPage, students.size());
+                 i++) {
 
-            values[0] = String.valueOf(i + 1);
-            values[1] = st[0];
+                String[] st = students.get(i);
 
-            for (int k = 0; k < SUBJECTS_7.length; k++) {
-                values[k + 2] = formatNumber(
-                        db.annualTotal(st[1], SUBJECTS_7[k]));
-            }
+                String[] values = new String[12];
 
-            values[9] = formatNumber(behavior);
-            values[10] = formatNumber(total);
-            values[11] = String.format(
-                    Locale.US, "%.1f%%", percentage);
-            values[12] = pass ? "ناجح" : "راسب";
+                values[0] = String.valueOf(i + 1);
+                values[1] = st[0];
 
-            x = xStart;
-
-            for (int col = 0; col < values.length; col++) {
-
-                int nextX = x + widths[col];
-
-                c.drawRect(
-                        x, y, nextX, y + rowH, line);
-
-                p.setTextSize(col == 1 ? 8 : 7);
-
-                if (col == 1) {
-                    p.setTextAlign(Paint.Align.RIGHT);
-
-                    c.drawText(
-                            values[col],
-                            nextX - 4,
-                            y + 14,
-                            p);
-
-                    p.setTextAlign(Paint.Align.CENTER);
-                } else {
-                    c.drawText(
-                            values[col],
-                            (x + nextX) / 2f,
-                            y + 14,
-                            p);
+                for (int k = 0; k < SUBJECTS_7.length; k++) {
+                    values[k + 2] = formatNumber(
+                        db.annualTotal(st[1], SUBJECTS_7[k])
+                    );
                 }
 
-                x = nextX;
+                double total = annualStudentTotal(st[1]);
+
+                values[9] = formatNumber(db.annualBehavior(st[1]));
+                values[10] = formatNumber(total);
+                values[11] = studentPassed(st[1]) ? "ناجح" : "راسب";
+
+                x = startX;
+
+                for (int col = 0; col < values.length; col++) {
+                    int next = x + widths[col];
+
+                    canvas.drawRect(x, y, next, y + rowHeight, line);
+
+                    if (col == 1) {
+                        p.setTextAlign(Paint.Align.RIGHT);
+                        canvas.drawText(
+                            values[col],
+                            next - 4,
+                            y + 14,
+                            p
+                        );
+                        p.setTextAlign(Paint.Align.CENTER);
+                    } else {
+                        canvas.drawText(
+                            values[col],
+                            (x + next) / 2f,
+                            y + 14,
+                            p
+                        );
+                    }
+
+                    x = next;
+                }
+
+                y += rowHeight;
             }
 
-            y += rowH;
-        }
+            p.setTextSize(8);
 
-        p.setTextSize(8);
-
-        c.drawText(
+            canvas.drawText(
                 "عدد الطلاب: " + students.size()
-                        + "     الصفحة: " + pageNum,
-                W / 2, H - 20, p);
+                    + "    الصفحة: " + pageNumber,
+                width / 2f,
+                height - 20,
+                p
+            );
 
-        doc.finishPage(page);
+            document.finishPage(page);
+        }
+
+        savePdf(
+            document,
+            "class_results_" + grade + "_" + classroom + ".pdf"
+        );
     }
 
-    try {
+    double annualStudentTotal(String studentId) {
+        double total = 0;
 
-        File f = new File(
-                getExternalFilesDir(null),
-                "sheet_" + grade + "_" + classroom + ".pdf");
+        for (String subject : SUBJECTS_7) {
+            total += db.annualTotal(studentId, subject);
+        }
 
-        FileOutputStream out = new FileOutputStream(f);
+        return total;
+    }
 
-        doc.writeTo(out);
-        out.close();
-        doc.close();
+    boolean studentPassed(String studentId) {
+        for (String subject : SUBJECTS_7) {
+            if (db.annualTotal(studentId, subject) < 50) {
+                return false;
+            }
+        }
 
-        Uri uri = FileProvider.getUriForFile(
+        return annualStudentTotal(studentId) >= 50 * SUBJECTS_7.length;
+    }
+
+    // ---------------- PDF: بطاقات النتائج ----------------
+
+    void generateExamCardsPdf(
+        String grade,
+        String classroom,
+        int semester) {
+
+        ArrayList<String[]> students =
+            studentsForClass(grade, classroom);
+
+        if (students.isEmpty()) {
+            Toast.makeText(
+                this,
+                "لا يوجد طلاب",
+                Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        PdfDocument document = new PdfDocument();
+
+        int width = 595;
+        int height = 842;
+        int cardHeight = 258;
+
+        for (int start = 0; start < students.size(); start += 3) {
+            PdfDocument.PageInfo info =
+                new PdfDocument.PageInfo.Builder(
+                    width, height, start / 3 + 1
+                ).create();
+
+            PdfDocument.Page page = document.startPage(info);
+            Canvas canvas = page.getCanvas();
+
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+            Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+            p.setColor(Color.BLACK);
+            p.setTextAlign(Paint.Align.CENTER);
+
+            line.setColor(Color.BLACK);
+            line.setStyle(Paint.Style.STROKE);
+
+            for (int k = 0; k < 3 && start + k < students.size(); k++) {
+                String[] st = students.get(start + k);
+
+                int top = 10 + k * (cardHeight + 10);
+
+                canvas.drawRect(
+                    10, top, width - 10, top + cardHeight, line
+                );
+
+                p.setTextSize(9);
+                p.setFakeBoldText(true);
+
+                canvas.drawText(
+                    "الجمهورية اليمنية - وزارة التربية والتعليم",
+                    width / 2f, top + 18, p
+                );
+
+                canvas.drawText(
+                    "مدرسة جعفر بن أبي طالب الأساسية",
+                    width / 2f, top + 34, p
+                );
+
+                p.setTextSize(11);
+
+                canvas.drawText(
+                    "نتيجة " + (semester == 1 ? "الفصل الأول" : "الفصل الثاني"),
+                    width / 2f, top + 52, p
+                );
+
+                p.setFakeBoldText(false);
+                p.setTextSize(9);
+
+                canvas.drawText(
+                    "الطالب: " + st[0]
+                        + " - الصف: " + grade + " / " + classroom,
+                    width / 2f, top + 70, p
+                );
+
+                int y = top + 90;
+
+                canvas.drawText(
+                    "المادة                 المحصلة       الاختبار       المجموع",
+                    width / 2f, y, p
+                );
+
+                double total = 0;
+
+                for (String subject : SUBJECTS_7) {
+                    y += 19;
+
+                    double m = db.getMahsala(st[1], subject, semester);
+                    double e = db.getExam(st[1], subject, semester);
+
+                    total += m + e;
+
+                    canvas.drawText(
+                        subject + "       "
+                            + formatNumber(m) + "       "
+                            + formatNumber(e) + "       "
+                            + formatNumber(m + e),
+                        width / 2f,
+                        y,
+                        p
+                    );
+                }
+
+                y += 10;
+
+                p.setFakeBoldText(true);
+
+                canvas.drawText(
+                    "المجموع: " + formatNumber(total)
+                        + " / " + (SUBJECTS_7.length * 50),
+                    width / 2f, y, p
+                );
+
+                p.setFakeBoldText(false);
+
+                canvas.drawText(
+                    "توقيع المعلم: ....................",
+                    width / 2f, y + 18, p
+                );
+            }
+
+            document.finishPage(page);
+        }
+
+        savePdf(
+            document,
+            "exam_cards_" + grade + "_" + classroom + ".pdf"
+        );
+    }
+
+    // ---------------- حفظ وفتح ملفات PDF ----------------
+
+    void savePdf(PdfDocument document, String fileName) {
+        try {
+            File folder = new File(getExternalFilesDir(null), "reports");
+
+            if (!folder.exists() && !folder.mkdirs()) {
+                throw new IOException("تعذر إنشاء مجلد التقارير");
+            }
+
+            File file = new File(folder, fileName);
+
+            try (FileOutputStream output = new FileOutputStream(file)) {
+                document.writeTo(output);
+            } finally {
+                document.close();
+            }
+
+            Uri uri = FileProvider.getUriForFile(
                 this,
                 getPackageName() + ".provider",
-                f);
+                file
+            );
 
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(uri, "application/pdf");
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-        startActivity(intent);
+            startActivity(intent);
 
-    } catch (Exception e) {
+        } catch (Exception e) {
+            try {
+                document.close();
+            } catch (Exception ignored) {}
 
-        try {
-            doc.close();
-        } catch (Exception ignored) {}
-
-        Toast.makeText(
+            Toast.makeText(
                 this,
-                "تعذر إنشاء الكشف: " + e.getMessage(),
-                Toast.LENGTH_LONG).show();
+                "تعذر فتح التقرير. تحقق من وجود تطبيق لقراءة PDF.\n"
+                    + e.getMessage(),
+                Toast.LENGTH_LONG
+            ).show();
+        }
     }
-}
-void generateExamCardsPdf(String grade,String classroom,int semester){ArrayList<String[]> students=studentsForClass(grade,classroom);if(students.isEmpty()){Toast.makeText(this,"لا يوجد طلاب",Toast.LENGTH_SHORT).show();return;}PdfDocument doc=new PdfDocument();int pageW=595,pageH=842,cardH=258;for(int idx=0;idx<students.size();idx+=3){PdfDocument.PageInfo pi=new PdfDocument.PageInfo.Builder(pageW,pageH,idx/3+1).create();PdfDocument.Page page=doc.startPage(pi);Canvas c=page.getCanvas();Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);Paint line=new Paint();line.setColor(Color.BLACK);line.setStyle(Paint.Style.STROKE);Paint fill=new Paint(Paint.ANTI_ALIAS_FLAG);fill.setColor(Color.BLACK);fill.setTextAlign(Paint.Align.RIGHT);for(int k=0;k<3&&idx+k<students.size();k++){String[] st=students.get(idx+k);int top=12+k*(cardH+10);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.5f);p.setColor(Color.BLACK);c.drawRect(10,top,pageW-10,top+cardH,p);fill.setTextSize(7.5f);fill.setFakeBoldText(true);c.drawText("الجمهورية اليمنية",pageW-15,top+14,fill);fill.setFakeBoldText(false);c.drawText("وزارة التربية والتعليم",pageW-15,top+26,fill);c.drawText("مدرسة جعفر بن أبي طالب",15,top+14,fill);c.drawText("مديرية مذيخرة",15,top+26,fill);c.drawRect(15,top+32,pageW-15,top+48,line);fill.setTextSize(9);fill.setFakeBoldText(true);fill.setTextAlign(Paint.Align.CENTER);c.drawText("نتيجة امتحان نهاية الفصل الأول 2026-2027",pageW/2,top+43,fill);fill.setTextAlign(Paint.Align.RIGHT);fill.setFakeBoldText(false);c.drawRect(15,top+50,pageW-15,top+66,line);fill.setTextSize(8.5f);fill.setFakeBoldText(true);c.drawText("اسم الطالب: "+st[0]+" الصف: "+grade+" / "+classroom,pageW-15,top+61,fill);fill.setFakeBoldText(false);int tableTop=top+70;c.drawRect(15,tableTop,pageW-15,tableTop+16,line);fill.setTextSize(7.5f);fill.setFakeBoldText(true);c.drawText("المادة",pageW-20,tableTop+11,fill);c.drawText("المحصلة 20",390,tableTop+11,fill);c.drawText("الاختبار 30",290,tableTop+11,fill);c.drawText("المجموع 50",190,tableTop+11,fill);fill.setFakeBoldText(false);int y=tableTop+16;double totalAll=0;for(String sub:SUBJECTS_7){y+=16;c.drawRect(15,y-12,pageW-15,y,line);double m=db.getMahsala(st[1],sub,semester);double e=db.getExam(st[1],sub,semester);double tot=m+e;totalAll+=tot;c.drawText(sub,pageW-20,y-3,fill);c.drawText(String.valueOf((int)m),390,y-3,fill);c.drawText(String.valueOf((int)e),290,y-3,fill);c.drawText(String.valueOf((int)tot),190,y-3,fill);}y+=8;fill.setTextSize(7.5f);c.drawText("المجموع 350: "+(int)totalAll,pageW-15,y+8,fill);c.drawText("مدير المدرسة:.........",pageW-15,y+22,fill);}doc.finishPage(page);}try{File f=new File(getExternalFilesDir(null),"cards_"+grade+"_"+classroom+".pdf");FileOutputStream o=new FileOutputStream(f);doc.writeTo(o);doc.close();o.close();Uri uri=FileProvider.getUriForFile(this,getPackageName()+".provider",f);Intent it=new Intent(Intent.ACTION_VIEW);it.setDataAndType(uri,"application/pdf");it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(it);}catch(Exception e){Toast.makeText(this,e.getMessage(),1).show();}}
-void generateStudentPdf(String id){generateCertificatePdf(id);}
-void attendance(){page("✅ الحضور");addCard("الحضور","اختر الصف");Button b=btn("اختر الصف");content.addView(b,new LinearLayout.LayoutParams(-1,dp(56)));b.setOnClickListener(v->chooseAttendanceClass());}
-void chooseAttendanceClass(){ArrayList<String[]> cs=allowedClasses();String[] it=new String[cs.size()];for(int i=0;i<cs.size();i++)it[i]="الصف "+cs.get(i)[0]+" - "+cs.get(i)[1];new AlertDialog.Builder(this).setTitle("اختر الصف").setItems(it,(d,w)->navigateTo(()->attendanceClass(cs.get(w)[0],cs.get(w)[1]))).show();}
-void attendanceClass(String grade,String classroom){page("✅ حضور "+grade+" / "+classroom);addCard("الطلاب","عدد الطلاب: "+db.studentsInClass(grade,classroom).size());}
-void timetable(){page("📅 الجدول");addCard("الجدول","السبت - الأربعاء");}
-void teachers(){page("👨‍🏫 المعلمون");addCard("المعلمون","عدد المعلمين: "+db.count("teachers"));}
-void classes(){page("🏫 الصفوف");for(String[] c:db.classes())addCard("الصف "+c[0]+" - "+c[1],"عدد الطلاب: "+db.studentsInClass(c[0],c[1]).size());}
-void reports(){page("📈 التقارير");addCard("التقارير","إجمالي الطلاب: "+db.count("students"));}
-void announcements(){page("🔔 الإعلانات");addCard("الإعلانات",db.latestAnnouncements());}
-void users(){page("🔐 المستخدمون");addCard("المستخدمون","مدير النظام: admin");}
-void files(){page("📁 نسخ احتياطي");Button b=btn("إنشاء نسخة");content.addView(b,new LinearLayout.LayoutParams(-1,dp(56)));b.setOnClickListener(v->Toast.makeText(this,"تم إنشاء النسخة",Toast.LENGTH_SHORT).show());}
 }
