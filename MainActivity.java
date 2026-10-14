@@ -2130,93 +2130,371 @@ public class MainActivity extends Activity {
 
                 String[] st = students.get(i);
 
-                String[] values = new String[12];
+// ---------------- PDF: بطاقات النتائج - ثلاثة قوالب ----------------
 
-                values[0] = String.valueOf(i + 1);
-                values[1] = st[0];
+void generateExamCardsPdf(
+        String grade,
+        String classroom,
+        int semester) {
 
-                for (int k = 0; k < SUBJECTS_7.length; k++) {
-                    values[k + 2] = formatNumber(
-                        db.annualTotal(st[1], SUBJECTS_7[k])
+    ArrayList<String[]> students =
+            studentsForClass(grade, classroom);
+
+    if (students == null || students.isEmpty()) {
+        Toast.makeText(
+                this,
+                "لا يوجد طلاب في الصف " + grade + " - " + classroom,
+                Toast.LENGTH_LONG
+        ).show();
+        return;
+    }
+
+    PdfDocument document = new PdfDocument();
+
+    final int width = 595;
+    final int height = 842;
+
+    final int margin = 12;
+    final int gap = 8;
+
+    // ارتفاع البطاقة يسمح بوضع ثلاث بطاقات في الصفحة.
+    final int cardHeight = (height - 2 * margin - 2 * gap) / 3;
+
+    Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+    Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
+    Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    text.setColor(Color.BLACK);
+    text.setTextAlign(Paint.Align.CENTER);
+
+    border.setColor(Color.BLACK);
+    border.setStyle(Paint.Style.STROKE);
+    border.setStrokeWidth(1.2f);
+
+    fill.setColor(Color.BLACK);
+    fill.setStyle(Paint.Style.FILL);
+
+    int pageNumber = 0;
+
+    try {
+        for (int start = 0; start < students.size(); start += 3) {
+
+            pageNumber++;
+
+            PdfDocument.PageInfo info =
+                    new PdfDocument.PageInfo.Builder(
+                            width,
+                            height,
+                            pageNumber
+                    ).create();
+
+            PdfDocument.Page pdfPage =
+                    document.startPage(info);
+
+            Canvas canvas = pdfPage.getCanvas();
+
+            // خلفية بيضاء صريحة لمنع ظهور صفحة فارغة.
+            canvas.drawColor(Color.WHITE);
+
+            for (int k = 0;
+                 k < 3 && start + k < students.size();
+                 k++) {
+
+                String[] student = students.get(start + k);
+
+                if (student == null || student.length < 2) {
+                    continue;
+                }
+
+                String studentName =
+                        student[0] == null ? "" : student[0];
+
+                String studentId =
+                        student[1] == null ? "" : student[1];
+
+                int left = margin;
+                int right = width - margin;
+
+                int top = margin + k * (cardHeight + gap);
+                int bottom = top + cardHeight;
+
+                // إطار البطاقة.
+                canvas.drawRect(
+                        left,
+                        top,
+                        right,
+                        bottom,
+                        border
+                );
+
+                // إطار داخلي بسيط.
+                canvas.drawRect(
+                        left + 3,
+                        top + 3,
+                        right - 3,
+                        bottom - 3,
+                        border
+                );
+
+                // عنوان الجمهورية.
+                text.setTextSize(9);
+                text.setFakeBoldText(true);
+
+                canvas.drawText(
+                        "الجمهورية اليمنية - وزارة التربية والتعليم",
+                        width / 2f,
+                        top + 16,
+                        text
+                );
+
+                canvas.drawText(
+                        "مكتب التربية والتعليم",
+                        width / 2f,
+                        top + 29,
+                        text
+                );
+
+                // اسم المدرسة.
+                text.setTextSize(11);
+
+                canvas.drawText(
+                        "مدرسة جعفر بن أبي طالب الأساسية",
+                        width / 2f,
+                        top + 43,
+                        text
+                );
+
+                // عنوان النتيجة.
+                text.setTextSize(12);
+
+                canvas.drawText(
+                        "نتيجة نهاية " +
+                                (semester == 1
+                                        ? "الفصل الدراسي الأول"
+                                        : "الفصل الدراسي الثاني"),
+                        width / 2f,
+                        top + 59,
+                        text
+                );
+
+                // بيانات الطالب.
+                text.setTextSize(9);
+                text.setFakeBoldText(false);
+
+                canvas.drawText(
+                        "اسم الطالب: " + studentName,
+                        width / 2f,
+                        top + 74,
+                        text
+                );
+
+                canvas.drawText(
+                        "الصف: " + grade +
+                                "     الشعبة: " + classroom +
+                                "     الرقم: " + studentId,
+                        width / 2f,
+                        top + 87,
+                        text
+                );
+
+                // جدول الدرجات.
+                int tableTop = top + 96;
+                int rowHeight = 13;
+
+                int[] colX = {
+                        right - 5,
+                        right - 155,
+                        right - 235,
+                        right - 315,
+                        right - 390,
+                        left + 5
+                };
+
+                // رؤوس الجدول.
+                text.setTextSize(8);
+                text.setFakeBoldText(true);
+
+                canvas.drawLine(
+                        left + 5,
+                        tableTop,
+                        right - 5,
+                        tableTop,
+                        border
+                );
+
+                canvas.drawText(
+                        "المادة",
+                        (colX[0] + colX[1]) / 2f,
+                        tableTop + 10,
+                        text
+                );
+
+                canvas.drawText(
+                        "المحصلة",
+                        (colX[1] + colX[2]) / 2f,
+                        tableTop + 10,
+                        text
+                );
+
+                canvas.drawText(
+                        "الاختبار",
+                        (colX[2] + colX[3]) / 2f,
+                        tableTop + 10,
+                        text
+                );
+
+                canvas.drawText(
+                        "المجموع",
+                        (colX[3] + colX[4]) / 2f,
+                        tableTop + 10,
+                        text
+                );
+
+                canvas.drawLine(
+                        left + 5,
+                        tableTop + rowHeight,
+                        right - 5,
+                        tableTop + rowHeight,
+                        border
+                );
+
+                text.setFakeBoldText(false);
+
+                double total = 0;
+                int y = tableTop + rowHeight;
+
+                for (String subject : SUBJECTS_7) {
+
+                    double m = db.getMahsala(
+                            studentId,
+                            subject,
+                            semester
+                    );
+
+                    double e = db.getExam(
+                            studentId,
+                            subject,
+                            semester
+                    );
+
+                    double subjectTotal = m + e;
+                    total += subjectTotal;
+
+                    y += rowHeight;
+
+                    canvas.drawLine(
+                            left + 5,
+                            y,
+                            right - 5,
+                            y,
+                            border
+                    );
+
+                    text.setTextSize(7.5f);
+
+                    // اسم المادة في العمود الأيمن.
+                    text.setTextAlign(Paint.Align.RIGHT);
+
+                    canvas.drawText(
+                            subject,
+                            right - 10,
+                            y - 3,
+                            text
+                    );
+
+                    text.setTextAlign(Paint.Align.CENTER);
+
+                    canvas.drawText(
+                            formatNumber(m),
+                            (colX[1] + colX[2]) / 2f,
+                            y - 3,
+                            text
+                    );
+
+                    canvas.drawText(
+                            formatNumber(e),
+                            (colX[2] + colX[3]) / 2f,
+                            y - 3,
+                            text
+                    );
+
+                    canvas.drawText(
+                            formatNumber(subjectTotal),
+                            (colX[3] + colX[4]) / 2f,
+                            y - 3,
+                            text
                     );
                 }
 
-                double total = annualStudentTotal(st[1]);
+                // المجموع والتقدير والنتيجة.
+                int summaryY = y + 13;
 
-                values[9] = formatNumber(db.annualBehavior(st[1]));
-                values[10] = formatNumber(total);
-                values[11] = studentPassed(st[1]) ? "ناجح" : "راسب";
+                text.setTextSize(9);
+                text.setFakeBoldText(true);
 
-                x = startX;
+                canvas.drawText(
+                        "المجموع: " + formatNumber(total)
+                                + " / " + (SUBJECTS_7.length * 50),
+                        width / 2f,
+                        summaryY,
+                        text
+                );
 
-                for (int col = 0; col < values.length; col++) {
-                    int next = x + widths[col];
+                double percentage =
+                        total / (SUBJECTS_7.length * 50.0) * 100.0;
 
-                    canvas.drawRect(x, y, next, y + rowHeight, line);
+                text.setTextSize(8);
+                text.setFakeBoldText(false);
 
-                    if (col == 1) {
-                        p.setTextAlign(Paint.Align.RIGHT);
-                        canvas.drawText(
-                            values[col],
-                            next - 4,
-                            y + 14,
-                            p
-                        );
-                        p.setTextAlign(Paint.Align.CENTER);
-                    } else {
-                        canvas.drawText(
-                            values[col],
-                            (x + next) / 2f,
-                            y + 14,
-                            p
-                        );
-                    }
+                canvas.drawText(
+                        "النسبة: " + formatNumber(percentage) + "%"
+                                + "     التقدير: " + DB.gradeFor(percentage)
+                                + "     النتيجة: "
+                                + (percentage >= 50 ? "ناجح" : "راسب"),
+                        width / 2f,
+                        summaryY + 12,
+                        text
+                );
 
-                    x = next;
-                }
+                // التوقيعات.
+                text.setTextSize(8);
 
-                y += rowHeight;
+                canvas.drawText(
+                        "توقيع المعلم: ................",
+                        width / 4f,
+                        bottom - 10,
+                        text
+                );
+
+                canvas.drawText(
+                        "مدير المدرسة: ................",
+                        width * 3f / 4f,
+                        bottom - 10,
+                        text
+                );
             }
 
-            p.setTextSize(8);
-
-            canvas.drawText(
-                "عدد الطلاب: " + students.size()
-                    + "    الصفحة: " + pageNumber,
-                width / 2f,
-                height - 20,
-                p
-            );
-
-            document.finishPage(page);
+            document.finishPage(pdfPage);
         }
 
         savePdf(
-            document,
-            "class_results_" + grade + "_" + classroom + ".pdf"
+                document,
+                "exam_cards_" + grade + "_" + classroom + ".pdf"
         );
+
+    } catch (Exception e) {
+
+        try {
+            document.close();
+        } catch (Exception ignored) {}
+
+        Toast.makeText(
+                this,
+                "تعذر إنشاء بطاقات النتائج: " + e.getMessage(),
+                Toast.LENGTH_LONG
+        ).show();
     }
-
-    double annualStudentTotal(String studentId) {
-        double total = 0;
-
-        for (String subject : SUBJECTS_7) {
-            total += db.annualTotal(studentId, subject);
-        }
-
-        return total;
-    }
-
-    boolean studentPassed(String studentId) {
-        for (String subject : SUBJECTS_7) {
-            if (db.annualTotal(studentId, subject) < 50) {
-                return false;
-            }
-        }
-
-        return annualStudentTotal(studentId) >= 50 * SUBJECTS_7.length;
-    }
-
+}
     // ---------------- PDF: بطاقات النتائج ----------------
 
     void generateExamCardsPdf(
@@ -2334,54 +2612,6 @@ Toast.makeText(
                 y += 10;
 
                 p.setFakeBoldText(true);
-
-                canvas.drawText(
-                    "المجموع: " + formatNumber(total)
-                        + " / " + (SUBJECTS_7.length * 50),
-                    width / 2f, y, p
-                );
-
-                p.setFakeBoldText(false);
-
-                canvas.drawText(
-                    "توقيع المعلم: ....................",
-                    width / 2f, y + 18, p
-                );
-            }
-
-            document.finishPage(page);
-        }
-
-        savePdf(
-            document,
-            "exam_cards_" + grade + "_" + classroom + ".pdf"
-        );
-    }
-
-    // ---------------- حفظ وفتح ملفات PDF ----------------
-
-    void savePdf(PdfDocument document, String fileName) {
-        try {
-            File folder = new File(getExternalFilesDir(null), "reports");
-
-            if (!folder.exists() && !folder.mkdirs()) {
-                throw new IOException("تعذر إنشاء مجلد التقارير");
-            }
-
-            File file = new File(folder, fileName);
-
-            try (FileOutputStream output = new FileOutputStream(file)) {
-                document.writeTo(output);
-            } finally {
-                document.close();
-            }
-
-            Uri uri = FileProvider.getUriForFile(
-                this,
-                getPackageName() + ".provider",
-                file
-            );
-
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(uri, "application/pdf");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
