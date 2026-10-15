@@ -79,26 +79,16 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
         if (navHistory.size() > 1) {
             navHistory.pop();
-
             try {
                 navHistory.peek().run();
             } catch (Exception e) {
-                Toast.makeText(
-                    this,
-                    "تعذر الرجوع: " + e.getMessage(),
-                    Toast.LENGTH_LONG
-                ).show();
+                Toast.makeText(this, "تعذر الرجوع: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
-
             return;
         }
 
         if (navHistory.size() == 1) {
-            Toast.makeText(
-                this,
-                "أنت في الصفحة الرئيسية",
-                Toast.LENGTH_SHORT
-            ).show();
+            Toast.makeText(this, "أنت في الصفحة الرئيسية", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -110,9 +100,7 @@ public class MainActivity extends Activity {
     }
 
     int dp(int value) {
-        return (int) (
-            value * getResources().getDisplayMetrics().density
-        );
+        return (int) (value * getResources().getDisplayMetrics().density);
     }
 
     GradientDrawable rounded(int color, int radius) {
@@ -127,10 +115,7 @@ public class MainActivity extends Activity {
         t.setText(text == null ? "" : text);
         t.setTextSize(size);
         t.setTextColor(TEXT);
-        t.setTypeface(
-            null,
-            bold ? Typeface.BOLD : Typeface.NORMAL
-        );
+        t.setTypeface(null, bold ? Typeface.BOLD : Typeface.NORMAL);
         t.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
         t.setPadding(dp(12), dp(8), dp(12), dp(8));
         return t;
@@ -171,15 +156,10 @@ public class MainActivity extends Activity {
     void navigateTo(Runnable action) {
         if (action == null) return;
         navHistory.push(action);
-
         try {
             action.run();
         } catch (Exception e) {
-            Toast.makeText(
-                this,
-                "حدث خطأ: " + e.getMessage(),
-                Toast.LENGTH_LONG
-            ).show();
+            Toast.makeText(this, "حدث خطأ: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -193,24 +173,14 @@ public class MainActivity extends Activity {
         top.setBackgroundColor(WHITE);
 
         Button back = smallBtn("رجوع ‹", BLUE);
-        top.addView(
-            back,
-            new LinearLayout.LayoutParams(dp(82), dp(46))
-        );
+        top.addView(back, new LinearLayout.LayoutParams(dp(82), dp(46)));
         back.setOnClickListener(v -> goBack());
 
         TextView heading = tv(title, 17, true);
         heading.setGravity(Gravity.CENTER);
+        top.addView(heading, new LinearLayout.LayoutParams(0, dp(48), 1));
 
-        top.addView(
-            heading,
-            new LinearLayout.LayoutParams(0, dp(48), 1)
-        );
-
-        root.addView(
-            top,
-            new LinearLayout.LayoutParams(-1, dp(58))
-        );
+        root.addView(top, new LinearLayout.LayoutParams(-1, dp(58)));
 
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -218,15 +188,10 @@ public class MainActivity extends Activity {
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        scroll.setDescendantFocusability(
-            ViewGroup.FOCUS_AFTER_DESCENDANTS
-        );
+        scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         scroll.addView(content);
 
-        root.addView(
-            scroll,
-            new LinearLayout.LayoutParams(-1, 0, 1)
-        );
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
     }
 
     void addCard(String title, String body) {
@@ -240,9 +205,7 @@ public class MainActivity extends Activity {
         card.addView(tv(title, 16, true));
         card.addView(tv(body, 14, false));
 
-        LinearLayout.LayoutParams p =
-            new LinearLayout.LayoutParams(-1, -2);
-
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
         p.setMargins(dp(3), dp(5), dp(3), dp(5));
         content.addView(card, p);
     }
@@ -262,10 +225,7 @@ public class MainActivity extends Activity {
     EditText scoreEdit(String hint) {
         EditText e = edit(hint);
         e.setGravity(Gravity.CENTER);
-        e.setInputType(
-            InputType.TYPE_CLASS_NUMBER
-                | InputType.TYPE_NUMBER_FLAG_DECIMAL
-        );
+        e.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         return e;
     }
 
@@ -294,9 +254,7 @@ public class MainActivity extends Activity {
     boolean admin() {
         if (role == null) return false;
         String r = role.trim();
-        return r.equals("القائم بأعمال المدير")
-            || r.equals("مدير المدرسة")
-            || r.equals("مدير النظام");
+        return r.equals("القائم بأعمال المدير") || r.equals("مدير المدرسة") || r.equals("مدير النظام");
     }
 
     boolean isTeacher() {
@@ -320,8 +278,6 @@ public class MainActivity extends Activity {
         return total;
     }
 
-    // ---------------- حفظ وعرض ملفات الـ PDF ----------------
-
     void savePdf(PdfDocument document, String fileName) {
         try {
             File folder = new File(getExternalFilesDir(null), "documents");
@@ -334,11 +290,7 @@ public class MainActivity extends Activity {
             document.close();
             fos.close();
 
-            Uri uri = FileProvider.getUriForFile(
-                this,
-                getPackageName() + ".fileprovider",
-                file
-            );
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
 
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(uri, "application/pdf");
@@ -350,16 +302,37 @@ public class MainActivity extends Activity {
                 document.close();
             } catch (Exception ignored) {}
 
-            Toast.makeText(
-                this,
-                "تعذر حفظ أو فتح ملف الـ PDF: " + e.getMessage(),
-                Toast.LENGTH_LONG
-            ).show();
+            Toast.makeText(this, "تعذر حفظ أو فتح ملف الـ PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // إدارة شعار المدرسة المختار من الهاتف
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                try {
+                    InputStream inputStream = getContentResolver().openInputStream(uri);
+                    File logoFile = new File(getFilesDir(), "school_logo.png");
+                    OutputStream outputStream = new FileOutputStream(logoFile);
+                    byte[] buffer = new byte[8192];
+                    int length;
+                    while ((length = inputStream.read(buffer)) > 0) {
+                        outputStream.write(buffer, 0, length);
+                    }
+                    inputStream.close();
+                    outputStream.close();
+                    Toast.makeText(this, "تم حفظ شعار المدرسة بنجاح", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, "تعذر حفظ الشعار: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            }
         }
     }
 
     // ---------------- تسجيل الدخول ----------------
-
     void showLogin() {
         navHistory.clear();
         base();
@@ -383,21 +356,13 @@ public class MainActivity extends Activity {
         title.setGravity(Gravity.CENTER);
         box.addView(title);
 
-        TextView address = tv(
-            "الجمهورية اليمنية - إب - مذيخرة - الأشعوب\nنظام إدارة المدرسة",
-            13,
-            false
-        );
+        TextView address = tv("الجمهورية اليمنية - إب - مذيخرة - الأشعوب\nنظام إدارة المدرسة", 13, false);
         address.setGravity(Gravity.CENTER);
         box.addView(address);
 
         EditText username = edit("اسم المستخدم");
         EditText password = edit("كلمة المرور");
-
-        password.setInputType(
-            InputType.TYPE_CLASS_TEXT
-                | InputType.TYPE_TEXT_VARIATION_PASSWORD
-        );
+        password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
 
         box.addView(username, new LinearLayout.LayoutParams(-1, dp(55)));
         box.addView(password, new LinearLayout.LayoutParams(-1, dp(55)));
@@ -422,7 +387,6 @@ public class MainActivity extends Activity {
 
             try {
                 String[] a = db.authenticate(u, p);
-
                 if (a == null || a.length < 5) {
                     Toast.makeText(this, "اسم المستخدم أو كلمة المرور غير صحيحة", Toast.LENGTH_LONG).show();
                     return;
@@ -446,7 +410,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- الرئيسية ----------------
-
     void showHome() {
         base();
 
@@ -456,10 +419,7 @@ public class MainActivity extends Activity {
         header.setPadding(dp(8), dp(6), dp(8), dp(6));
         header.setBackgroundColor(WHITE);
 
-        header.addView(
-            tv(role + "\n" + currentUser, 13, true),
-            new LinearLayout.LayoutParams(0, -2, 1)
-        );
+        header.addView(tv(role + "\n" + currentUser, 13, true), new LinearLayout.LayoutParams(0, -2, 1));
 
         Button logout = btn("خروج");
         header.addView(logout, new LinearLayout.LayoutParams(dp(82), dp(44)));
@@ -492,8 +452,7 @@ public class MainActivity extends Activity {
             item.setGravity(Gravity.CENTER);
             item.setBackground(rounded(WHITE, 10));
 
-            LinearLayout.LayoutParams p =
-                new LinearLayout.LayoutParams(0, dp(70), 1);
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(70), 1);
             p.setMargins(dp(2), dp(3), dp(2), dp(6));
             stats.addView(item, p);
         }
@@ -518,15 +477,13 @@ public class MainActivity extends Activity {
         for (int i = 0; i < items.size(); i += 2) {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
-
             content.addView(row, new LinearLayout.LayoutParams(-1, dp(72)));
 
             for (int j = i; j < Math.min(i + 2, items.size()); j++) {
                 String[] item = items.get(j);
                 Button b = btn(item[0]);
 
-                LinearLayout.LayoutParams p =
-                    new LinearLayout.LayoutParams(0, dp(62), 1);
+                LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(62), 1);
                 p.setMargins(dp(3), dp(3), dp(3), dp(3));
                 row.addView(b, p);
 
@@ -560,7 +517,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- الطلاب ----------------
-
     void students() {
         page("👨‍🎓 الطلاب");
 
@@ -582,9 +538,7 @@ public class MainActivity extends Activity {
             for (String[] s : db.students(search.getText().toString().trim())) {
                 if (s.length < 4) continue;
 
-                Button b = btn(
-                    s[0] + "\nالرقم: " + s[1] + " | الصف: " + s[2] + " / " + s[3]
-                );
+                Button b = btn(s[0] + "\nالرقم: " + s[1] + " | الصف: " + s[2] + " / " + s[3]);
                 b.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
                 list.addView(b, new LinearLayout.LayoutParams(-1, dp(68)));
 
@@ -747,7 +701,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- الصفوف ----------------
-
     ArrayList<String[]> allowedClasses() {
         ArrayList<String[]> all = db.classes();
         if (admin()) return all;
@@ -781,7 +734,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- الدرجات ----------------
-
     void grades() {
         page("📊 الدرجات");
         addCard(
@@ -960,7 +912,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- الحضور ----------------
-
     void attendance() {
         page("✅ الحضور والغياب");
         addCard("تسجيل الحضور", "اختر الصف والشعبة، ثم حدد حالة كل طالب.");
@@ -1032,7 +983,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- المعلمون ----------------
-
     void teachers() {
         page("👨‍🏫 المعلمون");
         if (admin()) {
@@ -1117,7 +1067,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- الجدول ----------------
-
     void timetable() {
         page("📅 الجدول المدرسي");
         addCard("أيام الدراسة", "السبت، الأحد، الاثنين، الثلاثاء، الأربعاء\nالخميس والجمعة: إجازة");
@@ -1149,7 +1098,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- الإعلانات ----------------
-
     void announcements() {
         page("🔔 الإعلانات");
         if (admin()) {
@@ -1203,7 +1151,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- المستخدمون ----------------
-
     void users() {
         page("🔐 المستخدمون");
         if (!admin()) {
@@ -1289,7 +1236,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- التقارير ----------------
-
     void reports() {
         page("📈 التقارير");
         addCard(
@@ -1324,7 +1270,6 @@ public class MainActivity extends Activity {
     }
 
     // ---------------- النسخ الاحتياطي ----------------
-
     void files() {
         page("📁 النسخ الاحتياطي");
         addCard("البيانات", "يتم حفظ البيانات محليًا داخل قاعدة بيانات التطبيق.");
@@ -1354,10 +1299,17 @@ public class MainActivity extends Activity {
                 Toast.makeText(this, "تعذر إنشاء النسخة: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
+
+        Button selectLogoBtn = btn("🖼️ اختيار شعار المدرسة من الهاتف");
+        content.addView(selectLogoBtn, new LinearLayout.LayoutParams(-1, dp(52)));
+        selectLogoBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            startActivityForResult(Intent.createChooser(intent, "اختر شعار المدرسة"), 1001);
+        });
     }
 
     // ---------------- PDF: شهادة الطالب ----------------
-
     void generateCertificatePdf(String id) {
         String[] student = db.student(id);
         if (student == null) {
@@ -1442,8 +1394,7 @@ public class MainActivity extends Activity {
         savePdf(document, "certificate_" + id + ".pdf");
     }
 
-    // ---------------- PDF: كشف الصف ----------------
-
+    // ---------------- PDF: كشف النتائج السنوي المحدث (الشعارين + من اليمين) ----------------
     void generateClassSheetPdf(String grade, String classroom) {
         ArrayList<String[]> students = studentsForClass(grade, classroom);
         if (students.isEmpty()) {
@@ -1457,50 +1408,114 @@ public class MainActivity extends Activity {
             return Double.compare(totalB, totalA);
         });
 
+        ArrayList<String> activeSubjects = new ArrayList<>();
+        activeSubjects.add("القرآن الكريم");
+        activeSubjects.add("التربية الإسلامية");
+        activeSubjects.add("اللغة العربية");
+        activeSubjects.add("الرياضيات");
+        activeSubjects.add("العلوم");
+        activeSubjects.add("الاجتماعيات");
+        activeSubjects.add("اللغة الإنجليزية");
+
         PdfDocument document = new PdfDocument();
-        int width = 842, height = 595, perPage = 18;
+        int width = 842;
+        int height = 595;
+        int perPage = 15;
 
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(Color.BLACK);
-        p.setTextAlign(Paint.Align.CENTER);
         line.setColor(Color.BLACK);
         line.setStyle(Paint.Style.STROKE);
+        line.setStrokeWidth(0.8f);
 
         int pageNumber = 0;
-        int[] widths = {32, 140, 52, 52, 52, 52, 52, 60, 60, 50, 58, 60};
-        String[] headers = {"م", "اسم الطالب", "قرآن", "إسلامية", "عربي", "رياضيات", "علوم", "اجتماعيات", "إنجليزي", "السلوك", "المجموع", "النتيجة"};
 
-        int totalWidth = 0;
-        for (int w : widths) totalWidth += w;
-        int startX = (width - totalWidth) / 2;
+        ArrayList<String> headers = new ArrayList<>();
+        ArrayList<Integer> widths = new ArrayList<>();
+
+        headers.add("م"); widths.add(30);
+        headers.add("اسم الطالب"); widths.add(130);
+
+        for (String sub : activeSubjects) {
+            headers.add(sub + " (مح)"); widths.add(45);
+            headers.add(sub + " (اخت)"); widths.add(45);
+            headers.add(sub + " (مجم)"); widths.add(45);
+        }
+
+        headers.add("المجموع العام"); widths.add(65);
+        headers.add("النتيجة"); widths.add(55);
 
         for (int start = 0; start < students.size(); start += perPage) {
             pageNumber++;
             PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(width, height, pageNumber).create();
             PdfDocument.Page page = document.startPage(info);
             Canvas canvas = page.getCanvas();
+            canvas.drawColor(Color.WHITE);
+
+            canvas.drawRect(15, 15, width - 15, height - 15, line);
+
+            // الشعار اليمني في الزاوية العلوية اليمنى
+            Paint emblemPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            emblemPaint.setColor(Color.BLACK);
+            emblemPaint.setTextAlign(Paint.Align.CENTER);
+
+            int emblemBoxRight = width - 30;
+            int emblemBoxTop = 20;
+            int emblemBoxWidth = 65;
+            int emblemBoxHeight = 46;
+            
+            canvas.drawRect(emblemBoxRight - emblemBoxWidth, emblemBoxTop, emblemBoxRight, emblemBoxTop + emblemBoxHeight, line);
+            emblemPaint.setTextSize(16);
+            canvas.drawText("🦅", emblemBoxRight - (emblemBoxWidth / 2f), emblemBoxTop + 22, emblemPaint);
+            emblemPaint.setTextSize(6.5f);
+            canvas.drawText("الجمهورية اليمنية", emblemBoxRight - (emblemBoxWidth / 2f), emblemBoxTop + 38, emblemPaint);
+
+            // شعار المدرسة في الزاوية العلوية اليسرى
+            int logoBoxLeft = 30;
+            int logoBoxTop = 20;
+            int logoBoxWidth = 55;
+            int logoBoxHeight = 46;
+            
+            File logoFile = new File(getFilesDir(), "school_logo.png");
+            if (logoFile.exists()) {
+                try {
+                    Bitmap logoBitmap = BitmapFactory.decodeFile(logoFile.getAbsolutePath());
+                    if (logoBitmap != null) {
+                        Rect dstRect = new Rect(logoBoxLeft, logoBoxTop, logoBoxLeft + logoBoxWidth, logoBoxTop + logoBoxHeight);
+                        canvas.drawBitmap(logoBitmap, null, dstRect, null);
+                    }
+                } catch (Exception e) {
+                    canvas.drawRect(logoBoxLeft, logoBoxTop, logoBoxLeft + logoBoxWidth, logoBoxTop + logoBoxHeight, line);
+                }
+            } else {
+                canvas.drawRect(logoBoxLeft, logoBoxTop, logoBoxLeft + logoBoxWidth, logoBoxTop + logoBoxHeight, line);
+                emblemPaint.setTextSize(6f);
+                canvas.drawText("شعار المدرسة", logoBoxLeft + (logoBoxWidth / 2f), logoBoxTop + 25, emblemPaint);
+            }
+
+            p.setTextSize(11);
+            p.setFakeBoldText(true);
+            p.setTextAlign(Paint.Align.CENTER);
+            canvas.drawText("الجمهورية اليمنية - وزارة التربية والتعليم", width / 2f, 32, p);
+            canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية", width / 2f, 47, p);
 
             p.setTextSize(12);
-            p.setFakeBoldText(true);
-            canvas.drawRect(12, 12, width - 12, height - 12, line);
-            canvas.drawText("الجمهورية اليمنية - وزارة التربية والتعليم", width / 2f, 32, p);
-            canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية", width / 2f, 49, p);
-
-            p.setTextSize(13);
-            canvas.drawText("كشف النتائج السنوية - الصف " + grade + " / " + classroom, width / 2f, 68, p);
+            canvas.drawText("كشف النتائج السنوية التفصيلي - الصف " + grade + " / " + classroom, width / 2f, 65, p);
 
             p.setFakeBoldText(false);
-            p.setTextSize(8);
+            p.setTextSize(7.5f);
 
-            int top = 82, rowHeight = 22;
-            int x = startX;
+            int top = 78;
+            int rowHeight = 22;
 
-            for (int col = 0; col < headers.length; col++) {
-                int next = x + widths[col];
-                canvas.drawRect(x, top, next, top + rowHeight, line);
-                canvas.drawText(headers[col], (x + next) / 2f, top + 14, p);
-                x = next;
+            int currentX = width - 25;
+            for (int col = 0; col < headers.size(); col++) {
+                int colWidth = widths.get(col);
+                currentX -= colWidth;
+
+                canvas.drawRect(currentX, top, currentX + colWidth, top + rowHeight, line);
+                drawCenteredText(canvas, headers.get(col), currentX, top, colWidth, rowHeight, p, 7);
             }
 
             int y = top + rowHeight;
@@ -1509,46 +1524,62 @@ public class MainActivity extends Activity {
                 String sid = st[1];
                 String sname = st[0];
 
-                x = startX;
-                for (int col = 0; col < headers.length; col++) {
-                    int next = x + widths[col];
-                    canvas.drawRect(x, y, next, y + rowHeight, line);
-                    x = next;
+                currentX = width - 25;
+                
+                currentX -= widths.get(0);
+                canvas.drawRect(currentX, y, currentX + widths.get(0), y + rowHeight, line);
+                drawCenteredText(canvas, String.valueOf(i + 1), currentX, y, widths.get(0), rowHeight, p, 8);
+
+                currentX -= widths.get(1);
+                canvas.drawRect(currentX, y, currentX + widths.get(1), y + rowHeight, line);
+                canvas.drawText(sname, currentX + 5, y + 15, p);
+
+                double studentGrandTotal = 0;
+                int headerIndex = 2;
+
+                for (String subject : activeSubjects) {
+                    double m1 = db.getMahsala(sid, subject, 1);
+                    double e1 = db.getExam(sid, subject, 1);
+                    double m2 = db.getMahsala(sid, subject, 2);
+                    double e2 = db.getExam(sid, subject, 2);
+                    
+                    double subAnnualTotal = (m1 + e1) + (m2 + e2);
+                    studentGrandTotal += subAnnualTotal;
+
+                    double totalMahsala = m1 + m2; 
+                    double totalExam = e1 + e2;
+
+                    int wMah = widths.get(headerIndex++);
+                    currentX -= wMah;
+                    canvas.drawRect(currentX, y, currentX + wMah, y + rowHeight, line);
+                    drawCenteredText(canvas, formatNumber(totalMahsala), currentX, y, wMah, rowHeight, p, 8);
+
+                    int wExam = widths.get(headerIndex++);
+                    currentX -= wExam;
+                    canvas.drawRect(currentX, y, currentX + wExam, y + rowHeight, line);
+                    drawCenteredText(canvas, formatNumber(totalExam), currentX, y, wExam, rowHeight, p, 8);
+
+                    int wTot = widths.get(headerIndex++);
+                    currentX -= wTot;
+                    canvas.drawRect(currentX, y, currentX + wTot, y + rowHeight, line);
+                    drawCenteredText(canvas, formatNumber(subAnnualTotal), currentX, y, wTot, rowHeight, p, 8);
                 }
 
-                canvas.drawText(String.valueOf(i + 1), startX + widths[0] / 2f, y + 14, p);
-                canvas.drawText(sname, startX + widths[0] + 5, y + 14, p);
+                int wGenTot = widths.get(headerIndex++);
+                currentX -= wGenTot;
+                canvas.drawRect(currentX, y, currentX + wGenTot, y + rowHeight, line);
+                drawCenteredText(canvas, formatNumber(studentGrandTotal), currentX, y, wGenTot, rowHeight, p, 8);
 
-                double studentSum = 0;
-                int colIdx = 2;
-
-                for (String subject : SUBJECTS_7) {
-                    double subTotal = db.getMahsala(sid, subject, 1) + db.getExam(sid, subject, 1)
-                        + db.getMahsala(sid, subject, 2) + db.getExam(sid, subject, 2);
-                    studentSum += subTotal;
-
-                    int colStartX = startX;
-                    for (int c = 0; c < colIdx; c++) colStartX += widths[c];
-
-                    canvas.drawText(formatNumber(subTotal), (colStartX + colStartX + widths[colIdx]) / 2f, y + 14, p);
-                    colIdx++;
-                }
-
-                // عمود السلوك (مثري افتراضي ممتاز)
-                int colStartX = startX;
-                for (int c = 0; c < 9; c++) colStartX += widths[c];
-                canvas.drawText("ممتاز", (colStartX + colStartX + widths[9]) / 2f, y + 14, p);
-
-                // عمود المجموع
-                colStartX = startX;
-                for (int c = 0; c < 10; c++) colStartX += widths[c];
-                canvas.drawText(formatNumber(studentSum), (colStartX + colStartX + widths[10]) / 2f, y + 14, p);
-
-                // عمود النتيجة
-                colStartX = startX;
-                for (int c = 0; c < 11; c++) colStartX += widths[c];
-                boolean isPassed = studentSum >= (SUBJECTS_7.length * 100.0 * 0.5);
-                canvas.drawText(isPassed ? "ناجح" : "راسب", (colStartX + colStartX + widths[11]) / 2f, y + 14, p);
+                int wRes = widths.get(headerIndex++);
+                currentX -= wRes;
+                canvas.drawRect(currentX, y, currentX + wRes, y + rowHeight, line);
+                
+                double maxPossible = activeSubjects.size() * 100.0;
+                boolean isPassed = (studentGrandTotal >= (maxPossible * 0.5));
+                
+                p.setFakeBoldText(true);
+                drawCenteredText(canvas, isPassed ? "ناجح" : "راسب", currentX, y, wRes, rowHeight, p, 8);
+                p.setFakeBoldText(false);
 
                 y += rowHeight;
             }
@@ -1556,11 +1587,18 @@ public class MainActivity extends Activity {
             document.finishPage(page);
         }
 
-        savePdf(document, "class_sheet_" + grade + "_" + classroom + ".pdf");
+        savePdf(document, "class_detailed_sheet_" + grade + "_" + classroom + ".pdf");
+    }
+
+    private void drawCenteredText(Canvas canvas, String text, int left, int top, int width, int height, Paint paint, float textSize) {
+        paint.setTextSize(textSize);
+        float textWidth = paint.measureText(text);
+        float x = left + (width - textWidth) / 2f;
+        float y = top + (height / 2f) + (textSize / 3f);
+        canvas.drawText(text, x, y, paint);
     }
 
     // ---------------- PDF: بطاقات النتائج ----------------
-
     void generateExamCardsPdf(String grade, String classroom, int semester) {
         ArrayList<String[]> students = studentsForClass(grade, classroom);
         if (students == null || students.isEmpty()) {
@@ -1639,236 +1677,4 @@ public class MainActivity extends Activity {
                     text.setFakeBoldText(false);
 
                     double total = 0;
-                    int y = tableTop + rowHeight;
-
-                    for (String subject : SUBJECTS_7) {
-                        double m = db.getMahsala(studentId, subject, semester);
-                        double e = db.getExam(studentId, subject, semester);
-                        double subjectTotal = m + e;
-                        total += subjectTotal;
-
-                        y += rowHeight;
-                        canvas.drawLine(left + 5, y, right - 5, y, border);
-    // ---------------- PDF: كشف النتائج السنوي (من اليمين + الشعار اليمني في الزاوية العلوية اليمنى) ----------------
-
-    void generateClassSheetPdf(String grade, String classroom) {
-        ArrayList<String[]> students = studentsForClass(grade, classroom);
-        if (students.isEmpty()) {
-            Toast.makeText(this, "لا يوجد طلاب في هذا الصف", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // ترتيب الطلاب حسب المجموع السنوي تنازلياً
-        Collections.sort(students, (a, b) -> {
-            double totalA = annualStudentTotal(a[1]);
-            double totalB = annualStudentTotal(b[1]);
-            return Double.compare(totalB, totalA);
-        });
-
-        // قائمة المواد المراد عرضها (يمكنك حذف أو التعليق على أي مادة لإلغائها من الكشف)
-        ArrayList<String> activeSubjects = new ArrayList<>();
-        activeSubjects.add("القرآن الكريم");
-        activeSubjects.add("التربية الإسلامية");
-        activeSubjects.add("اللغة العربية");
-        activeSubjects.add("الرياضيات");
-        activeSubjects.add("العلوم");
-        activeSubjects.add("الاجتماعيات");
-        activeSubjects.add("اللغة الإنجليزية");
-
-        PdfDocument document = new PdfDocument();
-        int width = 842;  // عرض الصفحة (Landscape A4)
-        int height = 595; // ارتفاع الصفحة
-        int perPage = 15; // عدد الطلاب في الصفحة الواحدة
-
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setColor(Color.BLACK);
-        line.setColor(Color.BLACK);
-        line.setStyle(Paint.Style.STROKE);
-        line.setStrokeWidth(0.8f);
-
-        int pageNumber = 0;
-
-        ArrayList<String> headers = new ArrayList<>();
-        ArrayList<Integer> widths = new ArrayList<>();
-
-        headers.add("م"); widths.add(30);
-        headers.add("اسم الطالب"); widths.add(130);
-
-        for (String sub : activeSubjects) {
-            headers.add(sub + " (مح)"); widths.add(45);
-            headers.add(sub + " (اخت)"); widths.add(45);
-            headers.add(sub + " (مجم)"); widths.add(45);
-        }
-
-        headers.add("المجموع العام"); widths.add(65);
-        headers.add("النتيجة"); widths.add(55);
-
-        for (int start = 0; start < students.size(); start += perPage) {
-            pageNumber++;
-            PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(width, height, pageNumber).create();
-            PdfDocument.Page page = document.startPage(info);
-            Canvas canvas = page.getCanvas();
-            canvas.drawColor(Color.WHITE);
-
-            // إطار الصفحة الخارجي
-            canvas.drawRect(15, 15, width - 15, height - 15, line);
-
-                        // ==========================================
-            // 1. الشعار اليمني (النسر) في الزاوية العلوية اليمنى
-            // ==========================================
-            Paint emblemPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            emblemPaint.setColor(Color.BLACK);
-            emblemPaint.setTextAlign(Paint.Align.CENTER);
-
-            int emblemBoxRight = width - 30;
-            int emblemBoxTop = 20;
-            int emblemBoxWidth = 65;
-            int emblemBoxHeight = 46;
-            
-            canvas.drawRect(emblemBoxRight - emblemBoxWidth, emblemBoxTop, emblemBoxRight, emblemBoxTop + emblemBoxHeight, line);
-            emblemPaint.setTextSize(16);
-            canvas.drawText("🦅", emblemBoxRight - (emblemBoxWidth / 2f), emblemBoxTop + 22, emblemPaint);
-            emblemPaint.setTextSize(6.5f);
-            canvas.drawText("الجمهورية اليمنية", emblemBoxRight - (emblemBoxWidth / 2f), emblemBoxTop + 38, emblemPaint);
-
-            // ==========================================
-            // 2. شعار المدرسة المختار من الهاتف في الزاوية العلوية اليسرى
-            // ==========================================
-            int logoBoxLeft = 30;
-            int logoBoxTop = 20;
-            int logoBoxWidth = 55;
-            int logoBoxHeight = 46;
-            
-            File logoFile = new File(getFilesDir(), "school_logo.png");
-            if (logoFile.exists()) {
-                try {
-                    Bitmap logoBitmap = BitmapFactory.decodeFile(logoFile.getAbsolutePath());
-                    if (logoBitmap != null) {
-                        Rect dstRect = new Rect(logoBoxLeft, logoBoxTop, logoBoxLeft + logoBoxWidth, logoBoxTop + logoBoxHeight);
-                        canvas.drawBitmap(logoBitmap, null, dstRect, null);
-                    }
-                } catch (Exception e) {
-                    canvas.drawRect(logoBoxLeft, logoBoxTop, logoBoxLeft + logoBoxWidth, logoBoxTop + logoBoxHeight, line);
-                }
-            } else {
-                // رسم إطار افتراضي في حال لم يتم رفع شعار بعد
-                canvas.drawRect(logoBoxLeft, logoBoxTop, logoBoxLeft + logoBoxWidth, logoBoxTop + logoBoxHeight, line);
-                emblemPaint.setTextSize(6f);
-                canvas.drawText("شعار المدرسة", logoBoxLeft + (logoBoxWidth / 2f), logoBoxTop + 25, emblemPaint);
-            }
-
-            // ==========================================
-            // 3. ترويسة المدرسة (في المنتصف)
-            // ==========================================
-            p.setTextSize(11);
-            p.setFakeBoldText(true);
-            p.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("الجمهورية اليمنية - وزارة التربية والتعليم", width / 2f, 32, p);
-            canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية", width / 2f, 47, p);
-
-            p.setTextSize(12);
-            canvas.drawText("كشف النتائج السنوية التفصيلي - الصف " + grade + " / " + classroom, width / 2f, 65, p);
-
-            p.setFakeBoldText(false);
-            p.setTextSize(7.5f);
-
-            int top = 78;
-            int rowHeight = 22;
-
-            // رسم صف العناوين (من اليمين لليسار)
-            int currentX = width - 25; // ابدأ من جهة اليمين
-            for (int col = 0; col < headers.size(); col++) {
-                int colWidth = widths.get(col);
-                currentX -= colWidth;
-
-                canvas.drawRect(currentX, top, currentX + colWidth, top + rowHeight, line);
-                drawCenteredText(canvas, headers.get(col), currentX, top, colWidth, rowHeight, p, 7);
-            }
-
-            // رسم صفوف الطلاب
-            int y = top + rowHeight;
-            for (int i = start; i < Math.min(start + perPage, students.size()); i++) {
-                String[] st = students.get(i);
-                String sid = st[1];
-                String sname = st[0];
-
-                currentX = width - 25;
-                
-                // 1. رسم خانة التسلسل (م)
-                currentX -= widths.get(0);
-                canvas.drawRect(currentX, y, currentX + widths.get(0), y + rowHeight, line);
-                drawCenteredText(canvas, String.valueOf(i + 1), currentX, y, widths.get(0), rowHeight, p, 8);
-
-                // 2. رسم خانة اسم الطالب
-                currentX -= widths.get(1);
-                canvas.drawRect(currentX, y, currentX + widths.get(1), y + rowHeight, line);
-                canvas.drawText(sname, currentX + 5, y + 15, p);
-
-                double studentGrandTotal = 0;
-                int headerIndex = 2;
-
-                // 3. رسم درجات المواد المفعلة (محصلة، اختبار، مجموع) لكل مادة
-                for (String subject : activeSubjects) {
-                    double m1 = db.getMahsala(sid, subject, 1);
-                    double e1 = db.getExam(sid, subject, 1);
-                    double m2 = db.getMahsala(sid, subject, 2);
-                    double e2 = db.getExam(sid, subject, 2);
-                    
-                    double subAnnualTotal = (m1 + e1) + (m2 + e2);
-                    studentGrandTotal += subAnnualTotal;
-
-                    double totalMahsala = m1 + m2; 
-                    double totalExam = e1 + e2;
-
-                    int wMah = widths.get(headerIndex++);
-                    currentX -= wMah;
-                    canvas.drawRect(currentX, y, currentX + wMah, y + rowHeight, line);
-                    drawCenteredText(canvas, formatNumber(totalMahsala), currentX, y, wMah, rowHeight, p, 8);
-
-                    int wExam = widths.get(headerIndex++);
-                    currentX -= wExam;
-                    canvas.drawRect(currentX, y, currentX + wExam, y + rowHeight, line);
-                    drawCenteredText(canvas, formatNumber(totalExam), currentX, y, wExam, rowHeight, p, 8);
-
-                    int wTot = widths.get(headerIndex++);
-                    currentX -= wTot;
-                    canvas.drawRect(currentX, y, currentX + wTot, y + rowHeight, line);
-                    drawCenteredText(canvas, formatNumber(subAnnualTotal), currentX, y, wTot, rowHeight, p, 8);
-                }
-
-                // 4. المجموع العام
-                int wGenTot = widths.get(headerIndex++);
-                currentX -= wGenTot;
-                canvas.drawRect(currentX, y, currentX + wGenTot, y + rowHeight, line);
-                drawCenteredText(canvas, formatNumber(studentGrandTotal), currentX, y, wGenTot, rowHeight, p, 8);
-
-                // 5. النتيجة
-                int wRes = widths.get(headerIndex++);
-                currentX -= wRes;
-                canvas.drawRect(currentX, y, currentX + wRes, y + rowHeight, line);
-                
-                double maxPossible = activeSubjects.size() * 100.0;
-                boolean isPassed = (studentGrandTotal >= (maxPossible * 0.5));
-                
-                p.setFakeBoldText(true);
-                drawCenteredText(canvas, isPassed ? "ناجح" : "راسب", currentX, y, wRes, rowHeight, p, 8);
-                p.setFakeBoldText(false);
-
-                y += rowHeight;
-            }
-
-            document.finishPage(page);
-        }
-
-        savePdf(document, "class_detailed_sheet_" + grade + "_" + classroom + ".pdf");
-    }
- catch (Exception e) {
-            try {
-                document.close();
-            } catch (Exception ignored) {}
-
-            Toast.makeText(this, "تعذر إنشاء بطاقات النتائج: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-}
+                    int y = tableTop +
