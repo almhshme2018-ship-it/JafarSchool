@@ -124,7 +124,6 @@ public class MainActivity extends Activity {
 
     TextView tv(String text, int size, boolean bold) {
         TextView t = new TextView(this);
-
         t.setText(text == null ? "" : text);
         t.setTextSize(size);
         t.setTextColor(TEXT);
@@ -134,13 +133,11 @@ public class MainActivity extends Activity {
         );
         t.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
         t.setPadding(dp(12), dp(8), dp(12), dp(8));
-
         return t;
     }
 
     Button btn(String text) {
         Button b = new Button(this);
-
         b.setText(text);
         b.setTextSize(14);
         b.setTextColor(WHITE);
@@ -148,13 +145,11 @@ public class MainActivity extends Activity {
         b.setGravity(Gravity.CENTER);
         b.setPadding(dp(8), dp(5), dp(8), dp(5));
         b.setBackground(rounded(BLUE, 14));
-
         return b;
     }
 
     Button smallBtn(String text, int color) {
         Button b = new Button(this);
-
         b.setText(text);
         b.setTextSize(12);
         b.setTextColor(WHITE);
@@ -162,7 +157,6 @@ public class MainActivity extends Activity {
         b.setGravity(Gravity.CENTER);
         b.setPadding(dp(3), dp(2), dp(3), dp(2));
         b.setBackground(rounded(color, 10));
-
         return b;
     }
 
@@ -176,7 +170,6 @@ public class MainActivity extends Activity {
 
     void navigateTo(Runnable action) {
         if (action == null) return;
-
         navHistory.push(action);
 
         try {
@@ -256,7 +249,6 @@ public class MainActivity extends Activity {
 
     EditText edit(String hint) {
         EditText e = new EditText(this);
-
         e.setHint(hint);
         e.setTextSize(15);
         e.setSingleLine(true);
@@ -264,31 +256,24 @@ public class MainActivity extends Activity {
         e.setFocusable(true);
         e.setFocusableInTouchMode(true);
         e.setClickable(true);
-
         return e;
     }
 
     EditText scoreEdit(String hint) {
         EditText e = edit(hint);
-
         e.setGravity(Gravity.CENTER);
         e.setInputType(
             InputType.TYPE_CLASS_NUMBER
                 | InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
-
         return e;
     }
 
     double parse(EditText e) {
         try {
             String value = e.getText().toString().trim();
-
             if (value.isEmpty()) return 0;
-
-            value = value.replace(',', '.')
-                         .replace('٫', '.');
-
+            value = value.replace(',', '.').replace('٫', '.');
             return Double.parseDouble(value);
         } catch (Exception ex) {
             return 0;
@@ -303,15 +288,12 @@ public class MainActivity extends Activity {
         if (value == Math.round(value)) {
             return String.valueOf((int) value);
         }
-
         return String.format(Locale.US, "%.1f", value);
     }
 
     boolean admin() {
         if (role == null) return false;
-
         String r = role.trim();
-
         return r.equals("القائم بأعمال المدير")
             || r.equals("مدير المدرسة")
             || r.equals("مدير النظام");
@@ -329,11 +311,57 @@ public class MainActivity extends Activity {
         }
     }
 
+    double annualStudentTotal(String studentId) {
+        double total = 0;
+        for (String subject : SUBJECTS_7) {
+            total += db.getMahsala(studentId, subject, 1) + db.getExam(studentId, subject, 1);
+            total += db.getMahsala(studentId, subject, 2) + db.getExam(studentId, subject, 2);
+        }
+        return total;
+    }
+
+    // ---------------- حفظ وعرض ملفات الـ PDF ----------------
+
+    void savePdf(PdfDocument document, String fileName) {
+        try {
+            File folder = new File(getExternalFilesDir(null), "documents");
+            if (!folder.exists() && !folder.mkdirs()) {
+                throw new IOException("تعذر إنشاء مجلد المستندات");
+            }
+            File file = new File(folder, fileName);
+            FileOutputStream fos = new FileOutputStream(file);
+            document.writeTo(fos);
+            document.close();
+            fos.close();
+
+            Uri uri = FileProvider.getUriForFile(
+                this,
+                getPackageName() + ".fileprovider",
+                file
+            );
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
+
+        } catch (Exception e) {
+            try {
+                document.close();
+            } catch (Exception ignored) {}
+
+            Toast.makeText(
+                this,
+                "تعذر حفظ أو فتح ملف الـ PDF: " + e.getMessage(),
+                Toast.LENGTH_LONG
+            ).show();
+        }
+    }
+
     // ---------------- تسجيل الدخول ----------------
 
     void showLogin() {
         navHistory.clear();
-
         base();
 
         ScrollView scroll = new ScrollView(this);
@@ -345,27 +373,18 @@ public class MainActivity extends Activity {
         box.setPadding(dp(22), dp(22), dp(22), dp(22));
 
         scroll.addView(box);
-
-        root.addView(
-            scroll,
-            new LinearLayout.LayoutParams(-1, 0, 1)
-        );
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
         TextView logo = tv("🏫", 48, true);
         logo.setGravity(Gravity.CENTER);
         box.addView(logo);
 
-        TextView title = tv(
-            "مدرسة جعفر بن أبي طالب الأساسية",
-            21,
-            true
-        );
+        TextView title = tv("مدرسة جعفر بن أبي طالب الأساسية", 21, true);
         title.setGravity(Gravity.CENTER);
         box.addView(title);
 
         TextView address = tv(
-            "الجمهورية اليمنية - إب - مذيخرة - الأشعوب\n"
-                + "نظام إدارة المدرسة",
+            "الجمهورية اليمنية - إب - مذيخرة - الأشعوب\nنظام إدارة المدرسة",
             13,
             false
         );
@@ -380,22 +399,11 @@ public class MainActivity extends Activity {
                 | InputType.TYPE_TEXT_VARIATION_PASSWORD
         );
 
-        box.addView(
-            username,
-            new LinearLayout.LayoutParams(-1, dp(55))
-        );
-
-        box.addView(
-            password,
-            new LinearLayout.LayoutParams(-1, dp(55))
-        );
+        box.addView(username, new LinearLayout.LayoutParams(-1, dp(55)));
+        box.addView(password, new LinearLayout.LayoutParams(-1, dp(55)));
 
         Button login = btn("دخول");
-
-        box.addView(
-            login,
-            new LinearLayout.LayoutParams(-1, dp(52))
-        );
+        box.addView(login, new LinearLayout.LayoutParams(-1, dp(52)));
 
         TextView hint = tv("الحساب الافتراضي: admin / 1234", 12, false);
         hint.setGravity(Gravity.CENTER);
@@ -406,11 +414,7 @@ public class MainActivity extends Activity {
             String p = password.getText().toString();
 
             if (u.isEmpty() || p.isEmpty()) {
-                Toast.makeText(
-                    this,
-                    "أدخل اسم المستخدم وكلمة المرور",
-                    Toast.LENGTH_SHORT
-                ).show();
+                Toast.makeText(this, "أدخل اسم المستخدم وكلمة المرور", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -420,11 +424,7 @@ public class MainActivity extends Activity {
                 String[] a = db.authenticate(u, p);
 
                 if (a == null || a.length < 5) {
-                    Toast.makeText(
-                        this,
-                        "اسم المستخدم أو كلمة المرور غير صحيحة",
-                        Toast.LENGTH_LONG
-                    ).show();
+                    Toast.makeText(this, "اسم المستخدم أو كلمة المرور غير صحيحة", Toast.LENGTH_LONG).show();
                     return;
                 }
 
@@ -438,11 +438,7 @@ public class MainActivity extends Activity {
                 navigateTo(this::showHome);
 
             } catch (Exception ex) {
-                Toast.makeText(
-                    this,
-                    "تعذر تسجيل الدخول: " + ex.getMessage(),
-                    Toast.LENGTH_LONG
-                ).show();
+                Toast.makeText(this, "تعذر تسجيل الدخول: " + ex.getMessage(), Toast.LENGTH_LONG).show();
             } finally {
                 login.setEnabled(true);
             }
@@ -466,17 +462,10 @@ public class MainActivity extends Activity {
         );
 
         Button logout = btn("خروج");
-        header.addView(
-            logout,
-            new LinearLayout.LayoutParams(dp(82), dp(44))
-        );
-
+        header.addView(logout, new LinearLayout.LayoutParams(dp(82), dp(44)));
         logout.setOnClickListener(v -> showLogin());
 
-        root.addView(
-            header,
-            new LinearLayout.LayoutParams(-1, -2)
-        );
+        root.addView(header, new LinearLayout.LayoutParams(-1, -2));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -486,11 +475,7 @@ public class MainActivity extends Activity {
         content.setPadding(dp(8), dp(8), dp(8), dp(20));
 
         scroll.addView(content);
-
-        root.addView(
-            scroll,
-            new LinearLayout.LayoutParams(-1, 0, 1)
-        );
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
         LinearLayout stats = new LinearLayout(this);
         stats.setOrientation(LinearLayout.HORIZONTAL);
@@ -509,7 +494,6 @@ public class MainActivity extends Activity {
 
             LinearLayout.LayoutParams p =
                 new LinearLayout.LayoutParams(0, dp(70), 1);
-
             p.setMargins(dp(2), dp(3), dp(2), dp(6));
             stats.addView(item, p);
         }
@@ -517,7 +501,6 @@ public class MainActivity extends Activity {
         content.addView(stats);
 
         ArrayList<String[]> items = new ArrayList<>();
-
         items.add(new String[]{"👨‍🎓 الطلاب", "students"});
         items.add(new String[]{"📊 الدرجات", "grades"});
         items.add(new String[]{"✅ الحضور", "attendance"});
@@ -536,19 +519,14 @@ public class MainActivity extends Activity {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
 
-            content.addView(
-                row,
-                new LinearLayout.LayoutParams(-1, dp(72))
-            );
+            content.addView(row, new LinearLayout.LayoutParams(-1, dp(72)));
 
             for (int j = i; j < Math.min(i + 2, items.size()); j++) {
                 String[] item = items.get(j);
-
                 Button b = btn(item[0]);
 
                 LinearLayout.LayoutParams p =
                     new LinearLayout.LayoutParams(0, dp(62), 1);
-
                 p.setMargins(dp(3), dp(3), dp(3), dp(3));
                 row.addView(b, p);
 
@@ -557,7 +535,6 @@ public class MainActivity extends Activity {
         }
 
         String announcements;
-
         try {
             announcements = db.latestAnnouncements();
         } catch (Exception e) {
@@ -569,36 +546,16 @@ public class MainActivity extends Activity {
 
     void open(String key) {
         switch (key) {
-            case "students":
-                navigateTo(this::students);
-                break;
-            case "grades":
-                navigateTo(this::grades);
-                break;
-            case "attendance":
-                navigateTo(this::attendance);
-                break;
-            case "timetable":
-                navigateTo(this::timetable);
-                break;
-            case "teachers":
-                navigateTo(this::teachers);
-                break;
-            case "classes":
-                navigateTo(this::classes);
-                break;
-            case "reports":
-                navigateTo(this::reports);
-                break;
-            case "announcements":
-                navigateTo(this::announcements);
-                break;
-            case "users":
-                if (admin()) navigateTo(this::users);
-                break;
-            case "files":
-                if (admin()) navigateTo(this::files);
-                break;
+            case "students": navigateTo(this::students); break;
+            case "grades": navigateTo(this::grades); break;
+            case "attendance": navigateTo(this::attendance); break;
+            case "timetable": navigateTo(this::timetable); break;
+            case "teachers": navigateTo(this::teachers); break;
+            case "classes": navigateTo(this::classes); break;
+            case "reports": navigateTo(this::reports); break;
+            case "announcements": navigateTo(this::announcements); break;
+            case "users": if (admin()) navigateTo(this::users); break;
+            case "files": if (admin()) navigateTo(this::files); break;
         }
     }
 
@@ -608,19 +565,11 @@ public class MainActivity extends Activity {
         page("👨‍🎓 الطلاب");
 
         EditText search = edit("ابحث باسم الطالب أو رقمه");
-        content.addView(
-            search,
-            new LinearLayout.LayoutParams(-1, dp(52))
-        );
+        content.addView(search, new LinearLayout.LayoutParams(-1, dp(52)));
 
         if (admin()) {
             Button add = btn("＋ إضافة طالب");
-
-            content.addView(
-                add,
-                new LinearLayout.LayoutParams(-1, dp(52))
-            );
-
+            content.addView(add, new LinearLayout.LayoutParams(-1, dp(52)));
             add.setOnClickListener(v -> studentDialog(null));
         }
 
@@ -630,43 +579,23 @@ public class MainActivity extends Activity {
 
         Runnable refresh = () -> {
             list.removeAllViews();
-
-            for (String[] s : db.students(
-                search.getText().toString().trim()
-            )) {
+            for (String[] s : db.students(search.getText().toString().trim())) {
                 if (s.length < 4) continue;
 
                 Button b = btn(
-                    s[0]
-                        + "\nالرقم: " + s[1]
-                        + " | الصف: " + s[2]
-                        + " / " + s[3]
+                    s[0] + "\nالرقم: " + s[1] + " | الصف: " + s[2] + " / " + s[3]
                 );
-
                 b.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
-
-                list.addView(
-                    b,
-                    new LinearLayout.LayoutParams(-1, dp(68))
-                );
+                list.addView(b, new LinearLayout.LayoutParams(-1, dp(68)));
 
                 String id = s[1];
-
-                b.setOnClickListener(
-                    v -> navigateTo(() -> studentDetails(id))
-                );
+                b.setOnClickListener(v -> navigateTo(() -> studentDetails(id)));
             }
         };
 
         search.addTextChangedListener(new TextWatcher() {
-            public void beforeTextChanged(
-                CharSequence s, int start, int count, int after) {}
-
-            public void onTextChanged(
-                CharSequence s, int start, int before, int count) {
-                refresh.run();
-            }
-
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) { refresh.run(); }
             public void afterTextChanged(Editable e) {}
         });
 
@@ -698,13 +627,8 @@ public class MainActivity extends Activity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(8), dp(4), dp(8), dp(4));
 
-        for (EditText e : new EditText[]{
-            name, number, grade, classroom, parent, phone
-        }) {
-            box.addView(
-                e,
-                new LinearLayout.LayoutParams(-1, dp(50))
-            );
+        for (EditText e : new EditText[]{name, number, grade, classroom, parent, phone}) {
+            box.addView(e, new LinearLayout.LayoutParams(-1, dp(50)));
         }
 
         ScrollView scroll = new ScrollView(this);
@@ -718,69 +642,46 @@ public class MainActivity extends Activity {
             .create();
 
         dialog.setOnShowListener(d -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(v -> {
-                    String n = name.getText().toString().trim();
-                    String sid = number.getText().toString().trim();
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String n = name.getText().toString().trim();
+                String sid = number.getText().toString().trim();
 
-                    if (n.isEmpty() || sid.isEmpty()) {
-                        Toast.makeText(
-                            this,
-                            "اسم الطالب ورقمه مطلوبان",
-                            Toast.LENGTH_SHORT
-                        ).show();
-                        return;
-                    }
+                if (n.isEmpty() || sid.isEmpty()) {
+                    Toast.makeText(this, "اسم الطالب ورقمه مطلوبان", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-                    boolean saved = db.saveStudent(
-                        n,
-                        sid,
-                        grade.getText().toString().trim(),
-                        classroom.getText().toString().trim(),
-                        parent.getText().toString().trim(),
-                        phone.getText().toString().trim()
-                    );
+                boolean saved = db.saveStudent(
+                    n, sid,
+                    grade.getText().toString().trim(),
+                    classroom.getText().toString().trim(),
+                    parent.getText().toString().trim(),
+                    phone.getText().toString().trim()
+                );
 
-                    if (saved) {
-                        dialog.dismiss();
-                        students();
-                        Toast.makeText(
-                            this,
-                            "تم حفظ بيانات الطالب",
-                            Toast.LENGTH_SHORT
-                        ).show();
-                    } else {
-                        Toast.makeText(
-                            this,
-                            "تعذر حفظ بيانات الطالب",
-                            Toast.LENGTH_LONG
-                        ).show();
-                    }
-                });
+                if (saved) {
+                    dialog.dismiss();
+                    students();
+                    Toast.makeText(this, "تم حفظ بيانات الطالب", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "تعذر حفظ بيانات الطالب", Toast.LENGTH_LONG).show();
+                }
+            });
         });
 
         dialog.show();
-        dialog.getWindow().setSoftInputMode(
-            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-        );
+        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
-    ArrayList<String[]> studentsForClass(
-        String grade, String classroom) {
-
-        ArrayList<String[]> result =
-            db.studentsInClass(grade, classroom);
-
+    ArrayList<String[]> studentsForClass(String grade, String classroom) {
+        ArrayList<String[]> result = db.studentsInClass(grade, classroom);
         if (!result.isEmpty()) return result;
 
         for (String[] s : db.students("")) {
-            if (s.length >= 4
-                && grade.equals(s[2])
-                && classroom.equals(s[3])) {
+            if (s.length >= 4 && grade.equals(s[2]) && classroom.equals(s[3])) {
                 result.add(new String[]{s[0], s[1]});
             }
         }
-
         return result;
     }
 
@@ -788,7 +689,6 @@ public class MainActivity extends Activity {
         page("👨‍🎓 ملف الطالب");
 
         String[] s = db.student(id);
-
         if (s == null) {
             addCard("تنبيه", "لم يتم العثور على بيانات الطالب.");
             return;
@@ -796,25 +696,16 @@ public class MainActivity extends Activity {
 
         addCard(
             "بيانات الطالب",
-            "الاسم: " + s[0]
-                + "\nالرقم: " + s[1]
-                + "\nالصف: " + s[2] + " / " + s[3]
-                + "\nولي الأمر: " + s[4]
-                + "\nالهاتف: " + s[5]
+            "الاسم: " + s[0] + "\nالرقم: " + s[1] + "\nالصف: " + s[2] + " / " + s[3]
+                + "\nولي الأمر: " + s[4] + "\nالهاتف: " + s[5]
         );
 
         double grandTotal = 0;
         boolean allPass = true;
 
         for (String subject : SUBJECTS_7) {
-            double first =
-                db.getMahsala(id, subject, 1)
-                    + db.getExam(id, subject, 1);
-
-            double second =
-                db.getMahsala(id, subject, 2)
-                    + db.getExam(id, subject, 2);
-
+            double first = db.getMahsala(id, subject, 1) + db.getExam(id, subject, 1);
+            double second = db.getMahsala(id, subject, 2) + db.getExam(id, subject, 2);
             double annual = first + second;
             grandTotal += annual;
 
@@ -843,54 +734,37 @@ public class MainActivity extends Activity {
         );
 
         Button certificate = btn("🖨️ شهادة النتيجة PDF");
-        content.addView(
-            certificate,
-            new LinearLayout.LayoutParams(-1, dp(52))
-        );
+        content.addView(certificate, new LinearLayout.LayoutParams(-1, dp(52)));
         certificate.setOnClickListener(v -> generateCertificatePdf(id));
 
         if (admin()) {
             Button edit = btn("✏️ تعديل بيانات الطالب");
-
-            content.addView(
-                edit,
-                new LinearLayout.LayoutParams(-1, dp(52))
-            );
-
+            content.addView(edit, new LinearLayout.LayoutParams(-1, dp(52)));
             edit.setOnClickListener(v -> studentDialog(id));
         }
 
-        addCard(
-            "ملخص الحضور",
-            db.studentAttendanceSummary(id)
-        );
+        addCard("ملخص الحضور", db.studentAttendanceSummary(id));
     }
 
     // ---------------- الصفوف ----------------
 
     ArrayList<String[]> allowedClasses() {
         ArrayList<String[]> all = db.classes();
-
         if (admin()) return all;
 
         ArrayList<String[]> result = new ArrayList<>();
-
         if (isTeacher()) {
             for (String[] c : all) {
-                if (c.length >= 2
-                    && c[0].equals(assignedGrade)
-                    && c[1].equals(assignedClass)) {
+                if (c.length >= 2 && c[0].equals(assignedGrade) && c[1].equals(assignedClass)) {
                     result.add(c);
                 }
             }
         }
-
         return result;
     }
 
     void classes() {
         page("🏫 الصفوف");
-
         ArrayList<String[]> list = allowedClasses();
 
         if (list.isEmpty()) {
@@ -910,40 +784,26 @@ public class MainActivity extends Activity {
 
     void grades() {
         page("📊 الدرجات");
-
         addCard(
             "إدخال الدرجات",
             "اختر الصف والشعبة، ثم اضغط على خانة المادة لإدخال المحصلة والاختبار."
-                + "\nالمحصلة: 20 درجة"
-                + "\nالاختبار: 30 درجة"
+                + "\nالمحصلة: 20 درجة\nالاختبار: 30 درجة"
         );
 
         ArrayList<String[]> classes = allowedClasses();
-
         if (classes.isEmpty()) {
-            addCard(
-                "لا توجد صفوف متاحة",
-                "أضف الطلاب وحدد صفوفهم وشعبهم أولاً."
-            );
+            addCard("لا توجد صفوف متاحة", "أضف الطلاب وحدد صفوفهم وشعبهم أولاً.");
             return;
         }
 
         for (String[] c : classes) {
             if (c.length < 2) continue;
-
             String g = c[0];
             String cl = c[1];
 
             Button b = btn("📚 الصف " + g + " - الشعبة " + cl);
-
-            content.addView(
-                b,
-                new LinearLayout.LayoutParams(-1, dp(54))
-            );
-
-            b.setOnClickListener(
-                v -> navigateTo(() -> classGrades(g, cl))
-            );
+            content.addView(b, new LinearLayout.LayoutParams(-1, dp(54)));
+            b.setOnClickListener(v -> navigateTo(() -> classGrades(g, cl)));
         }
     }
 
@@ -951,7 +811,6 @@ public class MainActivity extends Activity {
         page("📊 درجات " + grade + " / " + classroom);
 
         Spinner semester = new Spinner(this);
-
         semester.setAdapter(
             new ArrayAdapter<>(
                 this,
@@ -959,77 +818,45 @@ public class MainActivity extends Activity {
                 new String[]{"الفصل الأول", "الفصل الثاني"}
             )
         );
+        content.addView(semester, new LinearLayout.LayoutParams(-1, dp(50)));
 
-        content.addView(
-            semester,
-            new LinearLayout.LayoutParams(-1, dp(50))
-        );
-
-        TextView instructions = tv(
-            "اضغط على زر المادة في صف الطالب لإدخال الدرجات.",
-            13,
-            false
-        );
+        TextView instructions = tv("اضغط على زر المادة في صف الطالب لإدخال الدرجات.", 13, false);
         content.addView(instructions);
 
         HorizontalScrollView horizontal = new HorizontalScrollView(this);
-        horizontal.setFillViewport(false);
-
         LinearLayout table = new LinearLayout(this);
         table.setOrientation(LinearLayout.VERTICAL);
         table.setPadding(0, dp(5), 0, dp(10));
-
         horizontal.addView(table);
-
-        content.addView(
-            horizontal,
-            new LinearLayout.LayoutParams(-1, -2)
-        );
+        content.addView(horizontal, new LinearLayout.LayoutParams(-1, -2));
 
         Runnable render = () -> {
             table.removeAllViews();
-
             LinearLayout header = new LinearLayout(this);
             header.setOrientation(LinearLayout.HORIZONTAL);
             header.setBackgroundColor(WHITE);
 
             TextView studentHeading = tv("الطالب", 12, true);
             studentHeading.setGravity(Gravity.CENTER);
-
-            header.addView(
-                studentHeading,
-                new LinearLayout.LayoutParams(dp(155), dp(55))
-            );
+            header.addView(studentHeading, new LinearLayout.LayoutParams(dp(155), dp(55)));
 
             for (String subject : SUBJECTS_7) {
                 TextView h = tv(subject, 11, true);
                 h.setGravity(Gravity.CENTER);
-                header.addView(
-                    h,
-                    new LinearLayout.LayoutParams(dp(125), dp(55))
-                );
+                header.addView(h, new LinearLayout.LayoutParams(dp(125), dp(55)));
             }
-
             table.addView(header);
 
             int sem = semester.getSelectedItemPosition() + 1;
-
-            ArrayList<String[]> students =
-                studentsForClass(grade, classroom);
+            ArrayList<String[]> students = studentsForClass(grade, classroom);
 
             if (students.isEmpty()) {
-                TextView empty = tv(
-                    "لا يوجد طلاب في هذا الصف والشعبة.",
-                    14,
-                    true
-                );
-                table.addView(empty);
+                table.addView(tv("لا يوجد طلاب في هذا الصف والشعبة.", 14, true));
                 return;
             }
 
             for (String[] st : students) {
                 if (st.length < 2) continue;
-
                 String sid = st[1];
                 String studentName = st[0];
 
@@ -1037,135 +864,65 @@ public class MainActivity extends Activity {
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setBackground(rounded(WHITE, 8));
 
-                TextView name = tv(
-                    studentName + "\n" + sid,
-                    11,
-                    true
-                );
-
-                row.addView(
-                    name,
-                    new LinearLayout.LayoutParams(dp(155), dp(66))
-                );
+                TextView name = tv(studentName + "\n" + sid, 11, true);
+                row.addView(name, new LinearLayout.LayoutParams(dp(155), dp(66)));
 
                 for (String subject : SUBJECTS_7) {
                     double m = db.getMahsala(sid, subject, sem);
                     double e = db.getExam(sid, subject, sem);
                     double total = m + e;
 
-                    String label = (m == 0 && e == 0)
-                        ? "إدخال"
-                        : formatNumber(total) + " /50";
+                    String label = (m == 0 && e == 0) ? "إدخال" : formatNumber(total) + " /50";
+                    Button cell = smallBtn(label, (m == 0 && e == 0) ? ORANGE : GREEN);
 
-                    Button cell = smallBtn(
-                        label,
-                        (m == 0 && e == 0) ? ORANGE : GREEN
-                    );
-
-                    LinearLayout.LayoutParams p =
-                        new LinearLayout.LayoutParams(dp(125), dp(58));
-
+                    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(dp(125), dp(58));
                     p.setMargins(dp(2), dp(3), dp(2), dp(3));
                     row.addView(cell, p);
 
                     cell.setOnClickListener(v -> {
                         if (!admin() && !isTeacher()) {
-                            Toast.makeText(
-                                this,
-                                "ليست لديك صلاحية إدخال الدرجات",
-                                Toast.LENGTH_SHORT
-                            ).show();
+                            Toast.makeText(this, "ليست لديك صلاحية إدخال الدرجات", Toast.LENGTH_SHORT).show();
                             return;
                         }
-
-                        scoreDialog(
-                            sid,
-                            studentName,
-                            subject,
-                            sem,
-                            cell
-                        );
+                        scoreDialog(sid, studentName, subject, sem, cell);
                     });
                 }
-
                 table.addView(row);
             }
         };
 
-        semester.setOnItemSelectedListener(
-            new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(
-                    AdapterView<?> parent,
-                    View view,
-                    int position,
-                    long id) {
-                    render.run();
-                }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> parent) {}
+        semester.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                render.run();
             }
-        );
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
 
         render.run();
 
         Button sheet = btn("📋 كشف النتائج السنوي PDF");
-
-        content.addView(
-            sheet,
-            new LinearLayout.LayoutParams(-1, dp(52))
-        );
-
-        sheet.setOnClickListener(
-            v -> generateClassSheetPdf(grade, classroom)
-        );
+        content.addView(sheet, new LinearLayout.LayoutParams(-1, dp(52)));
+        sheet.setOnClickListener(v -> generateClassSheetPdf(grade, classroom));
 
         Button cards = btn("🖨️ بطاقات نتائج الفصل PDF");
-
-        content.addView(
-            cards,
-            new LinearLayout.LayoutParams(-1, dp(52))
-        );
-
-        cards.setOnClickListener(
-            v -> generateExamCardsPdf(
-                grade,
-                classroom,
-                semester.getSelectedItemPosition() + 1
-            )
-        );
+        content.addView(cards, new LinearLayout.LayoutParams(-1, dp(52)));
+        cards.setOnClickListener(v -> generateExamCardsPdf(grade, classroom, semester.getSelectedItemPosition() + 1));
     }
 
-    void scoreDialog(
-        String studentId,
-        String studentName,
-        String subject,
-        int sem,
-        Button cell) {
-
+    void scoreDialog(String studentId, String studentName, String subject, int sem, Button cell) {
         EditText mahsala = scoreEdit("المحصلة من 20");
         EditText exam = scoreEdit("الاختبار من 30");
 
-        double oldM = db.getMahsala(studentId, subject, sem);
-        double oldE = db.getExam(studentId, subject, sem);
-
-        mahsala.setText(formatNumber(oldM));
-        exam.setText(formatNumber(oldE));
+        mahsala.setText(formatNumber(db.getMahsala(studentId, subject, sem)));
+        exam.setText(formatNumber(db.getExam(studentId, subject, sem)));
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(10), dp(5), dp(10), dp(5));
-
-        box.addView(
-            mahsala,
-            new LinearLayout.LayoutParams(-1, dp(55))
-        );
-
-        box.addView(
-            exam,
-            new LinearLayout.LayoutParams(-1, dp(55))
-        );
+        box.addView(mahsala, new LinearLayout.LayoutParams(-1, dp(55)));
+        box.addView(exam, new LinearLayout.LayoutParams(-1, dp(55)));
 
         AlertDialog dialog = new AlertDialog.Builder(this)
             .setTitle(studentName + "\n" + subject)
@@ -1175,103 +932,40 @@ public class MainActivity extends Activity {
             .create();
 
         dialog.setOnShowListener(d -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(v -> {
-                    String mText = mahsala.getText().toString().trim();
-                    String eText = exam.getText().toString().trim();
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                double m = parse(mahsala);
+                double e = parse(exam);
 
-                    if (mText.isEmpty() || eText.isEmpty()) {
-                        Toast.makeText(
-                            this,
-                            "أدخل المحصلة والاختبار",
-                            Toast.LENGTH_SHORT
-                        ).show();
-                        return;
-                    }
+                if (m < 0 || m > 20 || e < 0 || e > 30) {
+                    Toast.makeText(this, "المحصلة من 0 إلى 20 والاختبار من 0 إلى 30", Toast.LENGTH_LONG).show();
+                    return;
+                }
 
-                    double m = parse(mahsala);
-                    double e = parse(exam);
+                try {
+                    db.setMahsala(studentId, subject, sem, m);
+                    db.setExam(studentId, subject, sem, e);
 
-                    if (m < 0 || m > 20 || e < 0 || e > 30) {
-                        Toast.makeText(
-                            this,
-                            "المحصلة من 0 إلى 20 والاختبار من 0 إلى 30",
-                            Toast.LENGTH_LONG
-                        ).show();
-                        return;
-                    }
+                    cell.setText(formatNumber(m + e) + " /50");
+                    cell.setBackground(rounded(GREEN, 10));
 
-                    try {
-                        db.setMahsala(studentId, subject, sem, m);
-                        db.setExam(studentId, subject, sem, e);
-
-                        cell.setText(formatNumber(m + e) + " /50");
-                        cell.setBackground(rounded(GREEN, 10));
-
-                        Toast.makeText(
-                            this,
-                            "تم حفظ درجات " + studentName,
-                            Toast.LENGTH_SHORT
-                        ).show();
-
-                        dialog.dismiss();
-
-                    } catch (Exception ex) {
-                        Toast.makeText(
-                            this,
-                            "تعذر حفظ الدرجات: " + ex.getMessage(),
-                            Toast.LENGTH_LONG
-                        ).show();
-                    }
-                });
+                    Toast.makeText(this, "تم حفظ درجات " + studentName, Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                } catch (Exception ex) {
+                    Toast.makeText(this, "تعذر حفظ الدرجات: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            });
         });
 
         dialog.show();
-
-        dialog.getWindow().setSoftInputMode(
-            WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
-                | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-        );
-
-        mahsala.setOnClickListener(v -> {
-            mahsala.requestFocus();
-            showKeyboard(mahsala);
-        });
-
-        exam.setOnClickListener(v -> {
-            exam.requestFocus();
-            showKeyboard(exam);
-        });
-    }
-
-    void showKeyboard(EditText field) {
-        field.requestFocus();
-
-        InputMethodManager imm =
-            (InputMethodManager) getSystemService(
-                INPUT_METHOD_SERVICE
-            );
-
-        if (imm != null) {
-            imm.showSoftInput(
-                field,
-                InputMethodManager.SHOW_IMPLICIT
-            );
-        }
     }
 
     // ---------------- الحضور ----------------
 
     void attendance() {
         page("✅ الحضور والغياب");
-
-        addCard(
-            "تسجيل الحضور",
-            "اختر الصف والشعبة، ثم حدد حالة كل طالب."
-        );
+        addCard("تسجيل الحضور", "اختر الصف والشعبة، ثم حدد حالة كل طالب.");
 
         ArrayList<String[]> classes = allowedClasses();
-
         if (classes.isEmpty()) {
             addCard("لا توجد صفوف", "أضف الطلاب أولاً.");
             return;
@@ -1279,46 +973,25 @@ public class MainActivity extends Activity {
 
         for (String[] c : classes) {
             if (c.length < 2) continue;
-
-            String grade = c[0];
-            String classroom = c[1];
-
-            Button b = btn(
-                "الصف " + grade + " - الشعبة " + classroom
-            );
-
-            content.addView(
-                b,
-                new LinearLayout.LayoutParams(-1, dp(52))
-            );
-
-            b.setOnClickListener(
-                v -> navigateTo(
-                    () -> attendanceClass(grade, classroom)
-                )
-            );
+            Button b = btn("الصف " + c[0] + " - الشعبة " + c[1]);
+            content.addView(b, new LinearLayout.LayoutParams(-1, dp(52)));
+            b.setOnClickListener(v -> navigateTo(() -> attendanceClass(c[0], c[1])));
         }
     }
 
     void attendanceClass(String grade, String classroom) {
         page("الحضور: " + grade + " / " + classroom);
-
-        ArrayList<String[]> students =
-            studentsForClass(grade, classroom);
+        ArrayList<String[]> students = studentsForClass(grade, classroom);
 
         if (students.isEmpty()) {
             addCard("لا يوجد طلاب", "أضف الطلاب إلى هذا الصف أولاً.");
             return;
         }
 
-        addCard(
-            "عدد الطلاب",
-            String.valueOf(students.size())
-        );
+        addCard("عدد الطلاب", String.valueOf(students.size()));
 
         for (String[] s : students) {
             if (s.length < 2) continue;
-
             String studentId = s[1];
             String studentName = s[0];
 
@@ -1326,56 +999,33 @@ public class MainActivity extends Activity {
             row.setOrientation(LinearLayout.VERTICAL);
             row.setPadding(dp(8), dp(6), dp(8), dp(6));
             row.setBackground(rounded(WHITE, 10));
-
             row.addView(tv(studentName, 14, true));
 
             LinearLayout actions = new LinearLayout(this);
             actions.setOrientation(LinearLayout.HORIZONTAL);
 
-            String[] statuses = {
-                "حاضر", "غائب", "متأخر", "غائب بعذر"
-            };
-
+            String[] statuses = {"حاضر", "غائب", "متأخر", "غائب بعذر"};
             int[] colors = {GREEN, RED, ORANGE, BLUE};
 
             for (int i = 0; i < statuses.length; i++) {
                 String status = statuses[i];
-
                 Button b = smallBtn(status, colors[i]);
-
-                LinearLayout.LayoutParams p =
-                    new LinearLayout.LayoutParams(0, dp(44), 1);
-
+                LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(44), 1);
                 p.setMargins(dp(2), dp(3), dp(2), dp(3));
                 actions.addView(b, p);
 
                 b.setOnClickListener(v -> {
                     if (!admin() && !isTeacher()) {
-                        Toast.makeText(
-                            this,
-                            "ليست لديك صلاحية تسجيل الحضور",
-                            Toast.LENGTH_SHORT
-                        ).show();
+                        Toast.makeText(this, "ليست لديك صلاحية تسجيل الحضور", Toast.LENGTH_SHORT).show();
                         return;
                     }
-
                     boolean saved = db.setAttendance(studentId, status);
-
-                    Toast.makeText(
-                        this,
-                        saved
-                            ? "تم تسجيل " + status + " للطالب " + studentName
-                            : "تعذر حفظ الحضور",
-                        Toast.LENGTH_SHORT
-                    ).show();
+                    Toast.makeText(this, saved ? "تم تسجيل " + status : "تعذر حفظ الحضور", Toast.LENGTH_SHORT).show();
                 });
             }
 
             row.addView(actions);
-
-            LinearLayout.LayoutParams p =
-                new LinearLayout.LayoutParams(-1, -2);
-
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
             p.setMargins(0, dp(4), 0, dp(4));
             content.addView(row, p);
         }
@@ -1385,51 +1035,32 @@ public class MainActivity extends Activity {
 
     void teachers() {
         page("👨‍🏫 المعلمون");
-
         if (admin()) {
             Button add = btn("＋ إضافة معلم");
-
-            content.addView(
-                add,
-                new LinearLayout.LayoutParams(-1, dp(52))
-            );
-
+            content.addView(add, new LinearLayout.LayoutParams(-1, dp(52)));
             add.setOnClickListener(v -> teacherDialog());
         }
 
-        CursorHelper:
-        {
-            android.database.Cursor c = null;
-
-            try {
-                c = getReadableTeachersCursor();
-
-                if (c == null || !c.moveToFirst()) {
-                    addCard("المعلمون", "لا توجد بيانات معلمين.");
-                    break CursorHelper;
-                }
-
-                do {
-                    String name = c.getString(1);
-                    String phone = c.isNull(2) ? "" : c.getString(2);
-                    String subject = c.isNull(3) ? "" : c.getString(3);
-                    String grade = c.isNull(4) ? "" : c.getString(4);
-                    String classroom = c.isNull(5) ? "" : c.getString(5);
-
-                    addCard(
-                        name,
-                        "الهاتف: " + phone
-                            + "\nالمادة: " + subject
-                            + "\nالصف: " + grade + " / " + classroom
-                    );
-
-                } while (c.moveToNext());
-
-            } catch (Exception e) {
-                addCard("المعلمون", "تعذر تحميل بيانات المعلمين.");
-            } finally {
-                if (c != null) c.close();
+        android.database.Cursor c = null;
+        try {
+            c = getReadableTeachersCursor();
+            if (c == null || !c.moveToFirst()) {
+                addCard("المعلمون", "لا توجد بيانات معلمين.");
+                return;
             }
+
+            do {
+                addCard(
+                    c.getString(1),
+                    "الهاتف: " + (c.isNull(2) ? "" : c.getString(2))
+                        + "\nالمادة: " + (c.isNull(3) ? "" : c.getString(3))
+                        + "\nالصف: " + (c.isNull(4) ? "" : c.getString(4)) + " / " + (c.isNull(5) ? "" : c.getString(5))
+                );
+            } while (c.moveToNext());
+        } catch (Exception e) {
+            addCard("المعلمون", "تعذر تحميل بيانات المعلمين.");
+        } finally {
+            if (c != null) c.close();
         }
     }
 
@@ -1450,14 +1081,8 @@ public class MainActivity extends Activity {
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-
-        for (EditText e : new EditText[]{
-            id, name, phone, subject, grade, classroom
-        }) {
-            box.addView(
-                e,
-                new LinearLayout.LayoutParams(-1, dp(48))
-            );
+        for (EditText e : new EditText[]{id, name, phone, subject, grade, classroom}) {
+            box.addView(e, new LinearLayout.LayoutParams(-1, dp(48)));
         }
 
         ScrollView scroll = new ScrollView(this);
@@ -1467,19 +1092,12 @@ public class MainActivity extends Activity {
             .setTitle("إضافة معلم")
             .setView(scroll)
             .setPositiveButton("حفظ", (d, w) -> {
-                if (id.getText().toString().trim().isEmpty()
-                    || name.getText().toString().trim().isEmpty()) {
-                    Toast.makeText(
-                        this,
-                        "رقم المعلم واسمه مطلوبان",
-                        Toast.LENGTH_SHORT
-                    ).show();
+                if (id.getText().toString().trim().isEmpty() || name.getText().toString().trim().isEmpty()) {
+                    Toast.makeText(this, "رقم المعلم واسمه مطلوبان", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                android.content.ContentValues cv =
-                    new android.content.ContentValues();
-
+                ContentValues cv = new ContentValues();
                 cv.put("id", id.getText().toString().trim());
                 cv.put("name", name.getText().toString().trim());
                 cv.put("phone", phone.getText().toString().trim());
@@ -1488,18 +1106,10 @@ public class MainActivity extends Activity {
                 cv.put("class", classroom.getText().toString().trim());
 
                 long result = db.getWritableDatabase().insertWithOnConflict(
-                    "teachers",
-                    null,
-                    cv,
-                    android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE
+                    "teachers", null, cv, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE
                 );
 
-                Toast.makeText(
-                    this,
-                    result == -1 ? "تعذر الحفظ" : "تم حفظ المعلم",
-                    Toast.LENGTH_SHORT
-                ).show();
-
+                Toast.makeText(this, result == -1 ? "تعذر الحفظ" : "تم حفظ المعلم", Toast.LENGTH_SHORT).show();
                 teachers();
             })
             .setNegativeButton("إلغاء", null)
@@ -1510,19 +1120,12 @@ public class MainActivity extends Activity {
 
     void timetable() {
         page("📅 الجدول المدرسي");
-
-        addCard(
-            "أيام الدراسة",
-            "السبت، الأحد، الاثنين، الثلاثاء، الأربعاء"
-                + "\nالخميس والجمعة: إجازة"
-        );
+        addCard("أيام الدراسة", "السبت، الأحد، الاثنين، الثلاثاء، الأربعاء\nالخميس والجمعة: إجازة");
 
         android.database.Cursor c = null;
-
         try {
             c = db.getReadableDatabase().rawQuery(
-                "SELECT grade,class,day,period,subject,teacher " +
-                "FROM timetable ORDER BY grade,class,day,period",
+                "SELECT grade,class,day,period,subject,teacher FROM timetable ORDER BY grade,class,day,period",
                 null
             );
 
@@ -1534,13 +1137,10 @@ public class MainActivity extends Activity {
             do {
                 addCard(
                     "الصف " + c.getString(0) + " / " + c.getString(1),
-                    "اليوم: " + c.getString(2)
-                        + "\nالحصة: " + c.getInt(3)
-                        + "\nالمادة: " + c.getString(4)
-                        + "\nالمعلم: " + c.getString(5)
+                    "اليوم: " + c.getString(2) + "\nالحصة: " + c.getInt(3)
+                        + "\nالمادة: " + c.getString(4) + "\nالمعلم: " + c.getString(5)
                 );
             } while (c.moveToNext());
-
         } catch (Exception e) {
             addCard("الجدول", "تعذر تحميل الجدول.");
         } finally {
@@ -1552,26 +1152,15 @@ public class MainActivity extends Activity {
 
     void announcements() {
         page("🔔 الإعلانات");
-
         if (admin()) {
             Button add = btn("＋ إضافة إعلان");
-
-            content.addView(
-                add,
-                new LinearLayout.LayoutParams(-1, dp(52))
-            );
-
+            content.addView(add, new LinearLayout.LayoutParams(-1, dp(52)));
             add.setOnClickListener(v -> announcementDialog());
         }
 
         android.database.Cursor c = null;
-
         try {
-            c = db.getReadableDatabase().rawQuery(
-                "SELECT title,body,date FROM announcements ORDER BY id DESC",
-                null
-            );
-
+            c = db.getReadableDatabase().rawQuery("SELECT title,body,date FROM announcements ORDER BY id DESC", null);
             if (!c.moveToFirst()) {
                 addCard("الإعلانات", "لا توجد إعلانات.");
                 return;
@@ -1580,12 +1169,9 @@ public class MainActivity extends Activity {
             do {
                 addCard(
                     c.isNull(0) ? "" : c.getString(0),
-                    (c.isNull(1) ? "" : c.getString(1))
-                        + "\nالتاريخ: "
-                        + (c.isNull(2) ? "" : c.getString(2))
+                    (c.isNull(1) ? "" : c.getString(1)) + "\nالتاريخ: " + (c.isNull(2) ? "" : c.getString(2))
                 );
             } while (c.moveToNext());
-
         } catch (Exception e) {
             addCard("الإعلانات", "تعذر تحميل الإعلانات.");
         } finally {
@@ -1596,7 +1182,6 @@ public class MainActivity extends Activity {
     void announcementDialog() {
         EditText title = edit("عنوان الإعلان");
         EditText body = edit("نص الإعلان");
-
         body.setSingleLine(false);
         body.setMinLines(3);
 
@@ -1609,17 +1194,8 @@ public class MainActivity extends Activity {
             .setTitle("إضافة إعلان")
             .setView(box)
             .setPositiveButton("حفظ", (d, w) -> {
-                boolean saved = db.saveAnnouncement(
-                    title.getText().toString().trim(),
-                    body.getText().toString().trim()
-                );
-
-                Toast.makeText(
-                    this,
-                    saved ? "تم حفظ الإعلان" : "تعذر حفظ الإعلان",
-                    Toast.LENGTH_SHORT
-                ).show();
-
+                boolean saved = db.saveAnnouncement(title.getText().toString().trim(), body.getText().toString().trim());
+                Toast.makeText(this, saved ? "تم حفظ الإعلان" : "تعذر حفظ الإعلان", Toast.LENGTH_SHORT).show();
                 announcements();
             })
             .setNegativeButton("إلغاء", null)
@@ -1630,35 +1206,22 @@ public class MainActivity extends Activity {
 
     void users() {
         page("🔐 المستخدمون");
-
         if (!admin()) {
             addCard("تنبيه", "ليست لديك صلاحية إدارة المستخدمين.");
             return;
         }
 
         Button add = btn("＋ إضافة مستخدم");
-
-        content.addView(
-            add,
-            new LinearLayout.LayoutParams(-1, dp(52))
-        );
-
+        content.addView(add, new LinearLayout.LayoutParams(-1, dp(52)));
         add.setOnClickListener(v -> userDialog());
 
         android.database.Cursor c = null;
-
         try {
-            c = db.getReadableDatabase().rawQuery(
-                "SELECT name,username,role,grade,class FROM users ORDER BY name",
-                null
-            );
-
+            c = db.getReadableDatabase().rawQuery("SELECT name,username,role,grade,class FROM users ORDER BY name", null);
             while (c.moveToNext()) {
                 addCard(
                     c.getString(0) + " (" + c.getString(1) + ")",
-                    "الصلاحية: " + c.getString(2)
-                        + "\nالصف: " + c.getString(3)
-                        + "\nالشعبة: " + c.getString(4)
+                    "الصلاحية: " + c.getString(2) + "\nالصف: " + c.getString(3) + "\nالشعبة: " + c.getString(4)
                 );
             }
         } catch (Exception e) {
@@ -1676,32 +1239,19 @@ public class MainActivity extends Activity {
         EditText classroom = edit("الشعبة للمعلم");
 
         Spinner roles = new Spinner(this);
-
         roles.setAdapter(
             new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_dropdown_item,
-                new String[]{
-                    "معلم",
-                    "مدير المدرسة",
-                    "القائم بأعمال المدير",
-                    "مدير النظام"
-                }
+                new String[]{"معلم", "مدير المدرسة", "القائم بأعمال المدير", "مدير النظام"}
             )
         );
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-
-        for (EditText e : new EditText[]{
-            name, username, password, grade, classroom
-        }) {
-            box.addView(
-                e,
-                new LinearLayout.LayoutParams(-1, dp(48))
-            );
+        for (EditText e : new EditText[]{name, username, password, grade, classroom}) {
+            box.addView(e, new LinearLayout.LayoutParams(-1, dp(48)));
         }
-
         box.addView(roles);
 
         ScrollView scroll = new ScrollView(this);
@@ -1715,17 +1265,11 @@ public class MainActivity extends Activity {
                 String p = password.getText().toString();
 
                 if (u.isEmpty() || p.isEmpty()) {
-                    Toast.makeText(
-                        this,
-                        "اسم الدخول وكلمة المرور مطلوبان",
-                        Toast.LENGTH_SHORT
-                    ).show();
+                    Toast.makeText(this, "اسم الدخول وكلمة المرور مطلوبان", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                android.content.ContentValues cv =
-                    new android.content.ContentValues();
-
+                ContentValues cv = new ContentValues();
                 cv.put("name", name.getText().toString().trim());
                 cv.put("username", u);
                 cv.put("pass", p);
@@ -1734,18 +1278,10 @@ public class MainActivity extends Activity {
                 cv.put("class", classroom.getText().toString().trim());
 
                 long result = db.getWritableDatabase().insertWithOnConflict(
-                    "users",
-                    null,
-                    cv,
-                    android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE
+                    "users", null, cv, android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE
                 );
 
-                Toast.makeText(
-                    this,
-                    result == -1 ? "تعذر حفظ المستخدم" : "تم حفظ المستخدم",
-                    Toast.LENGTH_SHORT
-                ).show();
-
+                Toast.makeText(this, result == -1 ? "تعذر حفظ المستخدم" : "تم حفظ المستخدم", Toast.LENGTH_SHORT).show();
                 users();
             })
             .setNegativeButton("إلغاء", null)
@@ -1756,49 +1292,31 @@ public class MainActivity extends Activity {
 
     void reports() {
         page("📈 التقارير");
-
         addCard(
             "إحصاءات المدرسة",
-            "عدد الطلاب: " + safeCount("students")
-                + "\nعدد المعلمين: " + safeCount("teachers")
-                + "\nحاضر اليوم: " + db.todayPresent()
-                + "\nغائب اليوم: " + db.todayAbsent()
+            "عدد الطلاب: " + safeCount("students") + "\nعدد المعلمين: " + safeCount("teachers")
+                + "\nحاضر اليوم: " + db.todayPresent() + "\nغائب اليوم: " + db.todayAbsent()
         );
 
         Button report = btn("📋 كشف نتائج الصف PDF");
-
-        content.addView(
-            report,
-            new LinearLayout.LayoutParams(-1, dp(52))
-        );
+        content.addView(report, new LinearLayout.LayoutParams(-1, dp(52)));
 
         report.setOnClickListener(v -> {
             ArrayList<String[]> classes = allowedClasses();
-
             if (classes.isEmpty()) {
-                Toast.makeText(
-                    this,
-                    "لا توجد صفوف",
-                    Toast.LENGTH_SHORT
-                ).show();
+                Toast.makeText(this, "لا توجد صفوف", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             String[] options = new String[classes.size()];
-
             for (int i = 0; i < classes.size(); i++) {
-                options[i] =
-                    "الصف " + classes.get(i)[0]
-                        + " / " + classes.get(i)[1];
+                options[i] = "الصف " + classes.get(i)[0] + " / " + classes.get(i)[1];
             }
 
             new AlertDialog.Builder(this)
                 .setTitle("اختر الصف")
                 .setItems(options, (dialog, which) -> {
-                    generateClassSheetPdf(
-                        classes.get(which)[0],
-                        classes.get(which)[1]
-                    );
+                    generateClassSheetPdf(classes.get(which)[0], classes.get(which)[1]);
                 })
                 .setNegativeButton("إلغاء", null)
                 .show();
@@ -1809,18 +1327,10 @@ public class MainActivity extends Activity {
 
     void files() {
         page("📁 النسخ الاحتياطي");
-
-        addCard(
-            "البيانات",
-            "يتم حفظ البيانات محليًا داخل قاعدة بيانات التطبيق."
-        );
+        addCard("البيانات", "يتم حفظ البيانات محليًا داخل قاعدة بيانات التطبيق.");
 
         Button backup = btn("إنشاء نسخة من قاعدة البيانات");
-
-        content.addView(
-            backup,
-            new LinearLayout.LayoutParams(-1, dp(52))
-        );
+        content.addView(backup, new LinearLayout.LayoutParams(-1, dp(52)));
 
         backup.setOnClickListener(v -> {
             try {
@@ -1831,35 +1341,17 @@ public class MainActivity extends Activity {
                     throw new IOException("تعذر إنشاء مجلد النسخ الاحتياطي");
                 }
 
-                File destination = new File(
-                    folder,
-                    "school_backup_" + System.currentTimeMillis() + ".db"
-                );
-
-                try (
-                    InputStream in = new FileInputStream(source);
-                    OutputStream out = new FileOutputStream(destination)
-                ) {
+                File destination = new File(folder, "school_backup_" + System.currentTimeMillis() + ".db");
+                try (InputStream in = new FileInputStream(source); OutputStream out = new FileOutputStream(destination)) {
                     byte[] buffer = new byte[8192];
                     int length;
-
                     while ((length = in.read(buffer)) > 0) {
                         out.write(buffer, 0, length);
                     }
                 }
-
-                Toast.makeText(
-                    this,
-                    "تم إنشاء النسخة الاحتياطية",
-                    Toast.LENGTH_LONG
-                ).show();
-
+                Toast.makeText(this, "تم إنشاء النسخة الاحتياطية بنجاح", Toast.LENGTH_LONG).show();
             } catch (Exception e) {
-                Toast.makeText(
-                    this,
-                    "تعذر إنشاء النسخة: " + e.getMessage(),
-                    Toast.LENGTH_LONG
-                ).show();
+                Toast.makeText(this, "تعذر إنشاء النسخة: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -1868,30 +1360,19 @@ public class MainActivity extends Activity {
 
     void generateCertificatePdf(String id) {
         String[] student = db.student(id);
-
         if (student == null) {
-            Toast.makeText(
-                this,
-                "لم يتم العثور على الطالب",
-                Toast.LENGTH_SHORT
-            ).show();
+            Toast.makeText(this, "لم يتم العثور على الطالب", Toast.LENGTH_SHORT).show();
             return;
         }
 
         PdfDocument document = new PdfDocument();
-
-        int width = 595;
-        int height = 842;
-
-        PdfDocument.PageInfo info =
-            new PdfDocument.PageInfo.Builder(width, height, 1).create();
-
+        int width = 595, height = 842;
+        PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(width, height, 1).create();
         PdfDocument.Page page = document.startPage(info);
         Canvas canvas = page.getCanvas();
 
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
-
         line.setColor(Color.BLACK);
         line.setStyle(Paint.Style.STROKE);
 
@@ -1901,46 +1382,22 @@ public class MainActivity extends Activity {
         p.setTextSize(13);
 
         canvas.drawRect(15, 15, width - 15, height - 15, line);
-
-        canvas.drawText(
-            "الجمهورية اليمنية - وزارة التربية والتعليم",
-            width / 2f, 35, p
-        );
-
-        canvas.drawText(
-            "مدرسة جعفر بن أبي طالب الأساسية",
-            width / 2f, 55, p
-        );
+        canvas.drawText("الجمهورية اليمنية - وزارة التربية والتعليم", width / 2f, 35, p);
+        canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية", width / 2f, 55, p);
 
         p.setTextSize(17);
-
-        canvas.drawText(
-            "شهادة النتيجة السنوية",
-            width / 2f, 88, p
-        );
+        canvas.drawText("شهادة النتيجة السنوية", width / 2f, 88, p);
 
         p.setFakeBoldText(false);
         p.setTextSize(10);
+        canvas.drawText("الطالب: " + student[0] + "    الرقم: " + student[1], width / 2f, 112, p);
+        canvas.drawText("الصف: " + student[2] + " / " + student[3], width / 2f, 130, p);
 
-        canvas.drawText(
-            "الطالب: " + student[0]
-                + "    الرقم: " + student[1],
-            width / 2f, 112, p
-        );
-
-        canvas.drawText(
-            "الصف: " + student[2] + " / " + student[3],
-            width / 2f, 130, p
-        );
-
-        int top = 150;
-        int rowHeight = 25;
-
+        int top = 150, rowHeight = 25;
         canvas.drawRect(25, top, width - 25, top + rowHeight, line);
 
         p.setFakeBoldText(true);
         p.setTextSize(9);
-
         canvas.drawText("المادة", 510, top + 17, p);
         canvas.drawText("فصل 1", 425, top + 17, p);
         canvas.drawText("فصل 2", 335, top + 17, p);
@@ -1948,30 +1405,19 @@ public class MainActivity extends Activity {
         canvas.drawText("التقدير", 130, top + 17, p);
 
         p.setFakeBoldText(false);
-
         double grandTotal = 0;
         boolean allPass = true;
-
         int y = top + rowHeight;
 
         for (String subject : SUBJECTS_7) {
-            double first =
-                db.getMahsala(id, subject, 1)
-                    + db.getExam(id, subject, 1);
-
-            double second =
-                db.getMahsala(id, subject, 2)
-                    + db.getExam(id, subject, 2);
-
+            double first = db.getMahsala(id, subject, 1) + db.getExam(id, subject, 1);
+            double second = db.getMahsala(id, subject, 2) + db.getExam(id, subject, 2);
             double annual = first + second;
             grandTotal += annual;
-
             if (annual < 50) allPass = false;
 
             y += rowHeight;
-
             canvas.drawRect(25, y - rowHeight, width - 25, y, line);
-
             canvas.drawText(subject, 510, y - 8, p);
             canvas.drawText(formatNumber(first), 425, y - 8, p);
             canvas.drawText(formatNumber(second), 335, y - 8, p);
@@ -1981,50 +1427,27 @@ public class MainActivity extends Activity {
 
         double max = SUBJECTS_7.length * 100.0;
         double percent = grandTotal / max * 100.0;
-
         y += 35;
 
         p.setFakeBoldText(true);
         p.setTextSize(12);
+        canvas.drawText("المجموع: " + formatNumber(grandTotal) + " / " + (int) max, width / 2f, y, p);
+        canvas.drawText("النسبة: " + formatNumber(percent) + "%", width / 2f, y + 22, p);
 
-        canvas.drawText(
-            "المجموع: " + formatNumber(grandTotal) + " / " + (int) max,
-            width / 2f, y, p
-        );
-
-        canvas.drawText(
-            "النسبة: " + formatNumber(percent) + "%",
-            width / 2f, y + 22, p
-        );
-
-        p.setColor(
-            allPass && percent >= 50 ? GREEN : RED
-        );
-
+        p.setColor(allPass && percent >= 50 ? GREEN : RED);
         p.setTextSize(18);
-
-        canvas.drawText(
-            allPass && percent >= 50 ? "ناجح" : "راسب",
-            width / 2f, y + 55, p
-        );
+        canvas.drawText(allPass && percent >= 50 ? "ناجح" : "راسب", width / 2f, y + 55, p);
 
         document.finishPage(page);
-
         savePdf(document, "certificate_" + id + ".pdf");
     }
 
     // ---------------- PDF: كشف الصف ----------------
 
     void generateClassSheetPdf(String grade, String classroom) {
-        ArrayList<String[]> students =
-            studentsForClass(grade, classroom);
-
+        ArrayList<String[]> students = studentsForClass(grade, classroom);
         if (students.isEmpty()) {
-            Toast.makeText(
-                this,
-                "لا يوجد طلاب في هذا الصف",
-                Toast.LENGTH_SHORT
-            ).show();
+            Toast.makeText(this, "لا يوجد طلاب في هذا الصف", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -2035,600 +1458,237 @@ public class MainActivity extends Activity {
         });
 
         PdfDocument document = new PdfDocument();
-
-        int width = 842;
-        int height = 595;
-        int perPage = 18;
+        int width = 842, height = 595, perPage = 18;
 
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
-
         p.setColor(Color.BLACK);
         p.setTextAlign(Paint.Align.CENTER);
         line.setColor(Color.BLACK);
         line.setStyle(Paint.Style.STROKE);
 
         int pageNumber = 0;
-
-        int[] widths = {
-            32, 140, 52, 52, 52, 52,
-            52, 60, 60, 50, 58, 60
-        };
-
-        String[] headers = {
-            "م", "اسم الطالب", "قرآن", "إسلامية",
-            "عربي", "رياضيات", "علوم", "اجتماعيات",
-            "إنجليزي", "السلوك", "المجموع", "النتيجة"
-        };
+        int[] widths = {32, 140, 52, 52, 52, 52, 52, 60, 60, 50, 58, 60};
+        String[] headers = {"م", "اسم الطالب", "قرآن", "إسلامية", "عربي", "رياضيات", "علوم", "اجتماعيات", "إنجليزي", "السلوك", "المجموع", "النتيجة"};
 
         int totalWidth = 0;
-
         for (int w : widths) totalWidth += w;
-
         int startX = (width - totalWidth) / 2;
 
         for (int start = 0; start < students.size(); start += perPage) {
             pageNumber++;
-
-            PdfDocument.PageInfo info =
-                new PdfDocument.PageInfo.Builder(
-                    width, height, pageNumber
-                ).create();
-
+            PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(width, height, pageNumber).create();
             PdfDocument.Page page = document.startPage(info);
             Canvas canvas = page.getCanvas();
 
             p.setTextSize(12);
             p.setFakeBoldText(true);
-
             canvas.drawRect(12, 12, width - 12, height - 12, line);
-
-            canvas.drawText(
-                "الجمهورية اليمنية - وزارة التربية والتعليم",
-                width / 2f, 32, p
-            );
-
-            canvas.drawText(
-                "مدرسة جعفر بن أبي طالب الأساسية",
-                width / 2f, 49, p
-            );
+            canvas.drawText("الجمهورية اليمنية - وزارة التربية والتعليم", width / 2f, 32, p);
+            canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية", width / 2f, 49, p);
 
             p.setTextSize(13);
-
-            canvas.drawText(
-                "كشف النتائج السنوية - الصف " + grade + " / " + classroom,
-                width / 2f, 68, p
-            );
+            canvas.drawText("كشف النتائج السنوية - الصف " + grade + " / " + classroom, width / 2f, 68, p);
 
             p.setFakeBoldText(false);
             p.setTextSize(8);
 
-            int top = 82;
-            int rowHeight = 22;
-
+            int top = 82, rowHeight = 22;
             int x = startX;
 
             for (int col = 0; col < headers.length; col++) {
                 int next = x + widths[col];
-
                 canvas.drawRect(x, top, next, top + rowHeight, line);
-                canvas.drawText(
-                    headers[col],
-                    (x + next) / 2f,
-                    top + 14,
-                    p
-                );
-
+                canvas.drawText(headers[col], (x + next) / 2f, top + 14, p);
                 x = next;
             }
 
             int y = top + rowHeight;
-
-            for (int i = start;
-                 i < Math.min(start + perPage, students.size());
-                 i++) {
-
+            for (int i = start; i < Math.min(start + perPage, students.size()); i++) {
                 String[] st = students.get(i);
+                String sid = st[1];
+                String sname = st[0];
 
-// ---------------- PDF: بطاقات النتائج - ثلاثة قوالب ----------------
-
-void generateExamCardsPdf(
-        String grade,
-        String classroom,
-        int semester) {
-
-    ArrayList<String[]> students =
-            studentsForClass(grade, classroom);
-
-    if (students == null || students.isEmpty()) {
-        Toast.makeText(
-                this,
-                "لا يوجد طلاب في الصف " + grade + " - " + classroom,
-                Toast.LENGTH_LONG
-        ).show();
-        return;
-    }
-
-    PdfDocument document = new PdfDocument();
-
-    final int width = 595;
-    final int height = 842;
-
-    final int margin = 12;
-    final int gap = 8;
-
-    // ارتفاع البطاقة يسمح بوضع ثلاث بطاقات في الصفحة.
-    final int cardHeight = (height - 2 * margin - 2 * gap) / 3;
-
-    Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
-    Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
-    Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-    text.setColor(Color.BLACK);
-    text.setTextAlign(Paint.Align.CENTER);
-
-    border.setColor(Color.BLACK);
-    border.setStyle(Paint.Style.STROKE);
-    border.setStrokeWidth(1.2f);
-
-    fill.setColor(Color.BLACK);
-    fill.setStyle(Paint.Style.FILL);
-
-    int pageNumber = 0;
-
-    try {
-        for (int start = 0; start < students.size(); start += 3) {
-
-            pageNumber++;
-
-            PdfDocument.PageInfo info =
-                    new PdfDocument.PageInfo.Builder(
-                            width,
-                            height,
-                            pageNumber
-                    ).create();
-
-            PdfDocument.Page pdfPage =
-                    document.startPage(info);
-
-            Canvas canvas = pdfPage.getCanvas();
-
-            // خلفية بيضاء صريحة لمنع ظهور صفحة فارغة.
-            canvas.drawColor(Color.WHITE);
-
-            for (int k = 0;
-                 k < 3 && start + k < students.size();
-                 k++) {
-
-                String[] student = students.get(start + k);
-
-                if (student == null || student.length < 2) {
-                    continue;
+                x = startX;
+                for (int col = 0; col < headers.length; col++) {
+                    int next = x + widths[col];
+                    canvas.drawRect(x, y, next, y + rowHeight, line);
+                    x = next;
                 }
 
-                String studentName =
-                        student[0] == null ? "" : student[0];
+                canvas.drawText(String.valueOf(i + 1), startX + widths[0] / 2f, y + 14, p);
+                canvas.drawText(sname, startX + widths[0] + 5, y + 14, p);
 
-                String studentId =
-                        student[1] == null ? "" : student[1];
-
-                int left = margin;
-                int right = width - margin;
-
-                int top = margin + k * (cardHeight + gap);
-                int bottom = top + cardHeight;
-
-                // إطار البطاقة.
-                canvas.drawRect(
-                        left,
-                        top,
-                        right,
-                        bottom,
-                        border
-                );
-
-                // إطار داخلي بسيط.
-                canvas.drawRect(
-                        left + 3,
-                        top + 3,
-                        right - 3,
-                        bottom - 3,
-                        border
-                );
-
-                // عنوان الجمهورية.
-                text.setTextSize(9);
-                text.setFakeBoldText(true);
-
-                canvas.drawText(
-                        "الجمهورية اليمنية - وزارة التربية والتعليم",
-                        width / 2f,
-                        top + 16,
-                        text
-                );
-
-                canvas.drawText(
-                        "مكتب التربية والتعليم",
-                        width / 2f,
-                        top + 29,
-                        text
-                );
-
-                // اسم المدرسة.
-                text.setTextSize(11);
-
-                canvas.drawText(
-                        "مدرسة جعفر بن أبي طالب الأساسية",
-                        width / 2f,
-                        top + 43,
-                        text
-                );
-
-                // عنوان النتيجة.
-                text.setTextSize(12);
-
-                canvas.drawText(
-                        "نتيجة نهاية " +
-                                (semester == 1
-                                        ? "الفصل الدراسي الأول"
-                                        : "الفصل الدراسي الثاني"),
-                        width / 2f,
-                        top + 59,
-                        text
-                );
-
-                // بيانات الطالب.
-                text.setTextSize(9);
-                text.setFakeBoldText(false);
-
-                canvas.drawText(
-                        "اسم الطالب: " + studentName,
-                        width / 2f,
-                        top + 74,
-                        text
-                );
-
-                canvas.drawText(
-                        "الصف: " + grade +
-                                "     الشعبة: " + classroom +
-                                "     الرقم: " + studentId,
-                        width / 2f,
-                        top + 87,
-                        text
-                );
-
-                // جدول الدرجات.
-                int tableTop = top + 96;
-                int rowHeight = 13;
-
-                int[] colX = {
-                        right - 5,
-                        right - 155,
-                        right - 235,
-                        right - 315,
-                        right - 390,
-                        left + 5
-                };
-
-                // رؤوس الجدول.
-                text.setTextSize(8);
-                text.setFakeBoldText(true);
-
-                canvas.drawLine(
-                        left + 5,
-                        tableTop,
-                        right - 5,
-                        tableTop,
-                        border
-                );
-
-                canvas.drawText(
-                        "المادة",
-                        (colX[0] + colX[1]) / 2f,
-                        tableTop + 10,
-                        text
-                );
-
-                canvas.drawText(
-                        "المحصلة",
-                        (colX[1] + colX[2]) / 2f,
-                        tableTop + 10,
-                        text
-                );
-
-                canvas.drawText(
-                        "الاختبار",
-                        (colX[2] + colX[3]) / 2f,
-                        tableTop + 10,
-                        text
-                );
-
-                canvas.drawText(
-                        "المجموع",
-                        (colX[3] + colX[4]) / 2f,
-                        tableTop + 10,
-                        text
-                );
-
-                canvas.drawLine(
-                        left + 5,
-                        tableTop + rowHeight,
-                        right - 5,
-                        tableTop + rowHeight,
-                        border
-                );
-
-                text.setFakeBoldText(false);
-
-                double total = 0;
-                int y = tableTop + rowHeight;
+                double studentSum = 0;
+                int colIdx = 2;
 
                 for (String subject : SUBJECTS_7) {
+                    double subTotal = db.getMahsala(sid, subject, 1) + db.getExam(sid, subject, 1)
+                        + db.getMahsala(sid, subject, 2) + db.getExam(sid, subject, 2);
+                    studentSum += subTotal;
 
-                    double m = db.getMahsala(
-                            studentId,
-                            subject,
-                            semester
-                    );
+                    int colStartX = startX;
+                    for (int c = 0; c < colIdx; c++) colStartX += widths[c];
 
-                    double e = db.getExam(
-                            studentId,
-                            subject,
-                            semester
-                    );
-
-                    double subjectTotal = m + e;
-                    total += subjectTotal;
-
-                    y += rowHeight;
-
-                    canvas.drawLine(
-                            left + 5,
-                            y,
-                            right - 5,
-                            y,
-                            border
-                    );
-
-                    text.setTextSize(7.5f);
-
-                    // اسم المادة في العمود الأيمن.
-                    text.setTextAlign(Paint.Align.RIGHT);
-
-                    canvas.drawText(
-                            subject,
-                            right - 10,
-                            y - 3,
-                            text
-                    );
-
-                    text.setTextAlign(Paint.Align.CENTER);
-
-                    canvas.drawText(
-                            formatNumber(m),
-                            (colX[1] + colX[2]) / 2f,
-                            y - 3,
-                            text
-                    );
-
-                    canvas.drawText(
-                            formatNumber(e),
-                            (colX[2] + colX[3]) / 2f,
-                            y - 3,
-                            text
-                    );
-
-                    canvas.drawText(
-                            formatNumber(subjectTotal),
-                            (colX[3] + colX[4]) / 2f,
-                            y - 3,
-                            text
-                    );
+                    canvas.drawText(formatNumber(subTotal), (colStartX + colStartX + widths[colIdx]) / 2f, y + 14, p);
+                    colIdx++;
                 }
 
-                // المجموع والتقدير والنتيجة.
-                int summaryY = y + 13;
+                // عمود السلوك (مثري افتراضي ممتاز)
+                int colStartX = startX;
+                for (int c = 0; c < 9; c++) colStartX += widths[c];
+                canvas.drawText("ممتاز", (colStartX + colStartX + widths[9]) / 2f, y + 14, p);
 
-                text.setTextSize(9);
-                text.setFakeBoldText(true);
+                // عمود المجموع
+                colStartX = startX;
+                for (int c = 0; c < 10; c++) colStartX += widths[c];
+                canvas.drawText(formatNumber(studentSum), (colStartX + colStartX + widths[10]) / 2f, y + 14, p);
 
-                canvas.drawText(
-                        "المجموع: " + formatNumber(total)
-                                + " / " + (SUBJECTS_7.length * 50),
-                        width / 2f,
-                        summaryY,
-                        text
-                );
+                // عمود النتيجة
+                colStartX = startX;
+                for (int c = 0; c < 11; c++) colStartX += widths[c];
+                boolean isPassed = studentSum >= (SUBJECTS_7.length * 100.0 * 0.5);
+                canvas.drawText(isPassed ? "ناجح" : "راسب", (colStartX + colStartX + widths[11]) / 2f, y + 14, p);
 
-                double percentage =
-                        total / (SUBJECTS_7.length * 50.0) * 100.0;
-
-                text.setTextSize(8);
-                text.setFakeBoldText(false);
-
-                canvas.drawText(
-                        "النسبة: " + formatNumber(percentage) + "%"
-                                + "     التقدير: " + DB.gradeFor(percentage)
-                                + "     النتيجة: "
-                                + (percentage >= 50 ? "ناجح" : "راسب"),
-                        width / 2f,
-                        summaryY + 12,
-                        text
-                );
-
-                // التوقيعات.
-                text.setTextSize(8);
-
-                canvas.drawText(
-                        "توقيع المعلم: ................",
-                        width / 4f,
-                        bottom - 10,
-                        text
-                );
-
-                canvas.drawText(
-                        "مدير المدرسة: ................",
-                        width * 3f / 4f,
-                        bottom - 10,
-                        text
-                );
+                y += rowHeight;
             }
 
-            document.finishPage(pdfPage);
+            document.finishPage(page);
         }
 
-        savePdf(
-                document,
-                "exam_cards_" + grade + "_" + classroom + ".pdf"
-        );
-
-    } catch (Exception e) {
-
-        try {
-            document.close();
-        } catch (Exception ignored) {}
-
-        Toast.makeText(
-                this,
-                "تعذر إنشاء بطاقات النتائج: " + e.getMessage(),
-                Toast.LENGTH_LONG
-        ).show();
+        savePdf(document, "class_sheet_" + grade + "_" + classroom + ".pdf");
     }
-}
+
     // ---------------- PDF: بطاقات النتائج ----------------
 
-    void generateExamCardsPdf(
-        String grade,
-        String classroom,
-        int semester) {
+    void generateExamCardsPdf(String grade, String classroom, int semester) {
+        ArrayList<String[]> students = studentsForClass(grade, classroom);
+        if (students == null || students.isEmpty()) {
+            Toast.makeText(this, "لا يوجد طلاب في الصف " + grade + " - " + classroom, Toast.LENGTH_LONG).show();
+            return;
+        }
 
-        ArrayList<String[]> students =
-            studentsForClass(grade, classroom);
-
-        if (students.isEmpty()) {
-    Toast.makeText(
-        this,
-        "لا يوجد طلاب في الصف " + grade + " - " + classroom,
-        Toast.LENGTH_LONG
-    ).show();
-    return;
-}
-
-Toast.makeText(
-    this,
-    "عدد الطلاب في كشف النتائج: " + students.size(),
-    Toast.LENGTH_LONG
-).show();
         PdfDocument document = new PdfDocument();
+        final int width = 595, height = 842;
+        final int margin = 12, gap = 8;
+        final int cardHeight = (height - 2 * margin - 2 * gap) / 3;
 
-        int width = 595;
-        int height = 842;
-        int cardHeight = 258;
+        Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
+        text.setColor(Color.BLACK);
+        text.setTextAlign(Paint.Align.CENTER);
 
-        for (int start = 0; start < students.size(); start += 3) {
-            PdfDocument.PageInfo info =
-                new PdfDocument.PageInfo.Builder(
-                    width, height, start / 3 + 1
-                ).create();
+        border.setColor(Color.BLACK);
+        border.setStyle(Paint.Style.STROKE);
+        border.setStrokeWidth(1.2f);
 
-            PdfDocument.Page page = document.startPage(info);
-            Canvas canvas = page.getCanvas();
+        int pageNumber = 0;
 
-            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-            Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
+        try {
+            for (int start = 0; start < students.size(); start += 3) {
+                pageNumber++;
+                PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(width, height, pageNumber).create();
+                PdfDocument.Page pdfPage = document.startPage(info);
+                Canvas canvas = pdfPage.getCanvas();
+                canvas.drawColor(Color.WHITE);
 
-            p.setColor(Color.BLACK);
-            p.setTextAlign(Paint.Align.CENTER);
+                for (int k = 0; k < 3 && start + k < students.size(); k++) {
+                    String[] student = students.get(start + k);
+                    if (student == null || student.length < 2) continue;
 
-            line.setColor(Color.BLACK);
-            line.setStyle(Paint.Style.STROKE);
+                    String studentName = student[0] == null ? "" : student[0];
+                    String studentId = student[1] == null ? "" : student[1];
 
-            for (int k = 0; k < 3 && start + k < students.size(); k++) {
-                String[] st = students.get(start + k);
+                    int left = margin, right = width - margin;
+                    int top = margin + k * (cardHeight + gap);
+                    int bottom = top + cardHeight;
 
-                int top = 10 + k * (cardHeight + 10);
+                    canvas.drawRect(left, top, right, bottom, border);
+                    canvas.drawRect(left + 3, top + 3, right - 3, bottom - 3, border);
 
-                canvas.drawRect(
-                    10, top, width - 10, top + cardHeight, line
-                );
+                    text.setTextSize(9);
+                    text.setFakeBoldText(true);
+                    canvas.drawText("الجمهورية اليمنية - وزارة التربية والتعليم", width / 2f, top + 16, text);
+                    canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية", width / 2f, top + 31, text);
 
-                p.setTextSize(9);
-                p.setFakeBoldText(true);
-
-                canvas.drawText(
-                    "الجمهورية اليمنية - وزارة التربية والتعليم",
-                    width / 2f, top + 18, p
-                );
-
-                canvas.drawText(
-                    "مدرسة جعفر بن أبي طالب الأساسية",
-                    width / 2f, top + 34, p
-                );
-
-                p.setTextSize(11);
-
-                canvas.drawText(
-                    "نتيجة " + (semester == 1 ? "الفصل الأول" : "الفصل الثاني"),
-                    width / 2f, top + 52, p
-                );
-
-                p.setFakeBoldText(false);
-                p.setTextSize(9);
-
-                canvas.drawText(
-                    "الطالب: " + st[0]
-                        + " - الصف: " + grade + " / " + classroom,
-                    width / 2f, top + 70, p
-                );
-
-                int y = top + 90;
-
-                canvas.drawText(
-                    "المادة                 المحصلة       الاختبار       المجموع",
-                    width / 2f, y, p
-                );
-
-                double total = 0;
-
-                for (String subject : SUBJECTS_7) {
-                    y += 19;
-
-                    double m = db.getMahsala(st[1], subject, semester);
-                    double e = db.getExam(st[1], subject, semester);
-
-                    total += m + e;
-
+                    text.setTextSize(11);
                     canvas.drawText(
-                        subject + "       "
-                            + formatNumber(m) + "       "
-                            + formatNumber(e) + "       "
-                            + formatNumber(m + e),
-                        width / 2f,
-                        y,
-                        p
+                        "نتيجة نهاية " + (semester == 1 ? "الفصل الدراسي الأول" : "الفصل الدراسي الثاني"),
+                        width / 2f, top + 48, text
                     );
+
+                    text.setTextSize(9);
+                    text.setFakeBoldText(false);
+                    canvas.drawText("اسم الطالب: " + studentName, width / 2f, top + 62, text);
+                    canvas.drawText("الصف: " + grade + "     الشعبة: " + classroom + "     الرقم: " + studentId, width / 2f, top + 75, text);
+
+                    int tableTop = top + 83;
+                    int rowHeight = 13;
+                    int[] colX = {right - 5, right - 155, right - 235, right - 315, right - 390, left + 5};
+
+                    text.setTextSize(8);
+                    text.setFakeBoldText(true);
+                    canvas.drawLine(left + 5, tableTop, right - 5, tableTop, border);
+
+                    canvas.drawText("المادة", (colX[0] + colX[1]) / 2f, tableTop + 10, text);
+                    canvas.drawText("المحصلة", (colX[1] + colX[2]) / 2f, tableTop + 10, text);
+                    canvas.drawText("الاختبار", (colX[2] + colX[3]) / 2f, tableTop + 10, text);
+                    canvas.drawText("المجموع", (colX[3] + colX[4]) / 2f, tableTop + 10, text);
+
+                    canvas.drawLine(left + 5, tableTop + rowHeight, right - 5, tableTop + rowHeight, border);
+                    text.setFakeBoldText(false);
+
+                    double total = 0;
+                    int y = tableTop + rowHeight;
+
+                    for (String subject : SUBJECTS_7) {
+                        double m = db.getMahsala(studentId, subject, semester);
+                        double e = db.getExam(studentId, subject, semester);
+                        double subjectTotal = m + e;
+                        total += subjectTotal;
+
+                        y += rowHeight;
+                        canvas.drawLine(left + 5, y, right - 5, y, border);
+
+                        text.setTextSize(7.5f);
+                        text.setTextAlign(Paint.Align.RIGHT);
+                        canvas.drawText(subject, right - 10, y - 3, text);
+
+                        text.setTextAlign(Paint.Align.CENTER);
+                        canvas.drawText(formatNumber(m), (colX[1] + colX[2]) / 2f, y - 3, text);
+                        canvas.drawText(formatNumber(e), (colX[2] + colX[3]) / 2f, y - 3, text);
+                        canvas.drawText(formatNumber(subjectTotal), (colX[3] + colX[4]) / 2f, y - 3, text);
+                    }
+
+                    int summaryY = y + 12;
+                    text.setTextSize(9);
+                    text.setFakeBoldText(true);
+                    canvas.drawText("المجموع: " + formatNumber(total) + " / " + (SUBJECTS_7.length * 50), width / 2f, summaryY, text);
+
+                    double percentage = total / (SUBJECTS_7.length * 50.0) * 100.0;
+                    text.setTextSize(8);
+                    text.setFakeBoldText(false);
+                    canvas.drawText(
+                        "النسبة: " + formatNumber(percentage) + "%     التقدير: " + DB.gradeFor(percentage) + "     النتيجة: " + (percentage >= 50 ? "ناجح" : "راسب"),
+                        width / 2f, summaryY + 11, text
+                    );
+
+                    text.setTextSize(8);
+                    canvas.drawText("توقيع المعلم: ................", width / 4f, bottom - 8, text);
+                    canvas.drawText("مدير المدرسة: ................", width * 3f / 4f, bottom - 8, text);
                 }
 
-                y += 10;
+                document.finishPage(pdfPage);
+            }
 
-                p.setFakeBoldText(true);
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(uri, "application/pdf");
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-            startActivity(intent);
+            savePdf(document, "exam_cards_" + grade + "_" + classroom + ".pdf");
 
         } catch (Exception e) {
             try {
                 document.close();
             } catch (Exception ignored) {}
 
-            Toast.makeText(
-                this,
-                "تعذر فتح التقرير. تحقق من وجود تطبيق لقراءة PDF.\n"
-                    + e.getMessage(),
-                Toast.LENGTH_LONG
-            ).show();
+            Toast.makeText(this, "تعذر إنشاء بطاقات النتائج: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 }
