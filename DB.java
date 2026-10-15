@@ -28,13 +28,12 @@ public class DB extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // تحديث آمن: إنشاء الجداول الناقصة دون حذف البيانات الموجودة.
+        // تحديث آمن: إنشاء الجداول الحالية والناقصة دون فقدان البيانات القديمة
         createTables(db);
         createDefaultUser(db);
     }
 
     private void createTables(SQLiteDatabase db) {
-
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS students (" +
             "id TEXT PRIMARY KEY NOT NULL," +
@@ -122,7 +121,7 @@ public class DB extends SQLiteOpenHelper {
 
         if (!exists) {
             ContentValues v = new ContentValues();
-            v.put("name", "المدير");
+            v.put("name", "مدير النظام الأساسي");
             v.put("username", "admin");
             v.put("pass", "1234");
             v.put("role", "القائم بأعمال المدير");
@@ -134,10 +133,7 @@ public class DB extends SQLiteOpenHelper {
     }
 
     private String today() {
-        return new SimpleDateFormat(
-            "yyyy-MM-dd",
-            Locale.US
-        ).format(new Date());
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
     }
 
     public String[] authenticate(String username, String password) {
@@ -153,7 +149,6 @@ public class DB extends SQLiteOpenHelper {
         }
 
         String[] result = new String[5];
-
         for (int i = 0; i < 5; i++) {
             result[i] = c.isNull(i) ? "" : c.getString(i);
         }
@@ -164,7 +159,6 @@ public class DB extends SQLiteOpenHelper {
 
     public int count(String table) {
         String safeTable;
-
         switch (table) {
             case "students":
             case "teachers":
@@ -186,7 +180,6 @@ public class DB extends SQLiteOpenHelper {
         );
 
         int result = 0;
-
         if (c.moveToFirst()) {
             result = c.getInt(0);
         }
@@ -210,7 +203,6 @@ public class DB extends SQLiteOpenHelper {
         );
 
         int result = 0;
-
         if (c.moveToFirst()) {
             result = c.getInt(0);
         }
@@ -220,14 +212,10 @@ public class DB extends SQLiteOpenHelper {
     }
 
     public boolean setAttendance(String studentId, String status) {
-        if (studentId == null || studentId.trim().isEmpty()) {
-            return false;
-        }
+        if (studentId == null || studentId.trim().isEmpty()) return false;
 
-        if (!"حاضر".equals(status)
-                && !"غائب".equals(status)
-                && !"متأخر".equals(status)
-                && !"غائب بعذر".equals(status)) {
+        if (!"حاضر".equals(status) && !"غائب".equals(status)
+                && !"متأخر".equals(status) && !"غائب بعذر".equals(status)) {
             return false;
         }
 
@@ -237,10 +225,7 @@ public class DB extends SQLiteOpenHelper {
         v.put("status", status);
 
         long result = getWritableDatabase().insertWithOnConflict(
-            "attendance",
-            null,
-            v,
-            SQLiteDatabase.CONFLICT_REPLACE
+            "attendance", null, v, SQLiteDatabase.CONFLICT_REPLACE
         );
 
         return result != -1;
@@ -253,10 +238,7 @@ public class DB extends SQLiteOpenHelper {
             new String[]{studentId}
         );
 
-        int present = 0;
-        int absent = 0;
-        int late = 0;
-        int excused = 0;
+        int present = 0, absent = 0, late = 0, excused = 0;
 
         while (c.moveToNext()) {
             String status = c.getString(0);
@@ -304,9 +286,7 @@ public class DB extends SQLiteOpenHelper {
         v.put("body", body);
         v.put("date", today());
 
-        return getWritableDatabase().insert(
-            "announcements", null, v
-        ) != -1;
+        return getWritableDatabase().insert("announcements", null, v) != -1;
     }
 
     public String[] student(String id) {
@@ -322,7 +302,6 @@ public class DB extends SQLiteOpenHelper {
         }
 
         String[] result = new String[6];
-
         for (int i = 0; i < 6; i++) {
             result[i] = c.isNull(i) ? "" : c.getString(i);
         }
@@ -333,7 +312,6 @@ public class DB extends SQLiteOpenHelper {
 
     public ArrayList<String[]> students(String query) {
         ArrayList<String[]> result = new ArrayList<>();
-
         Cursor c = getReadableDatabase().rawQuery(
             "SELECT name, id, grade, class FROM students " +
             "WHERE name LIKE ? OR id LIKE ? ORDER BY name",
@@ -353,22 +331,15 @@ public class DB extends SQLiteOpenHelper {
         return result;
     }
 
-    public ArrayList<String[]> studentsInClass(
-            String grade, String classroom) {
-
+    public ArrayList<String[]> studentsInClass(String grade, String classroom) {
         ArrayList<String[]> result = new ArrayList<>();
-
         Cursor c = getReadableDatabase().rawQuery(
-            "SELECT name, id FROM students " +
-            "WHERE grade=? AND class=? ORDER BY name",
+            "SELECT name, id FROM students WHERE grade=? AND class=? ORDER BY name",
             new String[]{grade, classroom}
         );
 
         while (c.moveToNext()) {
-            result.add(new String[]{
-                c.getString(0),
-                c.getString(1)
-            });
+            result.add(new String[]{c.getString(0), c.getString(1)});
         }
 
         c.close();
@@ -377,19 +348,14 @@ public class DB extends SQLiteOpenHelper {
 
     public ArrayList<String[]> classes() {
         ArrayList<String[]> result = new ArrayList<>();
-
         Cursor c = getReadableDatabase().rawQuery(
             "SELECT DISTINCT grade, class FROM students " +
-            "WHERE grade IS NOT NULL AND class IS NOT NULL " +
-            "ORDER BY grade, class",
+            "WHERE grade IS NOT NULL AND class IS NOT NULL ORDER BY grade, class",
             null
         );
 
         while (c.moveToNext()) {
-            result.add(new String[]{
-                c.getString(0),
-                c.getString(1)
-            });
+            result.add(new String[]{c.getString(0), c.getString(1)});
         }
 
         c.close();
@@ -397,15 +363,10 @@ public class DB extends SQLiteOpenHelper {
     }
 
     public boolean saveStudent(
-            String name,
-            String id,
-            String grade,
-            String classroom,
-            String parent,
-            String phone) {
+            String name, String id, String grade,
+            String classroom, String parent, String phone) {
 
-        if (name == null || name.trim().isEmpty()
-                || id == null || id.trim().isEmpty()) {
+        if (name == null || name.trim().isEmpty() || id == null || id.trim().isEmpty()) {
             return false;
         }
 
@@ -418,10 +379,7 @@ public class DB extends SQLiteOpenHelper {
         v.put("phone", phone);
 
         return getWritableDatabase().insertWithOnConflict(
-            "students",
-            null,
-            v,
-            SQLiteDatabase.CONFLICT_REPLACE
+            "students", null, v, SQLiteDatabase.CONFLICT_REPLACE
         ) != -1;
     }
 
@@ -430,7 +388,6 @@ public class DB extends SQLiteOpenHelper {
 
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
-
         try {
             db.delete("scores", "student_id=?", new String[]{id});
             db.delete("behavior", "student_id=?", new String[]{id});
@@ -444,67 +401,45 @@ public class DB extends SQLiteOpenHelper {
         }
     }
 
-    public void setMahsala(
-            String studentId, String subject, int semester, double value) {
-
+    public void setMahsala(String studentId, String subject, int semester, double value) {
         saveScorePart(studentId, subject, semester, value, null);
     }
 
-    public void setExam(
-            String studentId, String subject, int semester, double value) {
-
+    public void setExam(String studentId, String subject, int semester, double value) {
         saveScorePart(studentId, subject, semester, null, value);
     }
 
     private void saveScorePart(
-            String studentId,
-            String subject,
-            int semester,
-            Double mahsala,
-            Double exam) {
+            String studentId, String subject, int semester,
+            Double mahsala, Double exam) {
 
-        if (studentId == null || subject == null
-                || semester < 1 || semester > 2) {
-            return;
-        }
+        if (studentId == null || subject == null || semester < 1 || semester > 2) return;
 
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
-
         try {
             double oldMahsala = 0;
             double oldExam = 0;
 
             Cursor c = db.rawQuery(
-                "SELECT mahsala, exam FROM scores " +
-                "WHERE student_id=? AND subject=? AND semester=?",
-                new String[]{
-                    studentId,
-                    subject,
-                    String.valueOf(semester)
-                }
+                "SELECT mahsala, exam FROM scores WHERE student_id=? AND subject=? AND semester=?",
+                new String[]{studentId, subject, String.valueOf(semester)}
             );
 
             if (c.moveToFirst()) {
                 oldMahsala = c.getDouble(0);
                 oldExam = c.getDouble(1);
             }
-
             c.close();
 
             ContentValues v = new ContentValues();
             v.put("student_id", studentId);
             v.put("subject", subject);
             v.put("semester", semester);
-            v.put("mahsala",
-                mahsala == null ? oldMahsala : clamp(mahsala, 0, 20));
-            v.put("exam",
-                exam == null ? oldExam : clamp(exam, 0, 30));
+            v.put("mahsala", mahsala == null ? oldMahsala : clamp(mahsala, 0, 20));
+            v.put("exam", exam == null ? oldExam : clamp(exam, 0, 30));
 
-            db.insertWithOnConflict(
-                "scores", null, v, SQLiteDatabase.CONFLICT_REPLACE
-            );
-
+            db.insertWithOnConflict("scores", null, v, SQLiteDatabase.CONFLICT_REPLACE);
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
@@ -515,38 +450,23 @@ public class DB extends SQLiteOpenHelper {
         return Math.max(min, Math.min(max, value));
     }
 
-    public double getMahsala(
-            String studentId, String subject, int semester) {
+    public double getMahsala(String studentId, String subject, int semester) {
         return getScorePart(studentId, subject, semester, "mahsala");
     }
 
-    public double getExam(
-            String studentId, String subject, int semester) {
+    public double getExam(String studentId, String subject, int semester) {
         return getScorePart(studentId, subject, semester, "exam");
     }
 
-    private double getScorePart(
-            String studentId,
-            String subject,
-            int semester,
-            String column) {
-
-        if (!"mahsala".equals(column) && !"exam".equals(column)) {
-            return 0;
-        }
+    private double getScorePart(String studentId, String subject, int semester, String column) {
+        if (!"mahsala".equals(column) && !"exam".equals(column)) return 0;
 
         Cursor c = getReadableDatabase().rawQuery(
-            "SELECT " + column + " FROM scores " +
-            "WHERE student_id=? AND subject=? AND semester=?",
-            new String[]{
-                studentId,
-                subject,
-                String.valueOf(semester)
-            }
+            "SELECT " + column + " FROM scores WHERE student_id=? AND subject=? AND semester=?",
+            new String[]{studentId, subject, String.valueOf(semester)}
         );
 
         double value = 0;
-
         if (c.moveToFirst() && !c.isNull(0)) {
             value = c.getDouble(0);
         }
@@ -556,15 +476,11 @@ public class DB extends SQLiteOpenHelper {
     }
 
     public double annualTotal(String studentId, String subject) {
-        return getMahsala(studentId, subject, 1)
-            + getExam(studentId, subject, 1)
-            + getMahsala(studentId, subject, 2)
-            + getExam(studentId, subject, 2);
+        return getMahsala(studentId, subject, 1) + getExam(studentId, subject, 1)
+            + getMahsala(studentId, subject, 2) + getExam(studentId, subject, 2);
     }
 
-    public void setBehavior(
-            String studentId, int semester, double score) {
-
+    public void setBehavior(String studentId, int semester, double score) {
         if (studentId == null || semester < 1 || semester > 2) return;
 
         ContentValues v = new ContentValues();
@@ -572,9 +488,7 @@ public class DB extends SQLiteOpenHelper {
         v.put("semester", semester);
         v.put("score", clamp(score, 0, 100));
 
-        getWritableDatabase().insertWithOnConflict(
-            "behavior", null, v, SQLiteDatabase.CONFLICT_REPLACE
-        );
+        getWritableDatabase().insertWithOnConflict("behavior", null, v, SQLiteDatabase.CONFLICT_REPLACE);
     }
 
     public double getBehavior(String studentId, int semester) {
@@ -584,7 +498,6 @@ public class DB extends SQLiteOpenHelper {
         );
 
         double value = 0;
-
         if (c.moveToFirst()) value = c.getDouble(0);
 
         c.close();
@@ -592,8 +505,7 @@ public class DB extends SQLiteOpenHelper {
     }
 
     public double annualBehavior(String studentId) {
-        return (getBehavior(studentId, 1)
-            + getBehavior(studentId, 2)) / 2.0;
+        return (getBehavior(studentId, 1) + getBehavior(studentId, 2)) / 2.0;
     }
 
     public static String gradeFor(double total) {
@@ -607,19 +519,11 @@ public class DB extends SQLiteOpenHelper {
 
     public String resultLine(String studentId, int semester) {
         StringBuilder result = new StringBuilder();
-
         for (String subject : subjects()) {
-            double total = getMahsala(studentId, subject, semester)
-                + getExam(studentId, subject, semester);
-
+            double total = getMahsala(studentId, subject, semester) + getExam(studentId, subject, semester);
             if (result.length() > 0) result.append("\n");
-
-            result.append(subject)
-                .append(": ")
-                .append(total)
-                .append(" /50");
+            result.append(subject).append(": ").append(total).append(" /50");
         }
-
         return result.toString();
     }
 
@@ -635,42 +539,17 @@ public class DB extends SQLiteOpenHelper {
         };
     }
 
-    // توافق مع النسخ السابقة من التطبيق.
-    public double[] monthlyValues(
-            String studentId,
-            String subject,
-            int semester,
-            int month) {
-
-        return new double[]{
-            getMahsala(studentId, subject, semester),
-            0,
-            0,
-            0
-        };
+    public double[] monthlyValues(String studentId, String subject, int semester, int month) {
+        return new double[]{getMahsala(studentId, subject, semester), 0, 0, 0};
     }
 
-    public double exam(
-            String studentId, String subject, int semester) {
-
+    public double exam(String studentId, String subject, int semester) {
         return getExam(studentId, subject, semester);
     }
 
     public void setMonthlyScore(
-            String studentId,
-            String subject,
-            int semester,
-            int month,
-            double attendance,
-            double oral,
-            double homework,
-            double written) {
-
-        setMahsala(
-            studentId,
-            subject,
-            semester,
-            attendance + oral + homework + written
-        );
+            String studentId, String subject, int semester, int month,
+            double attendance, double oral, double homework, double written) {
+        setMahsala(studentId, subject, semester, attendance + oral + homework + written);
     }
 }
