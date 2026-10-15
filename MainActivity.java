@@ -306,7 +306,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    // إدارة شعار المدرسة المختار من الهاتف
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -332,7 +331,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---------------- تسجيل الدخول ----------------
     void showLogin() {
         navHistory.clear();
         base();
@@ -409,7 +407,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    // ---------------- الرئيسية ----------------
     void showHome() {
         base();
 
@@ -516,7 +513,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---------------- الطلاب ----------------
     void students() {
         page("👨‍🎓 الطلاب");
 
@@ -700,7 +696,6 @@ public class MainActivity extends Activity {
         addCard("ملخص الحضور", db.studentAttendanceSummary(id));
     }
 
-    // ---------------- الصفوف ----------------
     ArrayList<String[]> allowedClasses() {
         ArrayList<String[]> all = db.classes();
         if (admin()) return all;
@@ -733,7 +728,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---------------- الدرجات ----------------
     void grades() {
         page("📊 الدرجات");
         addCard(
@@ -911,7 +905,6 @@ public class MainActivity extends Activity {
         dialog.show();
     }
 
-    // ---------------- الحضور ----------------
     void attendance() {
         page("✅ الحضور والغياب");
         addCard("تسجيل الحضور", "اختر الصف والشعبة، ثم حدد حالة كل طالب.");
@@ -982,7 +975,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---------------- المعلمون ----------------
     void teachers() {
         page("👨‍🏫 المعلمون");
         if (admin()) {
@@ -1066,7 +1058,6 @@ public class MainActivity extends Activity {
             .show();
     }
 
-    // ---------------- الجدول ----------------
     void timetable() {
         page("📅 الجدول المدرسي");
         addCard("أيام الدراسة", "السبت، الأحد، الاثنين، الثلاثاء، الأربعاء\nالخميس والجمعة: إجازة");
@@ -1097,7 +1088,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ---------------- الإعلانات ----------------
     void announcements() {
         page("🔔 الإعلانات");
         if (admin()) {
@@ -1150,7 +1140,6 @@ public class MainActivity extends Activity {
             .show();
     }
 
-    // ---------------- المستخدمون ----------------
     void users() {
         page("🔐 المستخدمون");
         if (!admin()) {
@@ -1235,7 +1224,6 @@ public class MainActivity extends Activity {
             .show();
     }
 
-    // ---------------- التقارير ----------------
     void reports() {
         page("📈 التقارير");
         addCard(
@@ -1269,7 +1257,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    // ---------------- النسخ الاحتياطي ----------------
     void files() {
         page("📁 النسخ الاحتياطي");
         addCard("البيانات", "يتم حفظ البيانات محليًا داخل قاعدة بيانات التطبيق.");
@@ -1309,7 +1296,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    // ---------------- PDF: شهادة الطالب ----------------
     void generateCertificatePdf(String id) {
         String[] student = db.student(id);
         if (student == null) {
@@ -1394,7 +1380,6 @@ public class MainActivity extends Activity {
         savePdf(document, "certificate_" + id + ".pdf");
     }
 
-    // ---------------- PDF: كشف النتائج السنوي المحدث (الشعارين + من اليمين) ----------------
     void generateClassSheetPdf(String grade, String classroom) {
         ArrayList<String[]> students = studentsForClass(grade, classroom);
         if (students.isEmpty()) {
@@ -1455,7 +1440,6 @@ public class MainActivity extends Activity {
 
             canvas.drawRect(15, 15, width - 15, height - 15, line);
 
-            // الشعار اليمني في الزاوية العلوية اليمنى
             Paint emblemPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             emblemPaint.setColor(Color.BLACK);
             emblemPaint.setTextAlign(Paint.Align.CENTER);
@@ -1471,7 +1455,6 @@ public class MainActivity extends Activity {
             emblemPaint.setTextSize(6.5f);
             canvas.drawText("الجمهورية اليمنية", emblemBoxRight - (emblemBoxWidth / 2f), emblemBoxTop + 38, emblemPaint);
 
-            // شعار المدرسة في الزاوية العلوية اليسرى
             int logoBoxLeft = 30;
             int logoBoxTop = 20;
             int logoBoxWidth = 55;
@@ -1530,151 +1513,4 @@ public class MainActivity extends Activity {
                 canvas.drawRect(currentX, y, currentX + widths.get(0), y + rowHeight, line);
                 drawCenteredText(canvas, String.valueOf(i + 1), currentX, y, widths.get(0), rowHeight, p, 8);
 
-                currentX -= widths.get(1);
-                canvas.drawRect(currentX, y, currentX + widths.get(1), y + rowHeight, line);
-                canvas.drawText(sname, currentX + 5, y + 15, p);
-
-                double studentGrandTotal = 0;
-                int headerIndex = 2;
-
-                for (String subject : activeSubjects) {
-                    double m1 = db.getMahsala(sid, subject, 1);
-                    double e1 = db.getExam(sid, subject, 1);
-                    double m2 = db.getMahsala(sid, subject, 2);
-                    double e2 = db.getExam(sid, subject, 2);
-                    
-                    double subAnnualTotal = (m1 + e1) + (m2 + e2);
-                    studentGrandTotal += subAnnualTotal;
-
-                    double totalMahsala = m1 + m2; 
-                    double totalExam = e1 + e2;
-
-                    int wMah = widths.get(headerIndex++);
-                    currentX -= wMah;
-                    canvas.drawRect(currentX, y, currentX + wMah, y + rowHeight, line);
-                    drawCenteredText(canvas, formatNumber(totalMahsala), currentX, y, wMah, rowHeight, p, 8);
-
-                    int wExam = widths.get(headerIndex++);
-                    currentX -= wExam;
-                    canvas.drawRect(currentX, y, currentX + wExam, y + rowHeight, line);
-                    drawCenteredText(canvas, formatNumber(totalExam), currentX, y, wExam, rowHeight, p, 8);
-
-                    int wTot = widths.get(headerIndex++);
-                    currentX -= wTot;
-                    canvas.drawRect(currentX, y, currentX + wTot, y + rowHeight, line);
-                    drawCenteredText(canvas, formatNumber(subAnnualTotal), currentX, y, wTot, rowHeight, p, 8);
-                }
-
-                int wGenTot = widths.get(headerIndex++);
-                currentX -= wGenTot;
-                canvas.drawRect(currentX, y, currentX + wGenTot, y + rowHeight, line);
-                drawCenteredText(canvas, formatNumber(studentGrandTotal), currentX, y, wGenTot, rowHeight, p, 8);
-
-                int wRes = widths.get(headerIndex++);
-                currentX -= wRes;
-                canvas.drawRect(currentX, y, currentX + wRes, y + rowHeight, line);
                 
-                double maxPossible = activeSubjects.size() * 100.0;
-                boolean isPassed = (studentGrandTotal >= (maxPossible * 0.5));
-                
-                p.setFakeBoldText(true);
-                drawCenteredText(canvas, isPassed ? "ناجح" : "راسب", currentX, y, wRes, rowHeight, p, 8);
-                p.setFakeBoldText(false);
-
-                y += rowHeight;
-            }
-
-            document.finishPage(page);
-        }
-
-        savePdf(document, "class_detailed_sheet_" + grade + "_" + classroom + ".pdf");
-    }
-
-    private void drawCenteredText(Canvas canvas, String text, int left, int top, int width, int height, Paint paint, float textSize) {
-        paint.setTextSize(textSize);
-        float textWidth = paint.measureText(text);
-        float x = left + (width - textWidth) / 2f;
-        float y = top + (height / 2f) + (textSize / 3f);
-        canvas.drawText(text, x, y, paint);
-    }
-
-    // ---------------- PDF: بطاقات النتائج ----------------
-    void generateExamCardsPdf(String grade, String classroom, int semester) {
-        ArrayList<String[]> students = studentsForClass(grade, classroom);
-        if (students == null || students.isEmpty()) {
-            Toast.makeText(this, "لا يوجد طلاب في الصف " + grade + " - " + classroom, Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        PdfDocument document = new PdfDocument();
-        final int width = 595, height = 842;
-        final int margin = 12, gap = 8;
-        final int cardHeight = (height - 2 * margin - 2 * gap) / 3;
-
-        Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
-        text.setColor(Color.BLACK);
-        text.setTextAlign(Paint.Align.CENTER);
-
-        border.setColor(Color.BLACK);
-        border.setStyle(Paint.Style.STROKE);
-        border.setStrokeWidth(1.2f);
-
-        int pageNumber = 0;
-
-        try {
-            for (int start = 0; start < students.size(); start += 3) {
-                pageNumber++;
-                PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(width, height, pageNumber).create();
-                PdfDocument.Page pdfPage = document.startPage(info);
-                Canvas canvas = pdfPage.getCanvas();
-                canvas.drawColor(Color.WHITE);
-
-                for (int k = 0; k < 3 && start + k < students.size(); k++) {
-                    String[] student = students.get(start + k);
-                    if (student == null || student.length < 2) continue;
-
-                    String studentName = student[0] == null ? "" : student[0];
-                    String studentId = student[1] == null ? "" : student[1];
-
-                    int left = margin, right = width - margin;
-                    int top = margin + k * (cardHeight + gap);
-                    int bottom = top + cardHeight;
-
-                    canvas.drawRect(left, top, right, bottom, border);
-                    canvas.drawRect(left + 3, top + 3, right - 3, bottom - 3, border);
-
-                    text.setTextSize(9);
-                    text.setFakeBoldText(true);
-                    canvas.drawText("الجمهورية اليمنية - وزارة التربية والتعليم", width / 2f, top + 16, text);
-                    canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية", width / 2f, top + 31, text);
-
-                    text.setTextSize(11);
-                    canvas.drawText(
-                        "نتيجة نهاية " + (semester == 1 ? "الفصل الدراسي الأول" : "الفصل الدراسي الثاني"),
-                        width / 2f, top + 48, text
-                    );
-
-                    text.setTextSize(9);
-                    text.setFakeBoldText(false);
-                    canvas.drawText("اسم الطالب: " + studentName, width / 2f, top + 62, text);
-                    canvas.drawText("الصف: " + grade + "     الشعبة: " + classroom + "     الرقم: " + studentId, width / 2f, top + 75, text);
-
-                    int tableTop = top + 83;
-                    int rowHeight = 13;
-                    int[] colX = {right - 5, right - 155, right - 235, right - 315, right - 390, left + 5};
-
-                    text.setTextSize(8);
-                    text.setFakeBoldText(true);
-                    canvas.drawLine(left + 5, tableTop, right - 5, tableTop, border);
-
-                    canvas.drawText("المادة", (colX[0] + colX[1]) / 2f, tableTop + 10, text);
-                    canvas.drawText("المحصلة", (colX[1] + colX[2]) / 2f, tableTop + 10, text);
-                    canvas.drawText("الاختبار", (colX[2] + colX[3]) / 2f, tableTop + 10, text);
-                    canvas.drawText("المجموع", (colX[3] + colX[4]) / 2f, tableTop + 10, text);
-
-                    canvas.drawLine(left + 5, tableTop + rowHeight, right - 5, tableTop + rowHeight, border);
-                    text.setFakeBoldText(false);
-
-                    double total = 0;
-                    int y = tableTop +
