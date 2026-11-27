@@ -922,6 +922,10 @@ public class MainActivity extends Activity {
         content.addView(bulk, new LinearLayout.LayoutParams(-1, dp(52)));
         bulk.setOnClickListener(v -> bulkScoreDialog(grade, classroom, semester.getSelectedItemPosition() + 1));
 
+        Button audit = btn("🔎 تدقيق الدرجات للفصل");
+        content.addView(audit, new LinearLayout.LayoutParams(-1, dp(52)));
+        audit.setOnClickListener(v -> scoreAuditDialog(grade, classroom, semester.getSelectedItemPosition() + 1));
+
         Button sheet = btn("📋 كشف النتائج السنوي PDF");
         content.addView(sheet, new LinearLayout.LayoutParams(-1, dp(52)));
         sheet.setOnClickListener(v -> generateClassSheetPdf(grade, classroom));
@@ -929,6 +933,33 @@ public class MainActivity extends Activity {
         Button cards = btn("🖨️ بطاقات نتائج الفصل PDF");
         content.addView(cards, new LinearLayout.LayoutParams(-1, dp(52)));
         cards.setOnClickListener(v -> generateExamCardsPdf(grade, classroom, semester.getSelectedItemPosition() + 1));
+    }
+
+    void scoreAuditDialog(String grade, String classroom, int sem) {
+        ArrayList<String[]> students = studentsForClass(grade, classroom);
+        StringBuilder report = new StringBuilder();
+        int incomplete = 0;
+        for (String[] student : students) {
+            ArrayList<String> missing = new ArrayList<>();
+            for (String subject : SUBJECTS_7) {
+                if (!db.hasScoreRecord(student[1], subject, sem)) missing.add(subject);
+            }
+            if (!missing.isEmpty()) {
+                incomplete++;
+                report.append("• ").append(student[0]).append("\\n");
+                report.append("  المواد غير المدخلة: ").append(String.join("، ", missing)).append("\\n\\n");
+            }
+        }
+        if (incomplete == 0) {
+            report.append("اكتمل وجود سجلات الدرجات لجميع الطلاب والمواد في هذا الفصل.");
+        } else {
+            report.insert(0, "طلاب يحتاجون مراجعة: " + incomplete + " من " + students.size() + "\\n\\n");
+        }
+        TextView view = tv(report.toString(), 14, false);
+        view.setGravity(Gravity.RIGHT | Gravity.TOP);
+        new AlertDialog.Builder(this).setTitle("تدقيق درجات الفصل " + sem)
+            .setView(new ScrollView(this) {{ addView(view); }})
+            .setPositiveButton("إغلاق", null).show();
     }
 
     void bulkScoreDialog(String grade, String classroom, int sem) {
