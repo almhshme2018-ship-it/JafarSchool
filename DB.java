@@ -157,6 +157,13 @@ public class DB extends SQLiteOpenHelper {
         }
     }
 
+    public String passwordForStorage(String password) {
+        if (password == null || password.length() < 6) {
+            throw new IllegalArgumentException("يجب أن تتكون كلمة المرور من 6 أحرف على الأقل");
+        }
+        return hashPassword(password);
+    }
+
     private boolean verifyPassword(String password, String stored) {
         if (stored == null || !stored.startsWith("PBKDF2$")) return password.equals(stored);
         try {
