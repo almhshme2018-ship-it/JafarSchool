@@ -883,6 +883,10 @@ public class MainActivity extends Activity {
 
         render.run();
 
+        Button bulk = btn("✏️ إدخال درجات جماعي لمادة");
+        content.addView(bulk, new LinearLayout.LayoutParams(-1, dp(52)));
+        bulk.setOnClickListener(v -> bulkScoreDialog(grade, classroom, semester.getSelectedItemPosition() + 1));
+
         Button sheet = btn("📋 كشف النتائج السنوي PDF");
         content.addView(sheet, new LinearLayout.LayoutParams(-1, dp(52)));
         sheet.setOnClickListener(v -> generateClassSheetPdf(grade, classroom));
@@ -890,6 +894,69 @@ public class MainActivity extends Activity {
         Button cards = btn("🖨️ بطاقات نتائج الفصل PDF");
         content.addView(cards, new LinearLayout.LayoutParams(-1, dp(52)));
         cards.setOnClickListener(v -> generateExamCardsPdf(grade, classroom, semester.getSelectedItemPosition() + 1));
+    }
+
+    void bulkScoreDialog(String grade, String classroom, int sem) {
+        ArrayList<String[]> students = studentsForClass(grade, classroom);
+        if (students.isEmpty()) {
+            Toast.makeText(this, "لا يوجد طلاب لإدخال درجاتهم", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Spinner subjectSpinner = new Spinner(this);
+        subjectSpinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, SUBJECTS_7));
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(8), dp(6), dp(8), dp(6));
+        box.addView(subjectSpinner);
+        LinearLayout rowsBox = new LinearLayout(this);
+        rowsBox.setOrientation(LinearLayout.VERTICAL);
+        box.addView(rowsBox);
+        ArrayList<EditText[]> fields = new ArrayList<>();
+        Runnable renderRows = () -> {
+            rowsBox.removeAllViews();
+            fields.clear();
+            String subject = subjectSpinner.getSelectedItem().toString();
+            for (String[] student : students) {
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                TextView label = tv(student[0], 12, true);
+                row.addView(label, new LinearLayout.LayoutParams(0, dp(48), 1));
+                EditText m = scoreEdit("20");
+                EditText e = scoreEdit("30");
+                m.setText(formatNumber(db.getMahsala(student[1], subject, sem)));
+                e.setText(formatNumber(db.getExam(student[1], subject, sem)));
+                row.addView(m, new LinearLayout.LayoutParams(dp(70), dp(48)));
+                row.addView(e, new LinearLayout.LayoutParams(dp(70), dp(48)));
+                rowsBox.addView(row);
+                fields.add(new EditText[]{m,e});
+            }
+        };
+        subjectSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView parent, View view, int position, long id) { renderRows.run(); }
+            public void onNothingSelected(AdapterView parent) {}
+        });
+        renderRows.run();
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(box);
+        new AlertDialog.Builder(this).setTitle("إدخال درجات جماعي — الفصل " + sem)
+            .setView(scroll).setPositiveButton("حفظ الكل", null).setNegativeButton("إلغاء", null)
+            .create().also(dialog -> {
+                dialog.setOnShowListener(x -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                    ArrayList<String[]> data = new ArrayList<>();
+                    for (int i = 0; i < students.size(); i++) {
+                        double mv = parse(fields.get(i)[0]), ev = parse(fields.get(i)[1]);
+                        if (mv < 0 || mv > 20 || ev < 0 || ev > 30) {
+                            Toast.makeText(this, "راجع درجات الطالب: " + students.get(i)[0] + " (المحصلة 0-20 والاختبار 0-30)", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        data.add(new String[]{students.get(i)[1], String.valueOf(mv), String.valueOf(ev)});
+                    }
+                    boolean saved = db.saveBulkScores(subjectSpinner.getSelectedItem().toString(), sem, data);
+                    Toast.makeText(this, saved ? "تم حفظ درجات الصف للمادة" : "تعذر حفظ الدرجات", Toast.LENGTH_LONG).show();
+                    if (saved) { dialog.dismiss(); classGrades(grade, classroom); }
+                }));
+                dialog.show();
+            });
     }
 
     void scoreDialog(String studentId, String studentName, String subject, int sem, Button cell) {
