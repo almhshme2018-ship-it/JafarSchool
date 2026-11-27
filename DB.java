@@ -10,11 +10,15 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
+import java.security.SecureRandom;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import java.util.Base64;
 
 public class DB extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "school.db";
-    private static final int DB_VERSION = 4;
+    private static final int DB_VERSION = 5;
 
     public DB(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -123,7 +127,7 @@ public class DB extends SQLiteOpenHelper {
             ContentValues v = new ContentValues();
             v.put("name", "مدير النظام الأساسي");
             v.put("username", "admin");
-            v.put("pass", "1234");
+            v.put("pass", hashPassword("1234"));
             v.put("role", "القائم بأعمال المدير");
             v.put("grade", "");
             v.put("class", "");
@@ -136,24 +140,60 @@ public class DB extends SQLiteOpenHelper {
         return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
     }
 
+    // PBKDF2 password hashing with per-password salt; legacy plaintext passwords
+    // are upgraded transparently after a successful login.
+    private String hashPassword(String password) {
+        try {
+            byte[] salt = new byte[16];
+            new SecureRandom().nextBytes(salt);
+            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 120000, 256);
+            byte[] hash = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(spec).getEncoded();
+            spec.clearPassword();
+            return "PBKDF2$120000$" + Base64.getEncoder().encodeToString(salt)
+                + "$" + Base64.getEncoder().encodeToString(hash);
+        } catch (Exception e) {
+            throw new IllegalStateException("تعذر حماية كلمة المرور", e);
+        }
+    }
+
+    private boolean verifyPassword(String password, String stored) {
+        if (stored == null || !stored.startsWith("PBKDF2$")) return password.equals(stored);
+        try {
+            String[] parts = stored.split("\\$");
+            int iterations = Integer.parseInt(parts[1]);
+            byte[] salt = Base64.getDecoder().decode(parts[2]);
+            byte[] expected = Base64.getDecoder().decode(parts[3]);
+            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, iterations, expected.length * 8);
+            byte[] actual = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(spec).getEncoded();
+            spec.clearPassword();
+            if (actual.length != expected.length) return false;
+            int diff = 0;
+            for (int i = 0; i < actual.length; i++) diff |= actual[i] ^ expected[i];
+            return diff == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public String[] authenticate(String username, String password) {
         Cursor c = getReadableDatabase().rawQuery(
-            "SELECT name, role, grade, class, username " +
-            "FROM users WHERE username=? AND pass=?",
-            new String[]{username, password}
+            "SELECT name, role, grade, class, username, pass FROM users WHERE username=?",
+            new String[]{username}
         );
-
-        if (!c.moveToFirst()) {
-            c.close();
-            return null;
-        }
-
+        if (!c.moveToFirst()) { c.close(); return null; }
+        String stored = c.isNull(5) ? "" : c.getString(5);
+        if (!verifyPassword(password, stored)) { c.close(); return null; }
         String[] result = new String[5];
-        for (int i = 0; i < 5; i++) {
-            result[i] = c.isNull(i) ? "" : c.getString(i);
-        }
-
+        for (int i = 0; i < 5; i++) result[i] = c.isNull(i) ? "" : c.getString(i);
         c.close();
+        // Upgrade legacy plaintext on successful authentication.
+        if (stored == null || !stored.startsWith("PBKDF2$")) {
+            ContentValues v = new ContentValues();
+            v.put("pass", hashPassword(password));
+            getWritableDatabase().update("users", v, "username=?", new String[]{username});
+        }
         return result;
     }
 
