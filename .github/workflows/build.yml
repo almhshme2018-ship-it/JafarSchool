@@ -2,6 +2,10 @@ name: Build JafarSchool APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/2.1-improvements]
 
 permissions:
   contents: write
