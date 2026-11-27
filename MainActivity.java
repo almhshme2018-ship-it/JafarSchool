@@ -376,7 +376,7 @@ public class MainActivity extends Activity {
             String u = username.getText().toString().trim();
             String p = password.getText().toString();
 
-            if (u.isEmpty() || p.isEmpty()) {
+            if (u.isEmpty() || p.length() < 6) {
                 Toast.makeText(this, "أدخل اسم المستخدم وكلمة المرور", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -1201,14 +1201,14 @@ public class MainActivity extends Activity {
                 String p = password.getText().toString();
 
                 if (u.isEmpty() || p.isEmpty()) {
-                    Toast.makeText(this, "اسم الدخول وكلمة المرور مطلوبان", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "اسم الدخول مطلوب وكلمة المرور 6 أحرف على الأقل", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 ContentValues cv = new ContentValues();
                 cv.put("name", name.getText().toString().trim());
                 cv.put("username", u);
-                cv.put("pass", p);
+                cv.put("pass", db.passwordForStorage(p));
                 cv.put("role", roles.getSelectedItem().toString());
                 cv.put("grade", grade.getText().toString().trim());
                 cv.put("class", classroom.getText().toString().trim());
