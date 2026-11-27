@@ -1523,6 +1523,10 @@ public class MainActivity extends Activity {
         content.addView(absence, new LinearLayout.LayoutParams(-1, dp(52)));
         absence.setOnClickListener(v -> attendanceReportDialog());
         
+        Button ranking = btn("🏆 ترتيب الطلاب والمتفوقين");
+        content.addView(ranking, new LinearLayout.LayoutParams(-1, dp(52)));
+        ranking.setOnClickListener(v -> chooseRankingClass());
+
         Button report = btn("📋 كشف نتائج الصف PDF");
         content.addView(report, new LinearLayout.LayoutParams(-1, dp(52)));
 
@@ -1546,6 +1550,36 @@ public class MainActivity extends Activity {
                 .setNegativeButton("إلغاء", null)
                 .show();
         });
+    }
+
+    void chooseRankingClass() {
+        ArrayList<String[]> classes = allowedClasses();
+        if (classes.isEmpty()) {
+            Toast.makeText(this, "لا توجد صفوف", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] options = new String[classes.size()];
+        for (int i=0;i<classes.size();i++) options[i]="الصف "+classes.get(i)[0]+" / "+classes.get(i)[1];
+        new AlertDialog.Builder(this).setTitle("اختر الصف لترتيب الطلاب")
+            .setItems(options,(dialog,which)->showClassRanking(classes.get(which)[0],classes.get(which)[1]))
+            .setNegativeButton("إلغاء",null).show();
+    }
+
+    void showClassRanking(String grade, String classroom) {
+        ArrayList<String[]> students=studentsForClass(grade,classroom);
+        if(students.isEmpty()){Toast.makeText(this,"لا يوجد طلاب",Toast.LENGTH_SHORT).show();return;}
+        Collections.sort(students,(a,b)->Double.compare(annualStudentTotal(b[1]),annualStudentTotal(a[1])));
+        StringBuilder text=new StringBuilder("الصف "+grade+" / "+classroom+"\\n");
+        text.append("الترتيب | الطالب | المجموع من 700\\n\\n");
+        for(int i=0;i<students.size();i++){
+            String[] st=students.get(i);
+            text.append(i+1).append(" - ").append(st[0]).append(" : ")
+                .append(formatNumber(annualStudentTotal(st[1]))).append(" / 700\\n");
+        }
+        TextView view=tv(text.toString(),14,false);view.setGravity(Gravity.RIGHT|Gravity.TOP);
+        new AlertDialog.Builder(this).setTitle("🏆 ترتيب الطلاب السنوي")
+            .setView(new ScrollView(this) {{addView(view);}})
+            .setPositiveButton("إغلاق",null).show();
     }
 
     void files() {
