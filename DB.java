@@ -600,6 +600,16 @@ public class DB extends SQLiteOpenHelper {
         return value;
     }
 
+    public boolean hasScoreRecord(String studentId, String subject, int semester) {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT 1 FROM scores WHERE student_id=? AND subject=? AND semester=? LIMIT 1",
+            new String[]{studentId, subject, String.valueOf(semester)}
+        );
+        boolean found = c.moveToFirst();
+        c.close();
+        return found;
+    }
+
     public double annualTotal(String studentId, String subject) {
         return getMahsala(studentId, subject, 1) + getExam(studentId, subject, 1)
             + getMahsala(studentId, subject, 2) + getExam(studentId, subject, 2);
