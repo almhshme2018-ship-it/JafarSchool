@@ -319,6 +319,16 @@ public class DB extends SQLiteOpenHelper {
         return result;
     }
 
+    public ArrayList<String[]> studentAttendanceHistory(String studentId, int limit) {
+        ArrayList<String[]> result = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT date,status FROM attendance WHERE student_id=? ORDER BY date DESC LIMIT ?",
+            new String[]{studentId,String.valueOf(Math.max(1,limit))});
+        while(c.moveToNext()) result.add(new String[]{c.getString(0),c.getString(1)});
+        c.close();
+        return result;
+    }
+
     public String studentAttendanceSummary(String studentId) {
         Cursor c = getReadableDatabase().rawQuery(
             "SELECT status, COUNT(*) FROM attendance " +
