@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
+import android.database.Cursor;
 import android.text.*;
 import android.text.InputType;
 
@@ -1012,25 +1013,24 @@ public class MainActivity extends Activity {
         renderRows.run();
         ScrollView scroll = new ScrollView(this);
         scroll.addView(box);
-        new AlertDialog.Builder(this).setTitle("إدخال درجات جماعي — الفصل " + sem)
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle("إدخال درجات جماعي — الفصل " + sem)
             .setView(scroll).setPositiveButton("حفظ الكل", null).setNegativeButton("إلغاء", null)
-            .create().also(dialog -> {
-                dialog.setOnShowListener(x -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                    ArrayList<String[]> data = new ArrayList<>();
-                    for (int i = 0; i < students.size(); i++) {
-                        double mv = parse(fields.get(i)[0]), ev = parse(fields.get(i)[1]);
-                        if (mv < 0 || mv > 20 || ev < 0 || ev > 30) {
-                            Toast.makeText(this, "راجع درجات الطالب: " + students.get(i)[0] + " (المحصلة 0-20 والاختبار 0-30)", Toast.LENGTH_LONG).show();
-                            return;
-                        }
-                        data.add(new String[]{students.get(i)[1], String.valueOf(mv), String.valueOf(ev)});
-                    }
-                    boolean saved = db.saveBulkScores(subjectSpinner.getSelectedItem().toString(), sem, data);
-                    Toast.makeText(this, saved ? "تم حفظ درجات الصف للمادة" : "تعذر حفظ الدرجات", Toast.LENGTH_LONG).show();
-                    if (saved) { dialog.dismiss(); classGrades(grade, classroom); }
-                }));
-                dialog.show();
-            });
+            .create();
+        dialog.setOnShowListener(x -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            ArrayList<String[]> data = new ArrayList<>();
+            for (int i = 0; i < students.size(); i++) {
+                double mv = parse(fields.get(i)[0]), ev = parse(fields.get(i)[1]);
+                if (mv < 0 || mv > 20 || ev < 0 || ev > 30) {
+                    Toast.makeText(this, "راجع درجات الطالب: " + students.get(i)[0] + " (المحصلة 0-20 والاختبار 0-30)", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                data.add(new String[]{students.get(i)[1], String.valueOf(mv), String.valueOf(ev)});
+            }
+            boolean saved = db.saveBulkScores(subjectSpinner.getSelectedItem().toString(), sem, data);
+            Toast.makeText(this, saved ? "تم حفظ درجات الصف للمادة" : "تعذر حفظ الدرجات", Toast.LENGTH_LONG).show();
+            if (saved) { dialog.dismiss(); classGrades(grade, classroom); }
+        }));
+        dialog.show();
     }
 
     void scoreDialog(String studentId, String studentName, String subject, int sem, Button cell) {
