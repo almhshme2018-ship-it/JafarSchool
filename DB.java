@@ -270,6 +270,24 @@ public class DB extends SQLiteOpenHelper {
         return result;
     }
 
+    public boolean setAttendanceForDate(String studentId, String date, String status) {
+        if (studentId == null || studentId.trim().isEmpty() || date == null || date.trim().isEmpty()) return false;
+        if (!"حاضر".equals(status) && !"غائب".equals(status) && !"متأخر".equals(status) && !"غائب بعذر".equals(status)) return false;
+        ContentValues values = new ContentValues();
+        values.put("student_id", studentId);
+        values.put("date", date);
+        values.put("status", status);
+        return getWritableDatabase().insertWithOnConflict("attendance", null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
+    }
+
+    public String attendanceStatus(String studentId, String date) {
+        Cursor c = getReadableDatabase().rawQuery("SELECT status FROM attendance WHERE student_id=? AND date=?", new String[]{studentId, date});
+        String status = "";
+        if (c.moveToFirst() && !c.isNull(0)) status = c.getString(0);
+        c.close();
+        return status;
+    }
+
     public boolean setAttendance(String studentId, String status) {
         if (studentId == null || studentId.trim().isEmpty()) return false;
 
