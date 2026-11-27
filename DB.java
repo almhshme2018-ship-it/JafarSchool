@@ -184,6 +184,18 @@ public class DB extends SQLiteOpenHelper {
         }
     }
 
+    public boolean changePassword(String username, String oldPassword, String newPassword) {
+        if (username == null || oldPassword == null || newPassword == null || newPassword.length() < 6) return false;
+        Cursor c = getReadableDatabase().rawQuery("SELECT pass FROM users WHERE username=?", new String[]{username});
+        if (!c.moveToFirst()) { c.close(); return false; }
+        String stored = c.isNull(0) ? "" : c.getString(0);
+        c.close();
+        if (!verifyPassword(oldPassword, stored)) return false;
+        ContentValues values = new ContentValues();
+        values.put("pass", hashPassword(newPassword));
+        return getWritableDatabase().update("users", values, "username=?", new String[]{username}) > 0;
+    }
+
     public String[] authenticate(String username, String password) {
         Cursor c = getReadableDatabase().rawQuery(
             "SELECT name, role, grade, class, username, pass FROM users WHERE username=?",
