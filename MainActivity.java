@@ -466,6 +466,9 @@ public class MainActivity extends Activity {
 
         content.addView(stats);
 
+        dashboardIndicators();
+
+
         ArrayList<String[]> items = new ArrayList<>();
         items.add(new String[]{"👨‍🎓 الطلاب", "students"});
         items.add(new String[]{"📊 الدرجات", "grades"});
@@ -506,6 +509,23 @@ public class MainActivity extends Activity {
         }
 
         addCard("📢 آخر الإعلانات", announcements);
+    }
+
+    void dashboardIndicators() {
+        int studentsCount=safeCount("students");
+        int present=db.todayPresent();
+        int absent=db.todayAbsent();
+        int recorded=present+absent;
+        double rate=recorded>0 ? (present*100.0/recorded) : 0;
+        addCard("📊 ملخص اليوم","عدد الطلاب: "+studentsCount+"\\nالحضور المسجل: "+present+"\\nالغياب المسجل: "+absent+"\\nنسبة الحضور من السجلات المتاحة: "+formatNumber(rate)+"%");
+        if(admin()){
+            Button reportsShortcut=btn("📈 فتح التقارير");
+            content.addView(reportsShortcut,new LinearLayout.LayoutParams(-1,dp(48)));
+            reportsShortcut.setOnClickListener(v->open("reports"));
+            Button attendanceShortcut=btn("✅ تسجيل الحضور");
+            content.addView(attendanceShortcut,new LinearLayout.LayoutParams(-1,dp(48)));
+            attendanceShortcut.setOnClickListener(v->open("attendance"));
+        }
     }
 
     void changePasswordDialog() {
