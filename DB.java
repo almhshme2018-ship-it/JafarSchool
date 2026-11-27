@@ -10,11 +10,15 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
+import java.security.SecureRandom;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import android.util.Base64;
 
 public class DB extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "school.db";
-    private static final int DB_VERSION = 4;
+    private static final int DB_VERSION = 5;
 
     public DB(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -34,6 +38,9 @@ public class DB extends SQLiteOpenHelper {
     }
 
     private void createTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS subjects (name TEXT PRIMARY KEY NOT NULL)");
+        String[] initialSubjects = {"القرآن الكريم","التربية الإسلامية","اللغة العربية","الرياضيات","العلوم","الاجتماعيات","اللغة الإنجليزية"};
+        for (String subject : initialSubjects) db.execSQL("INSERT OR IGNORE INTO subjects(name) VALUES('" + subject.replace("'","''") + "')");
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS students (" +
             "id TEXT PRIMARY KEY NOT NULL," +
@@ -123,7 +130,7 @@ public class DB extends SQLiteOpenHelper {
             ContentValues v = new ContentValues();
             v.put("name", "مدير النظام الأساسي");
             v.put("username", "admin");
-            v.put("pass", "1234");
+            v.put("pass", hashPassword("1234"));
             v.put("role", "القائم بأعمال المدير");
             v.put("grade", "");
             v.put("class", "");
@@ -136,24 +143,79 @@ public class DB extends SQLiteOpenHelper {
         return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
     }
 
+    // PBKDF2 password hashing with per-password salt; legacy plaintext passwords
+    // are upgraded transparently after a successful login.
+    private String hashPassword(String password) {
+        try {
+            byte[] salt = new byte[16];
+            new SecureRandom().nextBytes(salt);
+            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 120000, 256);
+            byte[] hash = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(spec).getEncoded();
+            spec.clearPassword();
+            return "PBKDF2$120000$" + Base64.encodeToString(salt, Base64.NO_WRAP)
+                + "$" + Base64.encodeToString(hash, Base64.NO_WRAP);
+        } catch (Exception e) {
+            throw new IllegalStateException("تعذر حماية كلمة المرور", e);
+        }
+    }
+
+    public String passwordForStorage(String password) {
+        if (password == null || password.length() < 6) {
+            throw new IllegalArgumentException("يجب أن تتكون كلمة المرور من 6 أحرف على الأقل");
+        }
+        return hashPassword(password);
+    }
+
+    private boolean verifyPassword(String password, String stored) {
+        if (stored == null || !stored.startsWith("PBKDF2$")) return password.equals(stored);
+        try {
+            String[] parts = stored.split("\\$");
+            int iterations = Integer.parseInt(parts[1]);
+            byte[] salt = Base64.decode(parts[2], Base64.NO_WRAP);
+            byte[] expected = Base64.decode(parts[3], Base64.NO_WRAP);
+            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, iterations, expected.length * 8);
+            byte[] actual = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                .generateSecret(spec).getEncoded();
+            spec.clearPassword();
+            if (actual.length != expected.length) return false;
+            int diff = 0;
+            for (int i = 0; i < actual.length; i++) diff |= actual[i] ^ expected[i];
+            return diff == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean changePassword(String username, String oldPassword, String newPassword) {
+        if (username == null || oldPassword == null || newPassword == null || newPassword.length() < 6) return false;
+        Cursor c = getReadableDatabase().rawQuery("SELECT pass FROM users WHERE username=?", new String[]{username});
+        if (!c.moveToFirst()) { c.close(); return false; }
+        String stored = c.isNull(0) ? "" : c.getString(0);
+        c.close();
+        if (!verifyPassword(oldPassword, stored)) return false;
+        ContentValues values = new ContentValues();
+        values.put("pass", hashPassword(newPassword));
+        return getWritableDatabase().update("users", values, "username=?", new String[]{username}) > 0;
+    }
+
     public String[] authenticate(String username, String password) {
         Cursor c = getReadableDatabase().rawQuery(
-            "SELECT name, role, grade, class, username " +
-            "FROM users WHERE username=? AND pass=?",
-            new String[]{username, password}
+            "SELECT name, role, grade, class, username, pass FROM users WHERE username=?",
+            new String[]{username}
         );
-
-        if (!c.moveToFirst()) {
-            c.close();
-            return null;
-        }
-
+        if (!c.moveToFirst()) { c.close(); return null; }
+        String stored = c.isNull(5) ? "" : c.getString(5);
+        if (!verifyPassword(password, stored)) { c.close(); return null; }
         String[] result = new String[5];
-        for (int i = 0; i < 5; i++) {
-            result[i] = c.isNull(i) ? "" : c.getString(i);
-        }
-
+        for (int i = 0; i < 5; i++) result[i] = c.isNull(i) ? "" : c.getString(i);
         c.close();
+        // Upgrade legacy plaintext on successful authentication.
+        if (stored == null || !stored.startsWith("PBKDF2$")) {
+            ContentValues v = new ContentValues();
+            v.put("pass", hashPassword(password));
+            getWritableDatabase().update("users", v, "username=?", new String[]{username});
+        }
         return result;
     }
 
@@ -211,6 +273,24 @@ public class DB extends SQLiteOpenHelper {
         return result;
     }
 
+    public boolean setAttendanceForDate(String studentId, String date, String status) {
+        if (studentId == null || studentId.trim().isEmpty() || date == null || date.trim().isEmpty()) return false;
+        if (!"حاضر".equals(status) && !"غائب".equals(status) && !"متأخر".equals(status) && !"غائب بعذر".equals(status)) return false;
+        ContentValues values = new ContentValues();
+        values.put("student_id", studentId);
+        values.put("date", date);
+        values.put("status", status);
+        return getWritableDatabase().insertWithOnConflict("attendance", null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
+    }
+
+    public String attendanceStatus(String studentId, String date) {
+        Cursor c = getReadableDatabase().rawQuery("SELECT status FROM attendance WHERE student_id=? AND date=?", new String[]{studentId, date});
+        String status = "";
+        if (c.moveToFirst() && !c.isNull(0)) status = c.getString(0);
+        c.close();
+        return status;
+    }
+
     public boolean setAttendance(String studentId, String status) {
         if (studentId == null || studentId.trim().isEmpty()) return false;
 
@@ -229,6 +309,27 @@ public class DB extends SQLiteOpenHelper {
         );
 
         return result != -1;
+    }
+
+    public ArrayList<String[]> attendanceRangeForClass(String grade, String classroom, String start, String end) {
+        ArrayList<String[]> result = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT s.name,s.id,a.status,COUNT(*) FROM attendance a INNER JOIN students s ON s.id=a.student_id " +
+            "WHERE s.grade=? AND s.class=? AND a.date>=? AND a.date<=? GROUP BY s.id,a.status ORDER BY s.name",
+            new String[]{grade,classroom,start,end});
+        while(c.moveToNext()) result.add(new String[]{c.getString(0),c.getString(1),c.getString(2),String.valueOf(c.getInt(3))});
+        c.close();
+        return result;
+    }
+
+    public ArrayList<String[]> studentAttendanceHistory(String studentId, int limit) {
+        ArrayList<String[]> result = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT date,status FROM attendance WHERE student_id=? ORDER BY date DESC LIMIT ?",
+            new String[]{studentId,String.valueOf(Math.max(1,limit))});
+        while(c.moveToNext()) result.add(new String[]{c.getString(0),c.getString(1)});
+        c.close();
+        return result;
     }
 
     public String studentAttendanceSummary(String studentId) {
@@ -401,6 +502,33 @@ public class DB extends SQLiteOpenHelper {
         }
     }
 
+    public boolean saveBulkScores(String subject, int semester, ArrayList<String[]> rows) {
+        if (subject == null || subject.trim().isEmpty() || semester < 1 || semester > 2 || rows == null) return false;
+        SQLiteDatabase database = getWritableDatabase();
+        database.beginTransaction();
+        try {
+            for (String[] row : rows) {
+                if (row == null || row.length < 3 || row[0] == null) return false;
+                double mahsala = Double.parseDouble(row[1]);
+                double exam = Double.parseDouble(row[2]);
+                if (mahsala < 0 || mahsala > 20 || exam < 0 || exam > 30) return false;
+                ContentValues values = new ContentValues();
+                values.put("student_id", row[0]);
+                values.put("subject", subject);
+                values.put("semester", semester);
+                values.put("mahsala", mahsala);
+                values.put("exam", exam);
+                database.insertWithOnConflict("scores", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+            }
+            database.setTransactionSuccessful();
+            return true;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            database.endTransaction();
+        }
+    }
+
     public void setMahsala(String studentId, String subject, int semester, double value) {
         saveScorePart(studentId, subject, semester, value, null);
     }
@@ -475,6 +603,16 @@ public class DB extends SQLiteOpenHelper {
         return value;
     }
 
+    public boolean hasScoreRecord(String studentId, String subject, int semester) {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT 1 FROM scores WHERE student_id=? AND subject=? AND semester=? LIMIT 1",
+            new String[]{studentId, subject, String.valueOf(semester)}
+        );
+        boolean found = c.moveToFirst();
+        c.close();
+        return found;
+    }
+
     public double annualTotal(String studentId, String subject) {
         return getMahsala(studentId, subject, 1) + getExam(studentId, subject, 1)
             + getMahsala(studentId, subject, 2) + getExam(studentId, subject, 2);
@@ -528,15 +666,33 @@ public class DB extends SQLiteOpenHelper {
     }
 
     public String[] subjects() {
-        return new String[]{
-            "القرآن الكريم",
-            "التربية الإسلامية",
-            "اللغة العربية",
-            "الرياضيات",
-            "العلوم",
-            "الاجتماعيات",
-            "اللغة الإنجليزية"
-        };
+        ArrayList<String> list = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery("SELECT name FROM subjects ORDER BY rowid", null);
+        while (c.moveToNext()) list.add(c.getString(0));
+        c.close();
+        return list.toArray(new String[0]);
+    }
+
+    public boolean addSubject(String name) {
+        if (name == null || name.trim().isEmpty()) return false;
+        ContentValues v = new ContentValues(); v.put("name", name.trim());
+        return getWritableDatabase().insert("subjects", null, v) != -1;
+    }
+    public boolean renameSubject(String oldName, String newName) {
+        if (oldName == null || newName == null || newName.trim().isEmpty()) return false;
+        SQLiteDatabase database=getWritableDatabase(); database.beginTransaction();
+        try {
+            ContentValues v=new ContentValues();v.put("subject",newName.trim());
+            database.update("scores",v,"subject=?",new String[]{oldName});
+            ContentValues s=new ContentValues();s.put("name",newName.trim());
+            database.update("subjects",s,"name=?",new String[]{oldName});
+            database.setTransactionSuccessful(); return true;
+        } finally {database.endTransaction();}
+    }
+    public boolean removeSubject(String name) {
+        if(name==null)return false; SQLiteDatabase database=getWritableDatabase();database.beginTransaction();
+        try { database.delete("scores","subject=?",new String[]{name});database.delete("subjects","name=?",new String[]{name});database.setTransactionSuccessful();return true;}
+        finally {database.endTransaction();}
     }
 
     public double[] monthlyValues(String studentId, String subject, int semester, int month) {

@@ -2,6 +2,10 @@ name: Build JafarSchool APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/2.1-improvements]
 
 permissions:
   contents: write
@@ -121,8 +125,8 @@ jobs:
           </paths>
           EOF
 
-          if ! grep -q 'com.jafar.school.provider' "$MANIFEST"; then
-            sed -i 's#</application>#<provider android:name="androidx.core.content.FileProvider" android:authorities="com.jafar.school.provider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/></provider></application>#' "$MANIFEST"
+          if ! grep -q 'com.jafar.school.fileprovider' "$MANIFEST"; then
+            sed -i 's#</application>#<provider android:name="androidx.core.content.FileProvider" android:authorities="com.jafar.school.fileprovider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/></provider></application>#' "$MANIFEST"
           fi
 
           echo "PDF FileProvider configured."
