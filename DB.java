@@ -38,6 +38,9 @@ public class DB extends SQLiteOpenHelper {
     }
 
     private void createTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS subjects (name TEXT PRIMARY KEY NOT NULL)");
+        String[] initialSubjects = {"القرآن الكريم","التربية الإسلامية","اللغة العربية","الرياضيات","العلوم","الاجتماعيات","اللغة الإنجليزية"};
+        for (String subject : initialSubjects) db.execSQL("INSERT OR IGNORE INTO subjects(name) VALUES('" + subject.replace("'","''") + "')");
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS students (" +
             "id TEXT PRIMARY KEY NOT NULL," +
@@ -663,15 +666,33 @@ public class DB extends SQLiteOpenHelper {
     }
 
     public String[] subjects() {
-        return new String[]{
-            "القرآن الكريم",
-            "التربية الإسلامية",
-            "اللغة العربية",
-            "الرياضيات",
-            "العلوم",
-            "الاجتماعيات",
-            "اللغة الإنجليزية"
-        };
+        ArrayList<String> list = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery("SELECT name FROM subjects ORDER BY rowid", null);
+        while (c.moveToNext()) list.add(c.getString(0));
+        c.close();
+        return list.toArray(new String[0]);
+    }
+
+    public boolean addSubject(String name) {
+        if (name == null || name.trim().isEmpty()) return false;
+        ContentValues v = new ContentValues(); v.put("name", name.trim());
+        return getWritableDatabase().insert("subjects", null, v) != -1;
+    }
+    public boolean renameSubject(String oldName, String newName) {
+        if (oldName == null || newName == null || newName.trim().isEmpty()) return false;
+        SQLiteDatabase database=getWritableDatabase(); database.beginTransaction();
+        try {
+            ContentValues v=new ContentValues();v.put("subject",newName.trim());
+            database.update("scores",v,"subject=?",new String[]{oldName});
+            ContentValues s=new ContentValues();s.put("name",newName.trim());
+            database.update("subjects",s,"name=?",new String[]{oldName});
+            database.setTransactionSuccessful(); return true;
+        } finally {database.endTransaction();}
+    }
+    public boolean removeSubject(String name) {
+        if(name==null)return false; SQLiteDatabase database=getWritableDatabase();database.beginTransaction();
+        try { database.delete("scores","subject=?",new String[]{name});database.delete("subjects","name=?",new String[]{name});database.setTransactionSuccessful();return true;}
+        finally {database.endTransaction();}
     }
 
     public double[] monthlyValues(String studentId, String subject, int semester, int month) {
