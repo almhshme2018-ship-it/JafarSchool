@@ -460,6 +460,33 @@ public class DB extends SQLiteOpenHelper {
         }
     }
 
+    public boolean saveBulkScores(String subject, int semester, ArrayList<String[]> rows) {
+        if (subject == null || subject.trim().isEmpty() || semester < 1 || semester > 2 || rows == null) return false;
+        SQLiteDatabase database = getWritableDatabase();
+        database.beginTransaction();
+        try {
+            for (String[] row : rows) {
+                if (row == null || row.length < 3 || row[0] == null) return false;
+                double mahsala = Double.parseDouble(row[1]);
+                double exam = Double.parseDouble(row[2]);
+                if (mahsala < 0 || mahsala > 20 || exam < 0 || exam > 30) return false;
+                ContentValues values = new ContentValues();
+                values.put("student_id", row[0]);
+                values.put("subject", subject);
+                values.put("semester", semester);
+                values.put("mahsala", mahsala);
+                values.put("exam", exam);
+                database.insertWithOnConflict("scores", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+            }
+            database.setTransactionSuccessful();
+            return true;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            database.endTransaction();
+        }
+    }
+
     public void setMahsala(String studentId, String subject, int semester, double value) {
         saveScorePart(studentId, subject, semester, value, null);
     }
