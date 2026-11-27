@@ -2007,58 +2007,37 @@ public class MainActivity extends Activity {
                     canvas.drawText("الصف: " + grade + "     الشعبة: " + classroom + "     الرقم: " + studentId, width / 2f, top + 75, text);
 
                     int tableTop = top + 96;
-                    int rowHeight = 15;
-                    int[] colX = {right - 5, right - 155, right - 235, right - 315, right - 390, left + 5};
-
-                    text.setTextSize(8);
+                    ArrayList<String> subjects = new ArrayList<>(Arrays.asList(db.subjects()));
+                    int labelW = 48, usableW = right-left-10-labelW;
+                    int cellW = subjects.isEmpty()?1:usableW/subjects.size();
+                    int rowH = 18;
+                    text.setTextSize(7);
                     text.setFakeBoldText(true);
-                    canvas.drawLine(left + 5, tableTop, right - 5, tableTop, border);
-
-                    canvas.drawText("المادة", (colX[0] + colX[1]) / 2f, tableTop + 10, text);
-                    canvas.drawText("المحصلة", (colX[1] + colX[2]) / 2f, tableTop + 10, text);
-                    canvas.drawText("الاختبار", (colX[2] + colX[3]) / 2f, tableTop + 10, text);
-                    canvas.drawText("المجموع", (colX[3] + colX[4]) / 2f, tableTop + 10, text);
-
-                    canvas.drawLine(left + 5, tableTop + rowHeight, right - 5, tableTop + rowHeight, border);
-                    text.setFakeBoldText(false);
-
-                    double total = 0;
-                    int y = tableTop + rowHeight;
-
-                    for (String subject : db.subjects()) {
-                        double m = db.getMahsala(studentId, subject, semester);
-                        double e = db.getExam(studentId, subject, semester);
-                        double subjectTotal = m + e;
-                        total += subjectTotal;
-
-                        y += rowHeight;
-                        canvas.drawLine(left + 5, y, right - 5, y, border);
-
-                        text.setTextSize(7.5f);
-                        text.setTextAlign(Paint.Align.RIGHT);
-                        canvas.drawText(subject, right - 10, y - 3, text);
-
-                        text.setTextAlign(Paint.Align.CENTER);
-                        canvas.drawText(formatNumber(m), (colX[1] + colX[2]) / 2f, y - 3, text);
-                        canvas.drawText(formatNumber(e), (colX[2] + colX[3]) / 2f, y - 3, text);
-                        canvas.drawText(formatNumber(subjectTotal), (colX[3] + colX[4]) / 2f, y - 3, text);
+                    canvas.drawLine(left+5,tableTop,right-5,tableTop,border);
+                    canvas.drawText("المادة",left+5+labelW/2f,tableTop+12,text);
+                    for(int si=0;si<subjects.size();si++)canvas.drawText(subjects.get(si),left+5+labelW+si*cellW+cellW/2f,tableTop+12,text);
+                    canvas.drawLine(left+5,tableTop+rowH,right-5,tableTop+rowH,border);
+                    double total=0;
+                    String[] rowLabels={"المحصلة","الاختبار","المجموع"};
+                    for(int ri=0;ri<3;ri++){
+                        int yy=tableTop+rowH*(ri+1);
+                        text.setTextSize(7.5f);text.setFakeBoldText(ri==2);
+                        canvas.drawText(rowLabels[ri],left+5+labelW/2f,yy+12,text);
+                        for(int si=0;si<subjects.size();si++){
+                            String sub=subjects.get(si);double m=db.getMahsala(studentId,sub,semester),e=db.getExam(studentId,sub,semester);
+                            double st=m+e;if(ri==2)total+=st;
+                            canvas.drawText(formatNumber(ri==0?m:ri==1?e:st),left+5+labelW+si*cellW+cellW/2f,yy+12,text);
+                        }
+                        canvas.drawLine(left+5,yy+rowH,right-5,yy+rowH,border);
                     }
+                    int y=tableTop+rowH*4, summaryY=y+12;
+                    text.setTextSize(9);text.setFakeBoldText(true);
+                    int subjectCount=subjects.size();
+                    canvas.drawText("المجموع: "+formatNumber(total)+" / "+(subjectCount*50),width/2f,summaryY,text);
+                    double percentage=subjectCount==0?0:total/(subjectCount*50.0)*100.0;
+                    text.setTextSize(8);text.setFakeBoldText(false);
+                    canvas.drawText("النسبة: "+formatNumber(percentage)+"%   التقدير: "+DB.gradeFor(percentage)+"   النتيجة: "+(percentage>=50?"ناجح":"راسب"),width/2f,summaryY+11,text);
 
-                    int summaryY = y + 12;
-                    text.setTextSize(9);
-                    text.setFakeBoldText(true);
-                    int subjectCount = db.subjects().length;
-                    canvas.drawText("المجموع: " + formatNumber(total) + " / " + (subjectCount * 50), width / 2f, summaryY, text);
-
-                    double percentage = subjectCount == 0 ? 0 : total / (subjectCount * 50.0) * 100.0;
-                    text.setTextSize(8);
-                    text.setFakeBoldText(false);
-                    canvas.drawText(
-                        "النسبة: " + formatNumber(percentage) + "%     التقدير: " + DB.gradeFor(percentage) + "     النتيجة: " + (percentage >= 50 ? "ناجح" : "راسب"),
-                        width / 2f, summaryY + 11, text
-                    );
-
-                    text.setTextSize(8);
                     canvas.drawText("توقيع المعلم: ................", width / 4f, bottom - 8, text);
                     canvas.drawText("مدير المدرسة: ................", width * 3f / 4f, bottom - 8, text);
                 }
