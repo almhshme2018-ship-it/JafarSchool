@@ -308,6 +308,17 @@ public class DB extends SQLiteOpenHelper {
         return result != -1;
     }
 
+    public ArrayList<String[]> attendanceRangeForClass(String grade, String classroom, String start, String end) {
+        ArrayList<String[]> result = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT s.name,s.id,a.status,COUNT(*) FROM attendance a INNER JOIN students s ON s.id=a.student_id " +
+            "WHERE s.grade=? AND s.class=? AND a.date>=? AND a.date<=? GROUP BY s.id,a.status ORDER BY s.name",
+            new String[]{grade,classroom,start,end});
+        while(c.moveToNext()) result.add(new String[]{c.getString(0),c.getString(1),c.getString(2),String.valueOf(c.getInt(3))});
+        c.close();
+        return result;
+    }
+
     public String studentAttendanceSummary(String studentId) {
         Cursor c = getReadableDatabase().rawQuery(
             "SELECT status, COUNT(*) FROM attendance " +
