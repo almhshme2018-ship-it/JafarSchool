@@ -418,6 +418,10 @@ public class MainActivity extends Activity {
 
         header.addView(tv(role + "\n" + currentUser, 13, true), new LinearLayout.LayoutParams(0, -2, 1));
 
+        Button changePass = smallBtn("🔑 كلمة المرور", GREEN);
+        header.addView(changePass, new LinearLayout.LayoutParams(dp(110), dp(44)));
+        changePass.setOnClickListener(v -> changePasswordDialog());
+
         Button logout = btn("خروج");
         header.addView(logout, new LinearLayout.LayoutParams(dp(82), dp(44)));
         logout.setOnClickListener(v -> showLogin());
@@ -496,6 +500,37 @@ public class MainActivity extends Activity {
         }
 
         addCard("📢 آخر الإعلانات", announcements);
+    }
+
+    void changePasswordDialog() {
+        EditText oldPass = edit("كلمة المرور الحالية");
+        EditText newPass = edit("كلمة المرور الجديدة (6 أحرف على الأقل)");
+        EditText confirm = edit("تأكيد كلمة المرور الجديدة");
+        oldPass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        newPass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        confirm.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(8), dp(4), dp(8), dp(4));
+        box.addView(oldPass);
+        box.addView(newPass);
+        box.addView(confirm);
+        new AlertDialog.Builder(this).setTitle("تغيير كلمة المرور")
+            .setView(box)
+            .setPositiveButton("حفظ", (dialog, which) -> {
+                String oldValue = oldPass.getText().toString();
+                String newValue = newPass.getText().toString();
+                if (newValue.length() < 6) {
+                    Toast.makeText(this, "كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (!newValue.equals(confirm.getText().toString())) {
+                    Toast.makeText(this, "تأكيد كلمة المرور غير متطابق", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                boolean changed = db.changePassword(currentUsername, oldValue, newValue);
+                Toast.makeText(this, changed ? "تم تغيير كلمة المرور" : "تعذر التغيير: تحقق من كلمة المرور الحالية", Toast.LENGTH_LONG).show();
+            }).setNegativeButton("إلغاء", null).show();
     }
 
     void open(String key) {
