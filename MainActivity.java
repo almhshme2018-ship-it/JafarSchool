@@ -1375,6 +1375,65 @@ public class MainActivity extends Activity {
             else if("متأخر".equals(row[2]))values[2]+=count;
             else if("غائب بعذر".equals(row[2]))values[3]+=count;
         }
+        for(String id:totals.keySet()) {
+            int[] t=totals.get(id);
+            String student="";
+            for(String[] row:rows) if(row[1].equals(id)){student=row[0];break;}
+            addCard(student,"حاضر: "+t[0]+"\\nغائب: "+t[1]+"\\nمتأخر: "+t[2]+"\\nغائب بعذر: "+t[3]);
+        }
+        Button pdf=btn("📄 حفظ تقرير الغياب PDF");
+        content.addView(pdf,new LinearLayout.LayoutParams(-1,dp(52)));
+        pdf.setOnClickListener(v->generateAttendancePdf(grade,classroom,start,end,totals,rows));
+    }
+
+    void generateAttendancePdf(String grade,String classroom,String start,String end,java.util.LinkedHashMap<String,int[]> totals,ArrayList<String[]> rows) {
+        PdfDocument document=new PdfDocument();
+        int width=595,height=842, pageNo=1;
+        Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.BLACK); paint.setTextAlign(Paint.Align.CENTER);
+        PdfDocument.Page pdfPage=document.startPage(new PdfDocument.PageInfo.Builder(width,height,pageNo).create());
+        Canvas canvas=pdfPage.getCanvas(); canvas.drawColor(Color.WHITE);
+        paint.setTextSize(18); paint.setFakeBoldText(true);
+        canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية",width/2f,40,paint);
+        paint.setTextSize(15); canvas.drawText("كشف الحضور والغياب",width/2f,68,paint);
+        paint.setTextSize(12); paint.setFakeBoldText(false);
+        canvas.drawText("الصف: "+grade+"    الشعبة: "+classroom,width/2f,95,paint);
+        canvas.drawText("الفترة: "+start+" إلى "+end,width/2f,118,paint);
+        int y=155;
+        paint.setTextSize(10); paint.setFakeBoldText(true);
+        String[] headings={"اسم الطالب","حاضر","غائب","متأخر","بعذر"};
+        int[] xs={475,370,280,190,100};
+        for(int i=0;i<headings.length;i++) canvas.drawText(headings[i],xs[i],y,paint);
+        paint.setFakeBoldText(false); y+=22;
+        for(String id:totals.keySet()){
+            if(y>height-80){document.finishPage(pdfPage);pageNo++;pdfPage=document.startPage(new PdfDocument.PageInfo.Builder(width,height,pageNo).create());canvas=pdfPage.getCanvas();canvas.drawColor(Color.WHITE);y=50;}
+            String name=""; for(String[] row:rows)if(row[1].equals(id)){name=row[0];break;}
+            int[] t=totals.get(id);
+            canvas.drawText(name.length()>28?name.substring(0,28):name,475,y,paint);
+            for(int k=0;k<4;k++)canvas.drawText(String.valueOf(t[k]),xs[k+1],y,paint);
+            canvas.drawLine(40,y+5,width-40,y+5,paint);y+=24;
+        }
+        paint.setTextSize(11); paint.setFakeBoldText(true);
+        canvas.drawText("توقيع الإدارة: __________________     ملاحظات: __________________",width/2f,height-35,paint);
+        document.finishPage(pdfPage);
+        savePdf(document,"attendance_"+grade+"_"+classroom+"_"+start+"_"+end+".pdf");
+    }
+
+
+        page("تقرير الغياب");
+        addCard("الصف "+grade+" / "+classroom,"الفترة: "+start+" إلى "+end);
+        ArrayList<String[]> rows=db.attendanceRangeForClass(grade,classroom,start,end);
+        if(rows.isEmpty()){addCard("التقرير","لا توجد سجلات في الفترة المحددة.");return;}
+        java.util.LinkedHashMap<String,int[]> totals=new java.util.LinkedHashMap<>();
+        for(String[] row:rows){
+            int[] values=totals.get(row[1]);
+            if(values==null){values=new int[4];totals.put(row[1],values);}
+            int count=Integer.parseInt(row[3]);
+            if("حاضر".equals(row[2]))values[0]+=count;
+            else if("غائب".equals(row[2]))values[1]+=count;
+            else if("متأخر".equals(row[2]))values[2]+=count;
+            else if("غائب بعذر".equals(row[2]))values[3]+=count;
+        }
         for(String[] row:rows) { /* grouped counts assembled below */ }
         ArrayList<String[]> names=new ArrayList<>();
         for(String[] row:rows) if(!names.contains(row)) names.add(row);
