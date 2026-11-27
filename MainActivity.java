@@ -1565,17 +1565,33 @@ public class MainActivity extends Activity {
             .setNegativeButton("إلغاء",null).show();
     }
 
+    boolean annualScoresComplete(String studentId) {
+        for (String subject : SUBJECTS_7) {
+            if (!db.hasScoreRecord(studentId, subject, 1) || !db.hasScoreRecord(studentId, subject, 2)) return false;
+        }
+        return true;
+    }
+
     void showClassRanking(String grade, String classroom) {
         ArrayList<String[]> students=studentsForClass(grade,classroom);
         if(students.isEmpty()){Toast.makeText(this,"لا يوجد طلاب",Toast.LENGTH_SHORT).show();return;}
-        Collections.sort(students,(a,b)->Double.compare(annualStudentTotal(b[1]),annualStudentTotal(a[1])));
+        Collections.sort(students,(a,b)->{
+            int scoreCompare=Double.compare(annualStudentTotal(b[1]),annualStudentTotal(a[1]));
+            return scoreCompare!=0 ? scoreCompare : a[0].compareToIgnoreCase(b[0]);
+        });
         StringBuilder text=new StringBuilder("الصف "+grade+" / "+classroom+"\\n");
-        text.append("الترتيب | الطالب | المجموع من 700\\n\\n");
+        text.append("الترتيب | الطالب | المجموع من 700 | حالة الدرجات\\n\\n");
+        int rank=0; double previous=Double.NaN;
         for(int i=0;i<students.size();i++){
-            String[] st=students.get(i);
-            text.append(i+1).append(" - ").append(st[0]).append(" : ")
-                .append(formatNumber(annualStudentTotal(st[1]))).append(" / 700\\n");
+            String[] st=students.get(i); double total=annualStudentTotal(st[1]);
+            if(i==0 || Double.compare(total,previous)!=0) rank=i+1;
+            previous=total;
+            text.append(rank).append(" - ").append(st[0]).append(" : ")
+                .append(formatNumber(total)).append(" / 700 — ")
+                .append(annualScoresComplete(st[1]) ? "مكتملة" : "ناقص سجل في فصل أو مادة")
+                .append("\\n");
         }
+        text.append("\\nتنبيه: الطالب ذو السجلات الناقصة قد يظهر بمجموع منخفض؛ راجع تدقيق الدرجات قبل اعتماد الترتيب.");
         TextView view=tv(text.toString(),14,false);view.setGravity(Gravity.RIGHT|Gravity.TOP);
         new AlertDialog.Builder(this).setTitle("🏆 ترتيب الطلاب السنوي")
             .setView(new ScrollView(this) {{addView(view);}})
