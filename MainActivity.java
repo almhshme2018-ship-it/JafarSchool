@@ -1026,7 +1026,12 @@ public class MainActivity extends Activity {
     }
 
     void attendanceClass(String grade, String classroom) {
-        page("الحضور: " + grade + " / " + classroom);
+        attendanceClassForDate(grade, classroom, new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date()));
+    }
+
+    void attendanceClassForDate(String grade, String classroom, String date) {
+
+        page("الحضور: " + grade + " / " + classroom);\n        addCard("التاريخ المحدد", date);\n        Button chooseDate = btn("📅 اختيار تاريخ آخر");\n        content.addView(chooseDate, new LinearLayout.LayoutParams(-1, dp(48)));\n        chooseDate.setOnClickListener(v -> { java.util.Calendar cal = java.util.Calendar.getInstance(); try { java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US); cal.setTime(sdf.parse(date)); } catch (Exception ignored) {} new DatePickerDialog(this, (picker, year, month, day) -> attendanceClassForDate(grade, classroom, String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month+1, day)), cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show(); });
         ArrayList<String[]> students = studentsForClass(grade, classroom);
 
         if (students.isEmpty()) {
@@ -1045,7 +1050,7 @@ public class MainActivity extends Activity {
             row.setOrientation(LinearLayout.VERTICAL);
             row.setPadding(dp(8), dp(6), dp(8), dp(6));
             row.setBackground(rounded(WHITE, 10));
-            row.addView(tv(studentName, 14, true));
+            row.addView(tv(studentName + (db.attendanceStatus(studentId, date).isEmpty() ? "\\nلم يسجل" : "\\nالحالة: " + db.attendanceStatus(studentId, date)), 14, true));
 
             LinearLayout actions = new LinearLayout(this);
             actions.setOrientation(LinearLayout.HORIZONTAL);
@@ -1065,7 +1070,7 @@ public class MainActivity extends Activity {
                         Toast.makeText(this, "ليست لديك صلاحية تسجيل الحضور", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    boolean saved = db.setAttendance(studentId, status);
+                    boolean saved = db.setAttendanceForDate(studentId, date, status);
                     Toast.makeText(this, saved ? "تم تسجيل " + status : "تعذر حفظ الحضور", Toast.LENGTH_SHORT).show();
                 });
             }
