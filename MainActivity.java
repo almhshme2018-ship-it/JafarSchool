@@ -382,8 +382,16 @@ public class MainActivity extends Activity {
             String u = username.getText().toString().trim();
             String p = password.getText().toString();
 
-            if (u.isEmpty() || p.isEmpty()) {
-                Toast.makeText(this, "أدخل اسم المستخدم وكلمة المرور", Toast.LENGTH_SHORT).show();
+            if (u.isEmpty()) {
+                username.setError("اكتب اسم المستخدم هنا");
+                username.requestFocus();
+                Toast.makeText(this, "حقل اسم المستخدم فارغ", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (p.trim().isEmpty()) {
+                password.setError("اكتب كلمة المرور هنا");
+                password.requestFocus();
+                Toast.makeText(this, "حقل كلمة المرور فارغ", Toast.LENGTH_SHORT).show();
                 return;
             }
 
