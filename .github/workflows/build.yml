@@ -126,7 +126,7 @@ jobs:
           EOF
 
           if ! grep -q 'com.jafar.school.fileprovider' "$MANIFEST"; then
-            sed -i 's#</application>#<provider android:name="androidx.core.content.FileProvider" android:authorities="com.jafar.school.provider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/></provider></application>#' "$MANIFEST"
+            sed -i 's#</application>#<provider android:name="androidx.core.content.FileProvider" android:authorities="com.jafar.school.fileprovider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/></provider></application>#' "$MANIFEST"
           fi
 
           echo "PDF FileProvider configured."
