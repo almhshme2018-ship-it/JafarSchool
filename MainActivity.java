@@ -1970,6 +1970,18 @@ public class MainActivity extends Activity {
             return;
         }
 
+        final HashMap<String, Double> totalsById = new HashMap<>();
+        ArrayList<String[]> rankedStudents = new ArrayList<>(students);
+        ArrayList<String> subjectsForRanking = new ArrayList<>(Arrays.asList(db.subjects()));
+        for (String[] st : students) {
+            double stTotal = 0;
+            for (String sub : subjectsForRanking) stTotal += db.getMahsala(st[1], sub, semester) + db.getExam(st[1], sub, semester);
+            totalsById.put(st[1], stTotal);
+        }
+        rankedStudents.sort((a,b) -> Double.compare(totalsById.getOrDefault(b[1],0.0), totalsById.getOrDefault(a[1],0.0)));
+        HashMap<String,Integer> rankById = new HashMap<>();
+        for(int ri=0;ri<rankedStudents.size();ri++) rankById.put(rankedStudents.get(ri)[1],ri+1);
+
         PdfDocument document = new PdfDocument();
         final int width = 595, height = 842;
         final int margin = 12, gap = 8;
@@ -2054,6 +2066,7 @@ public class MainActivity extends Activity {
                     double percentage=subjectCount==0?0:total/(subjectCount*50.0)*100.0;
                     text.setTextSize(8);text.setFakeBoldText(false);
                     canvas.drawText("النسبة: "+formatNumber(percentage)+"%   التقدير: "+DB.gradeFor(percentage)+"   النتيجة: "+(percentage>=50?"ناجح":"راسب"),width/2f,summaryY+11,text);
+                    canvas.drawText("الترتيب: "+rankById.getOrDefault(studentId,0)+" / "+students.size(),width/2f,summaryY+22,text);
 
                     canvas.drawText("توقيع المعلم: ................", width / 4f, bottom - 8, text);
                     canvas.drawText("مدير المدرسة: ................", width * 3f / 4f, bottom - 8, text);
