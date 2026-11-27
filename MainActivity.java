@@ -1498,31 +1498,6 @@ public class MainActivity extends Activity {
     }
 
 
-        page("تقرير الغياب");
-        addCard("الصف "+grade+" / "+classroom,"الفترة: "+start+" إلى "+end);
-        ArrayList<String[]> rows=db.attendanceRangeForClass(grade,classroom,start,end);
-        if(rows.isEmpty()){addCard("التقرير","لا توجد سجلات في الفترة المحددة.");return;}
-        java.util.LinkedHashMap<String,int[]> totals=new java.util.LinkedHashMap<>();
-        for(String[] row:rows){
-            int[] values=totals.get(row[1]);
-            if(values==null){values=new int[4];totals.put(row[1],values);}
-            int count=Integer.parseInt(row[3]);
-            if("حاضر".equals(row[2]))values[0]+=count;
-            else if("غائب".equals(row[2]))values[1]+=count;
-            else if("متأخر".equals(row[2]))values[2]+=count;
-            else if("غائب بعذر".equals(row[2]))values[3]+=count;
-        }
-        for(String[] row:rows) { /* grouped counts assembled below */ }
-        ArrayList<String[]> names=new ArrayList<>();
-        for(String[] row:rows) if(!names.contains(row)) names.add(row);
-        for(String id:totals.keySet()) {
-            int[] t=totals.get(id);
-            String student="";
-            for(String[] row:rows) if(row[1].equals(id)){student=row[0];break;}
-            addCard(student,"حاضر: "+t[0]+"\nغائب: "+t[1]+"\nمتأخر: "+t[2]+"\nغائب بعذر: "+t[3]);
-        }
-    }
-
     void reports() {
         page("📈 التقارير");
         addCard(
