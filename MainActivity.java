@@ -315,6 +315,16 @@ public class MainActivity extends Activity {
             if(requestCode==2002){restoreBackup(data.getData());return;}
         }
 
+        if (requestCode == PICK_EXAM_LOGO && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            Uri uri = data.getData();
+            try {
+                getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (Exception ignored) {}
+            getSharedPreferences("exam_header", MODE_PRIVATE).edit().putString("logo", uri.toString()).apply();
+            examLogo = null;
+            Toast.makeText(this, "تم حفظ الشعار بنجاح", Toast.LENGTH_SHORT).show();
+            return;
+        }
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
@@ -1920,8 +1930,15 @@ public class MainActivity extends Activity {
         p.setTextSize(7.5f);p.setFakeBoldText(true);p.setTextAlign(Paint.Align.RIGHT);
         drawMultiline(canvas,rightText,right-8,top+13,p,9);
         p.setTextAlign(Paint.Align.LEFT);drawMultiline(canvas,leftText,left+8,top+13,p,9);
-        p.setTextAlign(Paint.Align.CENTER);p.setTextSize(24);canvas.drawText("🦅",widthCenter(left,right),top+30,p);
-        p.setTextSize(7);canvas.drawText("النسر اليمني",widthCenter(left,right),top+43,p);p.setFakeBoldText(false);
+        p.setTextAlign(Paint.Align.CENTER);
+        Bitmap logo = getExamLogo();
+        if (logo != null) {
+            Rect dst = new Rect((int)widthCenter(left,right)-22, top+3, (int)widthCenter(left,right)+22, top+39);
+            canvas.drawBitmap(logo, null, dst, p);
+        } else {
+            p.setTextSize(24);canvas.drawText("🦅",widthCenter(left,right),top+30,p);
+        }
+        p.setTextSize(7);canvas.drawText("الشعار",widthCenter(left,right),top+43,p);p.setFakeBoldText(false);
     }
     float widthCenter(int l,int r){return (l+r)/2f;}
     void drawMultiline(Canvas c,String str,float x,float y,Paint p,float lineHeight){String[] lines=str.split("\\n");for(int i=0;i<Math.min(lines.length,3);i++)c.drawText(lines[i],x,y+i*lineHeight,p);}
