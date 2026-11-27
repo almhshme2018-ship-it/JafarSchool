@@ -309,6 +309,12 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode==RESULT_OK && data!=null && data.getData()!=null){
+            if(requestCode==2001){exportBackup(data.getData());return;}
+            if(requestCode==2002){restoreBackup(data.getData());return;}
+        }
+
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             if (uri != null) {
@@ -1483,42 +1489,46 @@ public class MainActivity extends Activity {
     }
 
     void files() {
-        page("📁 النسخ الاحتياطي");
-        addCard("البيانات", "يتم حفظ البيانات محليًا داخل قاعدة بيانات التطبيق.");
+        page("📁 النسخ الاحتياطي والاستعادة");
+        addCard("حماية بيانات المدرسة", "أنشئ نسخة خارج التطبيق، أو استعد نسخة سابقة بعد التحقق.");
 
-        Button backup = btn("إنشاء نسخة من قاعدة البيانات");
-        content.addView(backup, new LinearLayout.LayoutParams(-1, dp(52)));
+        Button backup=btn("⬇️ تصدير نسخة احتياطية");
+        content.addView(backup,new LinearLayout.LayoutParams(-1,dp(52)));
+        backup.setOnClickListener(v->{Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("application/octet-stream");intent.putExtra(Intent.EXTRA_TITLE,"JafarSchool_backup.db");startActivityForResult(intent,2001);});
 
-        backup.setOnClickListener(v -> {
-            try {
-                File source = getDatabasePath("school.db");
-                File folder = new File(getExternalFilesDir(null), "backup");
+        Button restore=btn("⬆️ استعادة نسخة احتياطية");
+        content.addView(restore,new LinearLayout.LayoutParams(-1,dp(52)));
+        restore.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("تحذير الاستعادة").setMessage("ستستبدل الاستعادة بيانات المدرسة الحالية. أنشئ نسخة احتياطية أولاً.").setPositiveButton("اختيار ملف",(dlg,w)->{Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);intent.setType("*/*");startActivityForResult(intent,2002);}).setNegativeButton("إلغاء",null).show());
 
-                if (!folder.exists() && !folder.mkdirs()) {
-                    throw new IOException("تعذر إنشاء مجلد النسخ الاحتياطي");
-                }
+        Button selectLogoBtn=btn("🖼️ اختيار شعار المدرسة من الهاتف");
+        content.addView(selectLogoBtn,new LinearLayout.LayoutParams(-1,dp(52)));
+        selectLogoBtn.setOnClickListener(v->{Intent intent=new Intent(Intent.ACTION_GET_CONTENT);intent.setType("image/*");startActivityForResult(Intent.createChooser(intent,"اختر شعار المدرسة"),1001);});
+    }
 
-                File destination = new File(folder, "school_backup_" + System.currentTimeMillis() + ".db");
-                try (InputStream in = new FileInputStream(source); OutputStream out = new FileOutputStream(destination)) {
-                    byte[] buffer = new byte[8192];
-                    int length;
-                    while ((length = in.read(buffer)) > 0) {
-                        out.write(buffer, 0, length);
-                    }
-                }
-                Toast.makeText(this, "تم إنشاء النسخة الاحتياطية بنجاح", Toast.LENGTH_LONG).show();
-            } catch (Exception e) {
-                Toast.makeText(this, "تعذر إنشاء النسخة: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        });
+    void copyStream(InputStream in,OutputStream out)throws IOException{byte[] buffer=new byte[8192];int length;while((length=in.read(buffer))>0)out.write(buffer,0,length);out.flush();}
 
-        Button selectLogoBtn = btn("🖼️ اختيار شعار المدرسة من الهاتف");
-        content.addView(selectLogoBtn, new LinearLayout.LayoutParams(-1, dp(52)));
-        selectLogoBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            startActivityForResult(Intent.createChooser(intent, "اختر شعار المدرسة"), 1001);
-        });
+    void exportBackup(Uri uri){
+        try(InputStream in=new FileInputStream(getDatabasePath("school.db"));OutputStream out=getContentResolver().openOutputStream(uri)){
+            if(out==null)throw new IOException("تعذر فتح الملف");copyStream(in,out);Toast.makeText(this,"تم تصدير النسخة الاحتياطية",Toast.LENGTH_LONG).show();
+        }catch(Exception e){Toast.makeText(this,"فشل التصدير: "+e.getMessage(),Toast.LENGTH_LONG).show();}
+    }
+
+    void restoreBackup(Uri uri){
+        File temp=new File(getCacheDir(),"restore_validation.db");
+        try(InputStream in=getContentResolver().openInputStream(uri);OutputStream out=new FileOutputStream(temp)){if(in==null)throw new IOException("تعذر فتح الملف");copyStream(in,out);}
+        catch(Exception e){Toast.makeText(this,"تعذر قراءة الملف",Toast.LENGTH_LONG).show();return;}
+        android.database.sqlite.SQLiteDatabase check=null;
+        try{
+            check=android.database.sqlite.SQLiteDatabase.openDatabase(temp.getAbsolutePath(),null,android.database.sqlite.SQLiteDatabase.OPEN_READONLY);
+            Cursor c=check.rawQuery("PRAGMA integrity_check",null);boolean valid=c.moveToFirst()&&"ok".equalsIgnoreCase(c.getString(0));c.close();
+            if(!valid)throw new IOException("قاعدة البيانات غير سليمة");check.close();check=null;
+            db.close();File target=getDatabasePath("school.db");File replacement=new File(target.getParent(),"school_restore.tmp");
+            try(InputStream src=new FileInputStream(temp);OutputStream dst=new FileOutputStream(replacement)){copyStream(src,dst);}
+            if(target.exists()&&!target.delete())throw new IOException("تعذر استبدال قاعدة البيانات");
+            if(!replacement.renameTo(target))throw new IOException("تعذر تثبيت النسخة");
+            db=new DB(this);Toast.makeText(this,"تمت الاستعادة، سيعاد تحميل التطبيق",Toast.LENGTH_LONG).show();recreate();
+        }catch(Exception e){if(check!=null)try{check.close();}catch(Exception ignored){}Toast.makeText(this,"لم تتم الاستعادة: "+e.getMessage(),Toast.LENGTH_LONG).show();}
+        finally{temp.delete();}
     }
 
     void generateCertificatePdf(String id) {
