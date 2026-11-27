@@ -1097,7 +1097,11 @@ public class MainActivity extends Activity {
 
     void attendanceClassForDate(String grade, String classroom, String date) {
 
-        page("الحضور: " + grade + " / " + classroom);\n        addCard("التاريخ المحدد", date);\n        Button chooseDate = btn("📅 اختيار تاريخ آخر");\n        content.addView(chooseDate, new LinearLayout.LayoutParams(-1, dp(48)));\n        chooseDate.setOnClickListener(v -> { java.util.Calendar cal = java.util.Calendar.getInstance(); try { java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US); cal.setTime(sdf.parse(date)); } catch (Exception ignored) {} new DatePickerDialog(this, (picker, year, month, day) -> attendanceClassForDate(grade, classroom, String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month+1, day)), cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show(); });
+        page("الحضور: " + grade + " / " + classroom);
+        addCard("التاريخ المحدد", date);
+        Button chooseDate = btn("📅 اختيار تاريخ آخر");
+        content.addView(chooseDate, new LinearLayout.LayoutParams(-1, dp(48)));
+        chooseDate.setOnClickListener(v -> { java.util.Calendar cal = java.util.Calendar.getInstance(); try { java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US); cal.setTime(sdf.parse(date)); } catch (Exception ignored) {} new DatePickerDialog(this, (picker, year, month, day) -> attendanceClassForDate(grade, classroom, String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month+1, day)), cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show(); });
         ArrayList<String[]> students = studentsForClass(grade, classroom);
 
         if (students.isEmpty()) {
