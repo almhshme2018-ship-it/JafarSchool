@@ -22,7 +22,7 @@ import java.util.*;
 public class MainActivity extends Activity {
 
     LinearLayout root, content;
-    DB db;
+    DB db;\n    static final int PICK_EXAM_LOGO=7721;\n    Bitmap examLogo;
 
     String role = "القائم بأعمال المدير";
     String currentUser = "";
@@ -1929,10 +1929,10 @@ public class MainActivity extends Activity {
         android.content.SharedPreferences pref=getSharedPreferences("exam_header",MODE_PRIVATE);
         EditText right=edit("الجهة اليمنى: الجمهورية و الوزارة و المحافظة");right.setText(pref.getString("right","الجمهورية اليمنية\\nوزارة التربية والتعليم\\nمحافظة: ........"));
         EditText left=edit("الجهة اليسرى: المكتب والمديرية والمدرسة والصف");left.setText(pref.getString("left","مكتب التربية والتعليم مديرية: ........\\nمدرسة: جعفر بن أبي طالب الأساسية\\nالصف:"));
-        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.addView(right);box.addView(left);
+        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.addView(right);box.addView(left);\n        Button logoBtn=btn("🖼️ اختيار شعار من الهاتف");box.addView(logoBtn);logoBtn.setOnClickListener(v->{Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT);pick.setType("image/*");pick.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(pick,PICK_EXAM_LOGO);});\n        Button removeLogo=btn("إزالة الشعار");box.addView(removeLogo);removeLogo.setOnClickListener(v->{getSharedPreferences("exam_header",MODE_PRIVATE).edit().remove("logo").apply();examLogo=null;Toast.makeText(this,"تم إزالة الشعار",Toast.LENGTH_SHORT).show();});
         new AlertDialog.Builder(this).setTitle("ترويسة بطاقات النتائج").setView(box).setPositiveButton("حفظ",(d,w)->pref.edit().putString("right",right.getText().toString()).putString("left",left.getText().toString()).apply()).setNegativeButton("إلغاء",null).show();
     }
-    void manageSubjects(){
+\n    Bitmap getExamLogo(){if(examLogo!=null)return examLogo;String u=getSharedPreferences("exam_header",MODE_PRIVATE).getString("logo","");if(u.isEmpty())return null;try(InputStream in=getContentResolver().openInputStream(Uri.parse(u))){examLogo=BitmapFactory.decodeStream(in);return examLogo;}catch(Exception e){return null;}}\n    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode==PICK_EXAM_LOGO&&resultCode==RESULT_OK&&data!=null&&data.getData()!=null){Uri u=data.getData();try{getContentResolver().takePersistableUriPermission(u,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignored){}getSharedPreferences("exam_header",MODE_PRIVATE).edit().putString("logo",u.toString()).apply();examLogo=null;Toast.makeText(this,"تم اختيار الشعار، سيظهر في بطاقات النتائج",Toast.LENGTH_LONG).show();}}\n    void manageSubjects(){
         page("إدارة المواد");
         Button add=btn("＋ إضافة مادة");content.addView(add,new LinearLayout.LayoutParams(-1,dp(48)));add.setOnClickListener(v->{EditText e=edit("اسم المادة");new AlertDialog.Builder(this).setTitle("إضافة مادة").setView(e).setPositiveButton("حفظ",(d,w)->{if(db.addSubject(e.getText().toString()))manageSubjects();else Toast.makeText(this,"تعذر إضافة المادة (قد تكون موجودة)",Toast.LENGTH_SHORT).show();}).setNegativeButton("إلغاء",null).show();});
         for(String subject:db.subjects()){LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);TextView name=tv(subject,14,true);row.addView(name,new LinearLayout.LayoutParams(0,dp(50),1));Button edit=smallBtn("تعديل",BLUE);row.addView(edit);Button del=smallBtn("حذف",RED);row.addView(del);content.addView(row);edit.setOnClickListener(v->{EditText e=edit("اسم المادة");e.setText(subject);new AlertDialog.Builder(this).setTitle("تعديل المادة").setView(e).setPositiveButton("حفظ",(d,w)->{db.renameSubject(subject,e.getText().toString());manageSubjects();}).setNegativeButton("إلغاء",null).show();});del.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("حذف المادة").setMessage("سيتم حذف سجلات درجات هذه المادة. هل تريد المتابعة؟").setPositiveButton("حذف",(d,w)->{db.removeSubject(subject);manageSubjects();}).setNegativeButton("إلغاء",null).show());}
