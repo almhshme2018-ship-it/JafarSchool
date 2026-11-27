@@ -13,7 +13,7 @@ import java.util.Locale;
 import java.security.SecureRandom;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import java.util.Base64;
+import android.util.Base64;
 
 public class DB extends SQLiteOpenHelper {
 
@@ -150,8 +150,8 @@ public class DB extends SQLiteOpenHelper {
             byte[] hash = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
                 .generateSecret(spec).getEncoded();
             spec.clearPassword();
-            return "PBKDF2$120000$" + Base64.getEncoder().encodeToString(salt)
-                + "$" + Base64.getEncoder().encodeToString(hash);
+            return "PBKDF2$120000$" + Base64.encodeToString(salt, Base64.NO_WRAP)
+                + "$" + Base64.encodeToString(hash, Base64.NO_WRAP);
         } catch (Exception e) {
             throw new IllegalStateException("تعذر حماية كلمة المرور", e);
         }
@@ -162,8 +162,8 @@ public class DB extends SQLiteOpenHelper {
         try {
             String[] parts = stored.split("\\$");
             int iterations = Integer.parseInt(parts[1]);
-            byte[] salt = Base64.getDecoder().decode(parts[2]);
-            byte[] expected = Base64.getDecoder().decode(parts[3]);
+            byte[] salt = Base64.decode(parts[2], Base64.NO_WRAP);
+            byte[] expected = Base64.decode(parts[3], Base64.NO_WRAP);
             PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, iterations, expected.length * 8);
             byte[] actual = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
                 .generateSecret(spec).getEncoded();
