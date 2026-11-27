@@ -1500,6 +1500,7 @@ public class MainActivity extends Activity {
 
     void reports() {
         page("📈 التقارير");
+        if(admin()){ Button subjectsManage=btn("📚 إدارة المواد (إضافة/تعديل/حذف)"); content.addView(subjectsManage,new LinearLayout.LayoutParams(-1,dp(50))); subjectsManage.setOnClickListener(v->manageSubjects()); Button schoolHeader=btn("⚙️ إعداد ترويسة كشف النتائج");content.addView(schoolHeader,new LinearLayout.LayoutParams(-1,dp(50)));schoolHeader.setOnClickListener(v->editExamHeader()); }
         addCard(
             "إحصاءات المدرسة",
             "عدد الطلاب: " + safeCount("students") + "\nعدد المعلمين: " + safeCount("teachers")
@@ -1905,6 +1906,38 @@ public class MainActivity extends Activity {
         savePdf(document, "class_detailed_sheet_" + grade + "_" + classroom + ".pdf");
     }
 
+
+    int semesterRank(ArrayList<String[]> students, String sid, int semester){
+        double mine=semesterStudentTotal(sid,semester); int rank=1;
+        for(String[] s:students) if(s!=null&&s.length>1&&!s[1].equals(sid)&&semesterStudentTotal(s[1],semester)>mine)rank++;
+        return rank;
+    }
+    double semesterStudentTotal(String sid,int sem){double t=0;for(String sub:db.subjects())t+=db.getMahsala(sid,sub,sem)+db.getExam(sid,sub,sem);return t;}
+    void drawExamCardHeader(Canvas canvas,Paint p,int left,int right,int top,String grade,String classroom){
+        android.content.SharedPreferences pref=getSharedPreferences("exam_header",MODE_PRIVATE);
+        String rightText=pref.getString("right","الجمهورية اليمنية\\nوزارة التربية والتعليم\\nمحافظة: ........");
+        String leftText=pref.getString("left","مكتب التربية والتعليم مديرية: ........\\nمدرسة: جعفر بن أبي طالب الأساسية\\nالصف: "+grade+" / "+classroom);
+        p.setTextSize(7.5f);p.setFakeBoldText(true);p.setTextAlign(Paint.Align.RIGHT);
+        drawMultiline(canvas,rightText,right-8,top+13,p,9);
+        p.setTextAlign(Paint.Align.LEFT);drawMultiline(canvas,leftText,left+8,top+13,p,9);
+        p.setTextAlign(Paint.Align.CENTER);p.setTextSize(24);canvas.drawText("🦅",widthCenter(left,right),top+30,p);
+        p.setTextSize(7);canvas.drawText("النسر اليمني",widthCenter(left,right),top+43,p);p.setFakeBoldText(false);
+    }
+    float widthCenter(int l,int r){return (l+r)/2f;}
+    void drawMultiline(Canvas c,String str,float x,float y,Paint p,float lineHeight){String[] lines=str.split("\\n");for(int i=0;i<Math.min(lines.length,3);i++)c.drawText(lines[i],x,y+i*lineHeight,p);}
+    void editExamHeader(){
+        android.content.SharedPreferences pref=getSharedPreferences("exam_header",MODE_PRIVATE);
+        EditText right=edit("الجهة اليمنى: الجمهورية و الوزارة و المحافظة");right.setText(pref.getString("right","الجمهورية اليمنية\\nوزارة التربية والتعليم\\nمحافظة: ........"));
+        EditText left=edit("الجهة اليسرى: المكتب والمديرية والمدرسة والصف");left.setText(pref.getString("left","مكتب التربية والتعليم مديرية: ........\\nمدرسة: جعفر بن أبي طالب الأساسية\\nالصف:"));
+        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.addView(right);box.addView(left);
+        new AlertDialog.Builder(this).setTitle("ترويسة بطاقات النتائج").setView(box).setPositiveButton("حفظ",(d,w)->pref.edit().putString("right",right.getText().toString()).putString("left",left.getText().toString()).apply()).setNegativeButton("إلغاء",null).show();
+    }
+    void manageSubjects(){
+        page("إدارة المواد");
+        Button add=btn("＋ إضافة مادة");content.addView(add,new LinearLayout.LayoutParams(-1,dp(48)));add.setOnClickListener(v->{EditText e=edit("اسم المادة");new AlertDialog.Builder(this).setTitle("إضافة مادة").setView(e).setPositiveButton("حفظ",(d,w)->{if(db.addSubject(e.getText().toString()))manageSubjects();else Toast.makeText(this,"تعذر إضافة المادة (قد تكون موجودة)",Toast.LENGTH_SHORT).show();}).setNegativeButton("إلغاء",null).show();});
+        for(String subject:db.subjects()){LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);TextView name=tv(subject,14,true);row.addView(name,new LinearLayout.LayoutParams(0,dp(50),1));Button edit=smallBtn("تعديل",BLUE);row.addView(edit);Button del=smallBtn("حذف",RED);row.addView(del);content.addView(row);edit.setOnClickListener(v->{EditText e=edit("اسم المادة");e.setText(subject);new AlertDialog.Builder(this).setTitle("تعديل المادة").setView(e).setPositiveButton("حفظ",(d,w)->{db.renameSubject(subject,e.getText().toString());manageSubjects();}).setNegativeButton("إلغاء",null).show();});del.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("حذف المادة").setMessage("سيتم حذف سجلات درجات هذه المادة. هل تريد المتابعة؟").setPositiveButton("حذف",(d,w)->{db.removeSubject(subject);manageSubjects();}).setNegativeButton("إلغاء",null).show());}
+    }
+
     private void drawCenteredText(Canvas canvas, String text, int left, int top, int width, int height, Paint paint, float textSize) {
         paint.setTextSize(textSize);
         float textWidth = paint.measureText(text);
@@ -1960,8 +1993,7 @@ public class MainActivity extends Activity {
 
                     text.setTextSize(9);
                     text.setFakeBoldText(true);
-                    canvas.drawText("الجمهورية اليمنية - وزارة التربية والتعليم", width / 2f, top + 16, text);
-                    canvas.drawText("مدرسة جعفر بن أبي طالب الأساسية", width / 2f, top + 31, text);
+                    drawExamCardHeader(canvas, text, left, right, top, grade, classroom);
 
                     text.setTextSize(11);
                     canvas.drawText(
@@ -1974,8 +2006,8 @@ public class MainActivity extends Activity {
                     canvas.drawText("اسم الطالب: " + studentName, width / 2f, top + 62, text);
                     canvas.drawText("الصف: " + grade + "     الشعبة: " + classroom + "     الرقم: " + studentId, width / 2f, top + 75, text);
 
-                    int tableTop = top + 83;
-                    int rowHeight = 13;
+                    int tableTop = top + 96;
+                    int rowHeight = 15;
                     int[] colX = {right - 5, right - 155, right - 235, right - 315, right - 390, left + 5};
 
                     text.setTextSize(8);
@@ -1993,7 +2025,7 @@ public class MainActivity extends Activity {
                     double total = 0;
                     int y = tableTop + rowHeight;
 
-                    for (String subject : SUBJECTS_7) {
+                    for (String subject : db.subjects()) {
                         double m = db.getMahsala(studentId, subject, semester);
                         double e = db.getExam(studentId, subject, semester);
                         double subjectTotal = m + e;
@@ -2015,9 +2047,10 @@ public class MainActivity extends Activity {
                     int summaryY = y + 12;
                     text.setTextSize(9);
                     text.setFakeBoldText(true);
-                    canvas.drawText("المجموع: " + formatNumber(total) + " / " + (SUBJECTS_7.length * 50), width / 2f, summaryY, text);
+                    int subjectCount = db.subjects().length;
+                    canvas.drawText("المجموع: " + formatNumber(total) + " / " + (subjectCount * 50), width / 2f, summaryY, text);
 
-                    double percentage = total / (SUBJECTS_7.length * 50.0) * 100.0;
+                    double percentage = subjectCount == 0 ? 0 : total / (subjectCount * 50.0) * 100.0;
                     text.setTextSize(8);
                     text.setFakeBoldText(false);
                     canvas.drawText(
