@@ -1331,6 +1331,61 @@ public class MainActivity extends Activity {
             .show();
     }
 
+    void attendanceReportDialog() {
+        ArrayList<String[]> classes = allowedClasses();
+        if (classes.isEmpty()) { Toast.makeText(this, "لا توجد صفوف", Toast.LENGTH_SHORT).show(); return; }
+        String[] options = new String[classes.size()];
+        for (int i=0;i<classes.size();i++) options[i]="الصف "+classes.get(i)[0]+" / "+classes.get(i)[1];
+        new AlertDialog.Builder(this).setTitle("اختر الصف والشعبة").setItems(options,(dlg,idx)->{
+            String grade=classes.get(idx)[0], classroom=classes.get(idx)[1];
+            java.util.Calendar start=java.util.Calendar.getInstance(), end=java.util.Calendar.getInstance();
+            java.text.SimpleDateFormat sdf=new java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.US);
+            java.util.Date[] dates={start.getTime(),end.getTime()};
+            DatePickerDialog first=new DatePickerDialog(this,(p,y,mo,day)->{
+                dates[0]=calendarDate(y,mo,day);
+                new DatePickerDialog(this,(p2,y2,mo2,day2)->{
+                    dates[1]=calendarDate(y2,mo2,day2);
+                    String a=sdf.format(dates[0]), b=sdf.format(dates[1]);
+                    if(a.compareTo(b)>0){String tmp=a;a=b;b=tmp;}
+                    attendanceReportView(grade,classroom,a,b);
+                },end.get(Calendar.YEAR),end.get(Calendar.MONTH),end.get(Calendar.DAY_OF_MONTH)).show();
+            },start.get(Calendar.YEAR),start.get(Calendar.MONTH),start.get(Calendar.DAY_OF_MONTH));
+            first.setTitle("حدد تاريخ البداية"); first.show();
+        }).setNegativeButton("إلغاء",null).show();
+    }
+
+    java.util.Date calendarDate(int year,int month,int day) {
+        java.util.Calendar c=java.util.Calendar.getInstance();
+        c.set(year,month,day,12,0,0); c.set(java.util.Calendar.MILLISECOND,0);
+        return c.getTime();
+    }
+
+    void attendanceReportView(String grade,String classroom,String start,String end) {
+        page("تقرير الغياب");
+        addCard("الصف "+grade+" / "+classroom,"الفترة: "+start+" إلى "+end);
+        ArrayList<String[]> rows=db.attendanceRangeForClass(grade,classroom,start,end);
+        if(rows.isEmpty()){addCard("التقرير","لا توجد سجلات في الفترة المحددة.");return;}
+        java.util.LinkedHashMap<String,int[]> totals=new java.util.LinkedHashMap<>();
+        for(String[] row:rows){
+            int[] values=totals.get(row[1]);
+            if(values==null){values=new int[4];totals.put(row[1],values);}
+            int count=Integer.parseInt(row[3]);
+            if("حاضر".equals(row[2]))values[0]+=count;
+            else if("غائب".equals(row[2]))values[1]+=count;
+            else if("متأخر".equals(row[2]))values[2]+=count;
+            else if("غائب بعذر".equals(row[2]))values[3]+=count;
+        }
+        for(String[] row:rows) { /* grouped counts assembled below */ }
+        ArrayList<String[]> names=new ArrayList<>();
+        for(String[] row:rows) if(!names.contains(row)) names.add(row);
+        for(String id:totals.keySet()) {
+            int[] t=totals.get(id);
+            String student="";
+            for(String[] row:rows) if(row[1].equals(id)){student=row[0];break;}
+            addCard(student,"حاضر: "+t[0]+"\nغائب: "+t[1]+"\nمتأخر: "+t[2]+"\nغائب بعذر: "+t[3]);
+        }
+    }
+
     void reports() {
         page("📈 التقارير");
         addCard(
@@ -1339,6 +1394,10 @@ public class MainActivity extends Activity {
                 + "\nحاضر اليوم: " + db.todayPresent() + "\nغائب اليوم: " + db.todayAbsent()
         );
 
+        Button absence = btn("📅 تقرير الغياب خلال فترة");
+        content.addView(absence, new LinearLayout.LayoutParams(-1, dp(52)));
+        absence.setOnClickListener(v -> attendanceReportDialog());
+        
         Button report = btn("📋 كشف نتائج الصف PDF");
         content.addView(report, new LinearLayout.LayoutParams(-1, dp(52)));
 
