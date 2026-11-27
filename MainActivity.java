@@ -735,6 +735,15 @@ public class MainActivity extends Activity {
         }
 
         addCard("ملخص الحضور", db.studentAttendanceSummary(id));
+        Button history = btn("📅 سجل الحضور الأخير");
+        content.addView(history,new LinearLayout.LayoutParams(-1,dp(48)));
+        history.setOnClickListener(v->{
+            ArrayList<String[]> records=db.studentAttendanceHistory(id,30);
+            if(records.isEmpty()){new AlertDialog.Builder(this).setTitle("سجل الحضور").setMessage("لا توجد سجلات حضور").setPositiveButton("إغلاق",null).show();return;}
+            StringBuilder text=new StringBuilder();
+            for(String[] record:records)text.append(record[0]).append("  —  ").append(record[1]).append("\\n");
+            new AlertDialog.Builder(this).setTitle("آخر 30 سجل حضور").setMessage(text.toString()).setPositiveButton("إغلاق",null).show();
+        });
     }
 
     ArrayList<String[]> allowedClasses() {
